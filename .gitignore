@@ -1,0 +1,13 @@
+# Personal and copyrighted resources
+assets/wallpapers/
+assets/fonts/
+
+# Temporary files
+scratch/
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+# Reproducible B7 raster build output; canonical SVGs stay tracked
+quickshell/archive/representation-raster/
