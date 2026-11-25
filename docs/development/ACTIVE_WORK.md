@@ -1,8 +1,8 @@
 # Active work and historical checkpoints
 
-## Current public topics and blockers — November 24, 2026
+## Current public topics and blockers — November 25, 2026
 
-The [current-state summary](CURRENT_STATE.md) records integrated implementation and exact checks; verify live source, PR heads and results before acting. The [roadmap](../archive-roadmap.md) records dependencies, not new assignments. Public baseline `38f218a5bae7d2ad0a37315d5fda6ab0a9d9a0bf` passed [CI 45533627218, attempt 2](https://github.com/Kaim-h/astral-archive/actions/runs/45533627218/attempts/2). Ordinary development remains paused until explicitly authorized.
+The [current-state summary](CURRENT_STATE.md) records integrated implementation and exact checks; verify live source, PR heads and results before acting. The [roadmap](../archive-roadmap.md) records dependencies, not new assignments. Public baseline `38f218a5bae7d2ad0a37315d5fda6ab0a9d9a0bf` passed [CI 45533627218, attempt 2](https://github.com/Kaim-h/astral-archive/actions/runs/45533627218/attempts/2). Main subsequently incorporated the [publication preflight policy](../PUBLICATION_PREFLIGHT.md) in PR #8 at `53b338db7d5651311f42ff8934f018e16d6f4e8d` without changing runtime or tests. See current state for the intermittent B6r7 browser-check failure observed on the documentation topic. Ordinary development remains paused until explicitly authorized.
 
 | Topic | Public PR / branch / exact head at this snapshot | Status and remaining obligation |
 |---|---|---|

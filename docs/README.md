@@ -8,6 +8,7 @@ Current source establishes implementation, accepted product requirements establi
 - [Contributor entry point](../AGENTS.md) — startup instructions.
 - [Topic workflow](development/TOPIC_WORKFLOW_AND_HANDOFF.md) — branch continuity, checkpoints and review.
 - [Asset guidance](assets.md) — redistribution and local-resource boundaries.
+- [Publication preflight](PUBLICATION_PREFLIGHT.md) — checks before public writes, metadata and disclosure review, and escalation of uncertain material.
 - [Licensing scope](../LICENSING.md) and [attribution](../ATTRIBUTION.md) — software, artwork, documentation and external terms.
 
 ## Technical index

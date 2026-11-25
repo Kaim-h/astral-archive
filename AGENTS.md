@@ -1,6 +1,6 @@
 # Astral Archive — contributor entry point
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for the technical, design, testing, documentation and Git rules applicable to all contributors, including automated tools. Start with [README.md](README.md) and the [documentation index](docs/README.md).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the technical, design, testing, documentation and Git rules applicable to all contributors, including automated tools. Start with [README.md](README.md) and the [documentation index](docs/README.md). Follow the [publication preflight](docs/PUBLICATION_PREFLIGHT.md) before any public write.
 
 Before editing, inspect current branch and head, open pull requests and the applicable source, tests and accepted technical requirements. Read current-state and active-work documents when available. Reuse the existing topic branch and PR. Never commit or push directly to main, force-push or rewrite published history. Merging, deleting branches and changing visibility require explicit owner authorization. Report exact checks, failures and limitations. Never infer runtime validation from static checks or prototypes.
 
