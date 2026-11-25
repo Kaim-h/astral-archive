@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Astral Archive · Scroll Physics Study P2</title>
+<style>
+:root{--bg:#121e23;--panel:#263c37;--metal:#8c6e5a;--engrave:#91ada1;--text:#e6e1d8;--quiet:#adbbb5;--glass:#101b1e}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:14px/1.48 system-ui,-apple-system,'Segoe UI',sans-serif}
+button,select,input{font:inherit}button{color:var(--text);border:1px solid color-mix(in srgb,var(--engrave) 42%,transparent);border-radius:8px;background:color-mix(in srgb,var(--panel) 86%,var(--metal));padding:9px 12px;cursor:pointer;transition:background .12s}button:hover:not(:disabled){background:color-mix(in srgb,var(--panel) 72%,var(--metal))}button:disabled{opacity:.35;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--metal);outline-offset:3px}button.primary{border-color:var(--metal)}select{background:var(--panel);color:var(--text);border:1px solid var(--metal);border-radius:8px;padding:7px}input[type=range]{accent-color:var(--engrave);width:100%}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 315px;min-height:100vh}.main{min-width:0;padding:24px 22px 24px;display:flex;flex-direction:column;gap:16px}aside{padding:24px 20px;background:color-mix(in srgb,var(--panel) 66%,var(--bg));border-left:1px solid color-mix(in srgb,var(--metal) 34%,transparent)}
+h1{font-family:Georgia,serif;font-size:27px;font-weight:400;letter-spacing:.04em;margin:3px 0 4px}.eyebrow{text-transform:uppercase;letter-spacing:.19em;color:var(--metal);font-size:10px}.sub{max-width:790px;color:var(--quiet);font-size:13px;margin:0}.head{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}.pill{border:1px solid var(--metal);color:var(--quiet);border-radius:999px;font-size:11px;padding:7px 10px}
+.stage{position:relative;min-height:625px;flex:1;background:linear-gradient(155deg,color-mix(in srgb,var(--bg) 84%,var(--panel)),var(--bg));border:1px solid color-mix(in srgb,var(--engrave) 28%,transparent);border-radius:14px;overflow:hidden;isolation:isolate}
+#scene{display:block;width:100%;height:min(70vw,690px);min-height:560px;touch-action:none;user-select:none}.cell-wall{stroke:var(--metal);stroke-width:10;stroke-linejoin:round;fill:var(--panel)}.cell-line{stroke:var(--engrave);stroke-width:1.6;fill:none;opacity:.56}.cell-backing{fill:var(--glass)}
+.scroll{cursor:grab;touch-action:none}.scroll:active{cursor:grabbing}.scroll .rim{stroke:color-mix(in srgb,var(--metal) 74%,#332c22);stroke-width:1.75}.scroll .paper{stroke:color-mix(in srgb,var(--text) 45%,transparent);stroke-width:1;fill:none;opacity:.65}.scroll .core{fill:#907452;stroke:#4d4234;stroke-width:1}.scroll .fiber{fill:none;stroke:#755e47;stroke-width:1;opacity:.6}.scroll.selected .select{stroke:var(--engrave);stroke-width:2;stroke-dasharray:4 3}.scroll.staged .select{stroke:var(--metal);stroke-width:2.4;stroke-dasharray:3 3}.scroll .select{stroke:transparent;fill:none}.scroll.lowering .rim{stroke:var(--engrave);stroke-dasharray:4 2}.scroll.lowering{opacity:.78}.cursor-line{stroke:var(--engrave);stroke-width:1.7;stroke-dasharray:5 5;opacity:.7;pointer-events:none}.cursor-dot{fill:none;stroke:var(--text);stroke-width:1.3;opacity:.8;pointer-events:none}
+.tray-zone{fill:color-mix(in srgb,var(--panel) 80%,transparent);stroke:color-mix(in srgb,var(--engrave) 55%,transparent);stroke-dasharray:4 5;stroke-width:1.5}.tray-hint{fill:var(--quiet);font-size:11px;text-anchor:middle;pointer-events:none}.tray-body{cursor:grab;touch-action:none}.tray-body:active{cursor:grabbing}.tray-body .rim{stroke:var(--metal);stroke-width:2}.mark-ring{stroke:var(--engrave);stroke-width:2;fill:color-mix(in srgb,var(--engrave) 12%,transparent);stroke-dasharray:5 4;pointer-events:none}.mark-ring.invalid{stroke:#c98780;fill:rgba(189,64,63,.1)}
+#voidPath{transition:fill-opacity .1s} .mark-ring.crowded{stroke:#d8b373;fill:rgba(216,179,115,.12)}
+.tray-name{fill:var(--text);font-size:11px;text-anchor:middle;pointer-events:none}.tray-banner{font-size:10px;fill:var(--quiet);text-anchor:middle;pointer-events:none}
+.badge{position:absolute;left:15px;top:14px;pointer-events:none;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid color-mix(in srgb,var(--engrave) 35%,transparent);border-radius:9px;padding:9px 11px;font-size:12px;color:var(--quiet);max-width:255px}.badge b{color:var(--text);font-weight:600}
+.status{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:11px 13px;background:color-mix(in srgb,var(--panel) 50%,var(--bg));border:1px solid color-mix(in srgb,var(--engrave) 24%,transparent);border-radius:9px;color:var(--quiet);font-size:12px;min-height:44px}.status strong{color:var(--text)}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.13em;margin:0 0 11px;color:var(--engrave)}.group{border-bottom:1px solid color-mix(in srgb,var(--engrave) 25%,transparent);padding:0 0 18px;margin:0 0 19px}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.wide{grid-column:1/-1}.field{margin:13px 0}.fieldtop{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--quiet)}output{font-variant-numeric:tabular-nums;color:var(--metal)}.hint{color:var(--quiet);font-size:11px;line-height:1.55;margin:9px 0 0}.key{display:inline-block;border:1px solid color-mix(in srgb,var(--metal) 55%,transparent);border-radius:4px;padding:0 4px;font-size:10px}
+#diagnostics{background:color-mix(in srgb,var(--bg) 90%,var(--panel));padding:10px 12px;border:1px solid color-mix(in srgb,var(--metal) 35%,transparent);border-radius:8px;color:var(--quiet);font-size:11px;line-height:1.8;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap}
+#tooltip{position:fixed;z-index:40;display:none;pointer-events:none;min-width:255px;max-width:340px;background:color-mix(in srgb,var(--panel) 96%,var(--bg));border:1px solid var(--metal);border-radius:9px;box-shadow:0 12px 40px #0007;padding:12px;color:var(--text);font-size:12px}.tipcore{display:flex;align-items:center;gap:11px}.seal{width:43px;height:43px;flex:none;border-radius:50%;background:var(--wax);border:3px double #e1d5bc78;box-shadow:inset 1px 2px 4px #0006,0 1px 3px #0008;display:grid;place-items:center;font-size:21px;color:#fff9ec}.tipname{font-weight:650;font-size:13px;overflow-wrap:anywhere}.tipdate{font-size:11px;color:var(--quiet);margin-top:4px}.tipdetails{margin-top:12px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--engrave) 28%,transparent);display:grid;grid-template-columns:78px minmax(0,1fr);gap:6px 10px}.tipdetails span:nth-child(odd){color:var(--quiet)}.tipdetails span{overflow-wrap:anywhere}.tipfooter{margin-top:9px;color:var(--quiet);font-size:10px}
+@media(max-width:1000px){.shell{grid-template-columns:1fr}aside{border-left:none;border-top:1px solid var(--metal)}.stage{min-height:520px}#scene{height:600px;min-height:500px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
+</style>
+</head>
+<body>
+<div class="shell">
+ <main class="main">
+  <div class="head"><div><div class="eyebrow">The Astral Archive · Material & motion studies</div><h1>Scroll Physics · Study P2R</h1><p class="sub">Restored Storage Workshop insertion: select a real empty region, mark a crowded target if needed, insert into it or drop from the top. The pile responds under live physics.</p></div><span class="pill">Fixed 120 Hz · Offline · Synthetic scrolls</span></div>
+  <section class="stage" aria-label="Interactive scroll cell">
+   <svg id="scene" viewBox="0 0 1020 750" role="img" aria-label="Drag parchment scroll ends inside a hexagonal cell">
+    <defs>
+      <clipPath id="cellClip"><polygon id="clipPoly"/></clipPath>
+      <mask id="voidMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1020" height="750"><rect x="0" y="0" width="1020" height="750" fill="white"/><g id="voidMaskBodies"></g></mask>
+      <radialGradient id="paperGrad" cx="37%" cy="30%" r="85%"><stop offset="0" stop-color="#f0ddae"/><stop offset=".68" stop-color="#d3b789"/><stop offset="1" stop-color="#ad8d65"/></radialGradient>
+    </defs>
+    <polygon id="backPoly" class="cell-backing"/><polygon id="wallPoly" class="cell-wall"/>
+    <polygon id="innerPoly" class="cell-line"/>
+    <g id="voidLayer" clip-path="url(#cellClip)" style="pointer-events:none"><path id="voidPath" fill="var(--engrave)" fill-opacity=".23" stroke="var(--engrave)" stroke-opacity=".9" stroke-width="1.7" stroke-dasharray="5 4" style="display:none" mask="url(#voidMask)"/></g>
+    <g id="scrolls"></g>
+    <g id="markLayer" style="display:none"><circle id="markRing" class="mark-ring" r="22"/><circle id="markDot" cx="0" cy="0" r="3.5" fill="var(--engrave)"/></g>
+    <g id="trayLayer"><rect class="tray-zone" x="868" y="287" width="128" height="184" rx="14"/><text class="tray-hint" x="932" y="315">INSERTION TRAY</text><g id="trayBody" class="tray-body" style="display:none"><circle class="rim" r="25" fill="url(#paperGrad)"/><circle class="paper" r="18" fill="none" stroke="var(--engrave)"/><circle class="core" r="3.5" fill="#907452"/></g><text id="trayName" class="tray-name" x="932" y="435"></text><text id="trayBanner" class="tray-banner" x="932" y="458">Prepare a scroll below</text></g>
+    <g id="dragCue" style="display:none"><line id="tether" class="cursor-line"/><circle id="cursorCue" class="cursor-dot" r="9"/></g>
+   </svg>
+   <div class="badge"><b>Physical drag</b><div>Hover empty gaps to highlight · click to select.</div><div>Release to settle · <span class="key">Esc</span> to cancel</div></div>
+  </section>
+  <div class="status"><span id="status"><strong>Ready.</strong> Drag a scroll to disturb the pile.</span><span id="counter">0 scrolls</span></div>
+ </main>
+ <aside>
+  <div class="group"><h2>Experiment</h2><div class="grid2">
+   <button id="openPreset">Roomy pile</button><button id="crowdedPreset">Crowded pile</button>
+   <button id="prepare" class="primary">Prepare scroll</button><button id="insertMark" disabled>Insert at selected void</button>
+   <button id="stage">Drop from top</button><button id="lift">Lift selected</button>
+   <button id="returnHeld" disabled>Return held</button><button id="cancel" disabled>Cancel action</button>
+   <button id="undo">Undo</button><button id="reset">Reset current</button>
+  </div><div class="field"><div class="fieldtop"><label for="newSize">Inserted scroll size</label><output id="newSizeOut">24</output></div><input id="newSize" type="range" min="18" max="30" step="3" value="24"></div><label class="checkline" style="display:flex;gap:9px;align-items:center;color:var(--quiet);font-size:12px"><input id="showVoids" type="checkbox" checked> Highlight actual empty regions</label><p id="voidInfo" class="hint">Prepare a scroll to examine the spaces between the pile.</p><p class="hint"><strong>Storage Workshop workflow:</strong> Hover an empty region to highlight its shape, then click to select it and automatically prepare a scroll. You can also Lift an existing scroll first. Use <b>Insert at selected void</b> or drag the scroll from the tray. <b>Shift-click</b> a crowded point to try forcing neighbors aside. <b>Drop from top</b> uses a genuinely open entrance. If settling fails, the original layout returns.</p></div>
+  <div class="group"><h2>Physical feel</h2><div class="field"><div class="fieldtop"><label for="gravity">Gravity</label><output id="gravityOut">150</output></div><input id="gravity" type="range" min="60" max="540" step="10" value="150"></div><div class="field"><div class="fieldtop"><label for="lively">Liveliness</label><output id="livelyOut">100%</output></div><input id="lively" type="range" min="0" max="100" step="5" value="100"></div><button id="defaults">Restore default feel</button><p class="hint">Your preferred defaults: gravity 150, liveliness 100%. A faster, better-damped hand tether remains force-limited so the scroll cannot tunnel through neighbors.</p></div>
+  <div class="group"><h2>Selected scroll</h2><p id="selection" class="hint">Click a scroll to select it and inspect its metadata. Dragging begins after a small movement threshold.</p><p id="tray" class="hint">Holding tray: empty</p><p class="hint">Click shows the established seal card. Hover keeps it compact.</p></div>
+  <div class="group"><h2>Diagnostics</h2><details id="details"><summary style="cursor:pointer;color:var(--quiet);font-size:12px">Show collision information</summary><div id="diagnostics" style="margin-top:10px">No active simulation</div></details><p class="hint">Deterministic starting layouts and a transactional cancel/undo are included. Only the active cell simulates; it sleeps when quiet.</p></div>
+  <div><h2>Current scope</h2><p class="hint">This is a physics behavior test, not the integrated B4 cubby. It deliberately keeps one hex cell and a small number of controls. The real file system and native Quickshell remain untouched.</p></div>
+ </aside>
+</div>
+<div id="tooltip" role="status" aria-live="off"></div>
+<script>
+(()=>{'use strict';
+const NS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);const svg=$('scene'),drawLayer=$('scrolls');
+const CX=560,CY=385,R=282,STEP=1/120;
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const vertices=Array.from({length:6},(_,i)=>{const a=Math.PI/6+i*Math.PI/3;return{x:CX+R*Math.cos(a),y:CY+R*Math.sin(a)}});
+const polyString=vertices.map(p=>p.x.toFixed(4)+','+p.y.toFixed(4)).join(' ');
+for(const id of ['clipPoly','backPoly','wallPoly','innerPoly'])$(id).setAttribute('points',polyString);
+const edges=vertices.map((p,i)=>{const q=vertices[(i+1)%6];const dx=q.x-p.x,dy=q.y-p.y,L=Math.hypot(dx,dy);let nx=-dy/L,ny=dx/L;const mid={x:(p.x+q.x)/2,y:(p.y+q.y)/2};if((CX-mid.x)*nx+(CY-mid.y)*ny<0){nx=-nx;ny=-ny;}return{p,q,nx,ny};});
+const inside=(x,y,r)=>edges.every(e=>(x-e.p.x)*e.nx+(y-e.p.y)*e.ny>=r-1e-5);
+const files=[
+'config.toml','app.py','README.md','debug.log','catalogue.json','archive.txt','renderer.js','report.pdf','startup.sh','settings.ini','notes.md','engine.py','events.log','build.gradle','index.ts','license.txt','session.conf','shader.glsl','tasks.py','journal.md','manifest.toml','output.log','paths.json','theme.css','constants.py','status.txt','layout.yaml','trace.log','bookmarks.md','build.sh','cache.db','user.cfg','methods.md','report.txt','system.service','staging.py','map.js','index.json','diagnostic.log','samples.txt','preview.md','config.ini','parsing.py','scratch.txt','backup.log','runner.sh','autostart.conf','readme.txt','routes.ts','notes-v2.md','temp.data','tools.py','schema.json','state.log','temp.conf','archive.md','rules.sh','render.js','example.txt','utility.py','task.log','scene.cfg','index.md'];
+const purpose=name=> /\.(py|js|ts|css|sh|glsl|gradle)$/.test(name)?'code':/\.(toml|ini|conf|cfg|yaml|json)$/.test(name)?'config':/\.(service)$/.test(name)?'system':/\.log$/.test(name)?'logs':'document';
+const seals={code:{wax:'#547b89',sym:'⌘',name:'Code & scripts'},config:{wax:'#b08a49',sym:'⚙',name:'Configuration'},system:{wax:'#8b3f47',sym:'⬡',name:'System'},logs:{wax:'#68747a',sym:'≡',name:'Logs'},document:{wax:'#8c685a',sym:'✒',name:'Documents'}};
+const state={voidAtlas:null,voidAnchor:null,voidHover:null,showVoids:true,voidDirty:true,bodies:[],nextId:1,preset:'roomy',selected:null,pointer:null,drag:null,transaction:null,history:[],held:null,stagedId:null,active:false,settleFrames:0,simFrames:0,lastStats:{contacts:0,overlap:0,outside:0,maxSpeed:0,stepMove:0},gravity:150,lively:100,insertion:null,newSize:24,message:'',hover:null,tipPinned:null,raf:0,lastFrame:0,accumulator:0,dirty:true,transient:false};
+function random(seed){let s=seed>>>0;return ()=>{s=(Math.imul(1664525,s)+1013904223)>>>0;return s/4294967296;}}
+function makeBody(id,name,r,x,y){return{id,name,r,x,y,vx:0,vy:0,m:r*r,staged:false};}
+function cloneBody(b){return{...b};}
+function cloneInsertion(a){return a?{...a,mark:a.mark?{...a.mark}:null}:null;}
+function snapshot(){return{bodies:state.bodies.map(cloneBody),nextId:state.nextId,selected:state.selected,held:state.held?cloneBody(state.held):null,stagedId:state.stagedId,preset:state.preset,insertion:cloneInsertion(state.insertion),voidAnchor:state.voidAnchor?{...state.voidAnchor}:null};}
+function restore(s){state.bodies=s.bodies.map(cloneBody);state.nextId=s.nextId;state.selected=s.selected;state.held=s.held?cloneBody(s.held):null;state.stagedId=s.stagedId;state.preset=s.preset;state.insertion=cloneInsertion(s.insertion);state.voidAnchor=s.voidAnchor?{...s.voidAnchor}:null;state.voidHover=null;state.voidDirty=true;state.voidAtlas=null;if(state.insertion){state.insertion.started=false;state.insertion.phase='ready';}state.drag=null;state.pointer=null;state.transaction=null;state.tipPinned=null;state.active=false;state.settleFrames=0;state.accumulator=0;state.lastFrame=0;state.hover=null;drawFull();refreshVoids();updateUI();}
+function beginAction(label){if(state.transaction)return false;state.transaction={before:snapshot(),label,started:performance.now()};return true;}
+function commitAction(){if(!state.transaction)return;state.history.push({...state.transaction,before:state.transaction.before});if(state.history.length>24)state.history.shift();state.transaction=null;updateUI();}
+function cancelAction(){if(!state.transaction)return;const snap=state.transaction.before;const label=state.transaction.label;restore(snap);say('Reverted '+label.toLowerCase()+'.');}
+function say(msg){state.message=msg;renderStatus();}
+function renderStatus(){const count=state.bodies.length;const motion=state.drag?' · dragging':state.insertion?.phase==='settling'?' · inserting':state.insertion?.phase==='ready'?' · insertion ready':state.stagedId?' · staged':state.active?' · moving':' · settled';$('status').innerHTML='<strong>'+esc(state.message||'Ready.')+'</strong>'+motion;$('counter').textContent=count+' scroll'+(count===1?'':'s');}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function closestEntrance(x,r,bodies){const yStart=CY-R+2*r+6;const x0=clamp(x,CX-R*.75,CX+R*.75);let best=null;
+ for(let row=0;row<=26;row++){const y=yStart+row*3.7;if(y>CY-R*.25)break;
+  for(let offset=0;offset<=48;offset++){for(const sign of offset===0?[1]:[-1,1]){const xx=x0+sign*offset*5;if(!inside(xx,y,r+1))continue;if(bodies.some(b=>Math.hypot(b.x-xx,b.y-y)<b.r+r+2.3))continue;
+  const score=row*5+Math.abs(xx-x)*.24;if(!best||score<best.score)best={x:xx,y,score};}
+  }
+  if(best)break;
+ }return best;
+}
+
+// Restored from Storage Workshop v5.12: empty-space regions are connected
+// components in a clearance field, not arbitrary sample points or green dots.
+const VOID_STEP=3.0;
+function makeVoidAtlas(){
+ const x0=CX-R*Math.cos(Math.PI/6),x1=CX+R*Math.cos(Math.PI/6),y0=CY-R,y1=CY+R;
+ const nx=Math.ceil((x1-x0)/VOID_STEP),ny=Math.ceil((y1-y0)/VOID_STEP),n=nx*ny;
+ const clear=new Float32Array(n),labels=new Int32Array(n);labels.fill(-1);
+ const bodies=state.bodies.filter(b=>!b.incoming);
+ for(let y=0;y<ny;y++)for(let x=0;x<nx;x++){
+  const k=y*nx+x,px=x0+(x+.5)*VOID_STEP,py=y0+(y+.5)*VOID_STEP;
+  let d=Infinity;
+  for(const e of edges)d=Math.min(d,(px-e.p.x)*e.nx+(py-e.p.y)*e.ny);
+  if(d<=0){clear[k]=d;continue;}
+  for(const b of bodies)d=Math.min(d,Math.hypot(px-b.x,py-b.y)-bodyRadius(b));
+  clear[k]=d;
+ }
+ const adj=k=>{const x=k%nx,y=Math.floor(k/nx),out=[];
+  if(x>0)out.push(k-1);if(x<nx-1)out.push(k+1);
+  if(y>0)out.push(k-nx);if(y<ny-1)out.push(k+nx);return out;};
+ const cores=[],seen=new Uint8Array(n),threshold=3.5;
+ for(let k=0;k<n;k++){
+  if(clear[k]<=threshold||seen[k])continue;
+  const queue=[k],pixels=[];seen[k]=1;let peak=k;
+  for(let qi=0;qi<queue.length;qi++){
+   const z=queue[qi];pixels.push(z);if(clear[z]>clear[peak])peak=z;
+   for(const zz of adj(z))if(!seen[zz]&&clear[zz]>threshold){seen[zz]=1;queue.push(zz);}
+  }
+  if(pixels.length>=2)cores.push({peak,pixels});
+ }
+ const regions=[],queue=[];
+ function add(group){const id=regions.length;let pk=group.peak;
+  const r={id,peak:pk,pixels:[],area:0,path:'',x:x0+((pk%nx)+.5)*VOID_STEP,y:y0+(Math.floor(pk/nx)+.5)*VOID_STEP,maxClear:clear[pk]};
+  regions.push(r);for(const k of group.pixels){labels[k]=id;r.pixels.push(k);queue.push(k);}
+ }
+ cores.forEach(add);
+ if(!regions.length){let pk=-1;for(let k=0;k<n;k++)if(clear[k]>.2&&(pk<0||clear[k]>clear[pk]))pk=k;
+  if(pk>=0)add({peak:pk,pixels:[pk]});}
+ for(let qi=0;qi<queue.length;qi++){
+  const z=queue[qi],id=labels[z];for(const zz of adj(z))if(clear[zz]>.2&&labels[zz]<0){labels[zz]=id;regions[id].pixels.push(zz);queue.push(zz);}
+ }
+ for(let k=0;k<n;k++)if(clear[k]>.2&&labels[k]<0){
+  const q=[k],pixels=[];labels[k]=-2;
+  for(let qi=0;qi<q.length;qi++){const z=q[qi];pixels.push(z);
+   for(const zz of adj(z))if(clear[zz]>.2&&labels[zz]===-1){labels[zz]=-2;q.push(zz);}}
+  add({peak:k,pixels});
+ }
+ for(const r of regions){r.area=r.pixels.length*VOID_STEP**2;r.path=traceVoid(r,labels,nx,ny,x0,y0);}
+ return {regions,labels,clear,x0,y0,nx,ny,step:VOID_STEP};
+}
+function traceVoid(region,labels,nx,ny,x0,y0){
+ const edgeList=[],adj=new Map();
+ function push(ax,ay,bx,by){const k=ax+','+ay,idx=edgeList.length;edgeList.push({ax,ay,bx,by,used:false});if(!adj.has(k))adj.set(k,[]);adj.get(k).push(idx);}
+ for(const k of region.pixels){const x=k%nx,y=Math.floor(k/nx);
+  if(y===0||labels[k-nx]!==region.id)push(x,y,x+1,y);
+  if(x===nx-1||labels[k+1]!==region.id)push(x+1,y,x+1,y+1);
+  if(y===ny-1||labels[k+nx]!==region.id)push(x+1,y+1,x,y+1);
+  if(x===0||labels[k-1]!==region.id)push(x,y+1,x,y);
+ }
+ const loops=[];
+ for(let i=0;i<edgeList.length;i++){
+  if(edgeList[i].used)continue;
+  const loop=[],start=edgeList[i].ax+','+edgeList[i].ay;let idx=i,guard=0;
+  while(idx!==undefined&&guard++<edgeList.length+2){const e=edgeList[idx];if(e.used)break;e.used=true;loop.push({x:e.ax,y:e.ay});
+   const key=e.bx+','+e.by;if(key===start)break;idx=(adj.get(key)||[]).find(n=>!edgeList[n].used);}
+  if(loop.length>=3)loops.push(loop);
+ }
+ const point=p=>({x:x0+p.x*VOID_STEP,y:y0+p.y*VOID_STEP});
+ const fmt=p=>p.x.toFixed(2)+' '+p.y.toFixed(2);
+ let path='';for(const raw of loops){const cleaned=[];
+  for(let j=0;j<raw.length;j++){const a=raw[(j+raw.length-1)%raw.length],b=raw[j],c=raw[(j+1)%raw.length];
+   if((b.x-a.x)*(c.y-b.y)-(b.y-a.y)*(c.x-b.x)!==0)cleaned.push(point(b));}
+  if(cleaned.length<3)continue;
+  const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  path+='M'+fmt(mid(cleaned.at(-1),cleaned[0]));for(let j=0;j<cleaned.length;j++)path+='Q'+fmt(cleaned[j])+' '+fmt(mid(cleaned[j],cleaned[(j+1)%cleaned.length]));path+='Z';
+ }return path;
+}
+function regionAt(pt){const a=state.voidAtlas;if(!a||!pt)return null;
+ const x=Math.floor((pt.x-a.x0)/a.step),y=Math.floor((pt.y-a.y0)/a.step);
+ if(x<0||x>=a.nx||y<0||y>=a.ny)return null;
+ const id=a.labels[y*a.nx+x];return id<0?null:a.regions[id]||null;
+}
+function refreshVoids(){state.voidDirty=false;state.voidAtlas=makeVoidAtlas();state.voidHover=null;drawVoid();}
+function drawVoid(){const el=$('voidPath'),ins=state.insertion;
+ const show=state.showVoids&&(!ins||ins.phase==='ready')&&!state.drag&&!state.active;
+ const r=show?(regionAt(state.voidHover)||regionAt(state.voidAnchor)):null;
+ el.style.display=r?'':'none';if(r)el.setAttribute('d',r.path);
+ const mask=$('voidMaskBodies');mask.replaceChildren();
+ if(r)for(const b of state.bodies)createEl('circle',{cx:b.x,cy:b.y,r:bodyRadius(b),fill:'black'},mask);
+ const note=$('voidInfo');if(note){const locked=regionAt(state.voidAnchor);
+  note.textContent=ins?.phase==='ready'?(locked?`Selected void · ~${Math.round(locked.area)} square units. Smaller-than-scroll regions can still be attempted.`:state.voidAnchor?'Crowded insertion point selected · neighbors must move.':r?`Hovering void · ~${Math.round(r.area)} square units. Click to lock it.`:`${state.voidAtlas?.regions.length||0} detected empty regions · click one to select`):(r?`Hovering void · ~${Math.round(r.area)} square units. Click to prepare and mark insertion.`:`${state.voidAtlas?.regions.length||0} detected empty regions · click one to insert, or prepare from the tray.`);}
+}
+function projectInsideHex(point,r){
+ // Minimum local wall projection only; never search for a distant free pocket.
+ // The resulting center is displayed on the marker before insertion starts.
+ const p={x:point.x,y:point.y};
+ for(let i=0;i<8;i++){
+  let moved=false;
+  for(const e of edges){const d=(p.x-e.p.x)*e.nx+(p.y-e.p.y)*e.ny;
+   const needed=r+.7-d;if(needed>1e-6){p.x+=needed*e.nx;p.y+=needed*e.ny;moved=true;}}
+  if(!moved)break;
+ }
+ return inside(p.x,p.y,r+.4)?p:null;
+}
+function markVoid(point,forced=false){const ins=state.insertion;if(!ins||ins.phase!=='ready')return false;
+ if(!inside(point.x,point.y,0))return false;
+ const region=regionAt(point);
+ if(!region&&!forced)return false;
+ const projected=projectInsideHex(point,ins.r);
+ if(!projected)return false;
+ ins.mark=projected;
+ // Retain the actually chosen void, even if the scroll center has to be
+ // inset slightly from a wall. Its marker shows the corrected entry position.
+ state.voidAnchor={x:point.x,y:point.y};state.voidHover=null;
+ drawVoid();drawTray();updateUI();return true;
+}
+
+function seedPreset(name){state.preset=name;state.bodies=[];state.nextId=1;state.selected=null;state.held=null;state.insertion=null;state.voidAtlas=null;state.voidAnchor=null;state.voidHover=null;state.voidDirty=true;state.stagedId=null;state.transaction=null;state.history=[];state.drag=null;state.tipPinned=null;state.settleFrames=0;state.active=false;state.lastFrame=0;state.accumulator=0;
+ const rng=random(name==='crowded'?93834:10244),count=name==='crowded'?52:25;
+ for(let i=0;i<count;i++){
+  const r=[18,21,24,27,30][Math.floor(rng()*5)];let found=null;
+  for(let j=0;j<1400;j++){
+   const x=CX+(rng()-.5)*440,y=CY+(rng()-.5)*425;
+   if(!inside(x,y,r+2))continue;
+   if(state.bodies.every(b=>Math.hypot(b.x-x,b.y-y)>=b.r+r+2)){found={x,y};break;}
+  }
+  if(found)state.bodies.push(makeBody(state.nextId++,files[i%files.length],r,found.x,found.y));
+ }
+ // Pre-settle without rendering, so opening the experiment does not cause a collapse.
+ for(let k=0;k<1250;k++){stepPhysics(STEP,false);if(k>350 && k%60===0 && isQuiet() && measure().overlap<.1)break;}
+ for(const b of state.bodies){b.vx=0;b.vy=0;}
+ state.active=false;state.lastStats=measure();state.lastStats.stepMove=0;
+ state.message=name==='crowded'?'Crowded pile ready. Try pushing through a narrow gap.':'Roomy pile ready. Try a deliberate slow push.';
+ drawFull();refreshVoids();updateUI();
+}
+function bodyRadius(b){return b.r * (b.deploy===undefined?1:b.deploy);}
+function measure(){let overlap=0,outside=0,maxSpeed=0;for(let i=0;i<state.bodies.length;i++){
+ const a=state.bodies[i];maxSpeed=Math.max(maxSpeed,Math.hypot(a.vx,a.vy));
+ for(const e of edges){let d=(a.x-e.p.x)*e.nx+(a.y-e.p.y)*e.ny;outside=Math.max(outside,bodyRadius(a)-d);}
+ for(let j=i+1;j<state.bodies.length;j++){const b=state.bodies[j];let pen=bodyRadius(a)+bodyRadius(b)-Math.hypot(a.x-b.x,a.y-b.y);overlap=Math.max(overlap,pen);}
+ }return{contacts:state.lastStats.contacts||0,overlap:Math.max(0,overlap),outside:Math.max(0,outside),maxSpeed,stepMove:0};}
+function livelyConfig(){const t=state.lively/100;return{bounce:.025+t*.20,wallBounce:.015+t*.13,air:1.55-t*.85,friction:.25-t*.12};}
+function stepPhysics(dt,keepStats=true){const cfg=livelyConfig(),bodies=state.bodies;let contacts=0;
+ const drag=state.drag?.moved?state.drag:null;
+ let maxMove=0;const starts=bodies.map(b=>({x:b.x,y:b.y}));
+ for(const b of bodies){if(b.staged&&(!drag||drag.id!==b.id))continue;
+  if(b.deploy!==undefined&&b.deploy<1){b.deploy=Math.min(1,b.deploy+dt/0.72);}
+  b.vy+=state.gravity*dt;
+  if(drag?.id===b.id){
+   const dx=drag.target.x-b.x,dy=drag.target.y-b.y;
+   // Critical-damped spring: less rubber-band wobble, a firmer but still bounded grip.
+   const spring=29*29;let ax=dx*spring-b.vx*58,ay=dy*spring-b.vy*58;
+   const mag=Math.hypot(ax,ay);if(mag>2800){ax*=2800/mag;ay*=2800/mag;}
+   b.vx+=ax*dt;b.vy+=ay*dt;
+  }
+  const damp=Math.exp(-cfg.air*dt);b.vx*=damp;b.vy*=damp;
+  let speed=Math.hypot(b.vx,b.vy);if(speed>305){b.vx*=305/speed;b.vy*=305/speed;}
+  b.x+=b.vx*dt;b.y+=b.vy*dt;
+ }
+ // Sequential constraints + impulses. At no point is a precomputed end position applied.
+ for(let iter=0;iter<8;iter++){
+  for(const b of bodies){for(const e of edges){const dist=(b.x-e.p.x)*e.nx+(b.y-e.p.y)*e.ny;const pen=bodyRadius(b)-dist;
+   if(pen<=0)continue;contacts++;
+   const correction=pen*.94;b.x+=correction*e.nx;b.y+=correction*e.ny;
+   const vn=b.vx*e.nx+b.vy*e.ny;
+   if(vn<0){const bounce=vn< -24?cfg.wallBounce:0;
+    b.vx-=(1+bounce)*vn*e.nx;b.vy-=(1+bounce)*vn*e.ny;
+    // Tangential contact friction only; don't damp the whole world on every hit.
+    const tx=-e.ny,ty=e.nx,vt=b.vx*tx+b.vy*ty;
+    const fric=clamp(cfg.friction*Math.abs(vn),0,Math.abs(vt));b.vx-=Math.sign(vt)*fric*tx;b.vy-=Math.sign(vt)*fric*ty;
+   }
+  }}
+  for(let i=0;i<bodies.length;i++){
+   const a=bodies[i];for(let j=i+1;j<bodies.length;j++){
+    const b=bodies[j];const dx=b.x-a.x,dy=b.y-a.y,r=bodyRadius(a)+bodyRadius(b),d2=dx*dx+dy*dy;
+    if(d2>=r*r)continue;contacts++;
+    const d=Math.sqrt(d2),nx=d>.00001?dx/d:1,ny=d>.00001?dy/d:0;
+    const invA=1/a.m,invB=1/b.m,sum=invA+invB,penetration=r-d;
+    const warm=(a.deploy!==undefined&&a.deploy<1)||(b.deploy!==undefined&&b.deploy<1);
+    const stepCorrection=warm?Math.min(Math.max(0,penetration-.002)*.55,1.35):Math.max(0,penetration-.002)*.86;
+    const move=stepCorrection/sum;
+    a.x-=nx*move*invA;a.y-=ny*move*invA;b.x+=nx*move*invB;b.y+=ny*move*invB;
+    const rvx=b.vx-a.vx,rvy=b.vy-a.vy,closing=rvx*nx+rvy*ny;
+    if(closing<-.05){const restitution=closing<-20?cfg.bounce:0,jimp=-(1+restitution)*closing/sum;
+      a.vx-=jimp*invA*nx;a.vy-=jimp*invA*ny;b.vx+=jimp*invB*nx;b.vy+=jimp*invB*ny;
+      const tx=-ny,ty=nx,vt=(b.vx-a.vx)*tx+(b.vy-a.vy)*ty;
+      const tangentImpulse=clamp(-vt/sum,-cfg.friction*jimp,cfg.friction*jimp);
+      a.vx-=tangentImpulse*invA*tx;a.vy-=tangentImpulse*invA*ty;b.vx+=tangentImpulse*invB*tx;b.vy+=tangentImpulse*invB*ty;
+    }
+   }
+  }
+ }
+ for(let i=0;i<bodies.length;i++){const b=bodies[i];maxMove=Math.max(maxMove,Math.hypot(b.x-starts[i].x,b.y-starts[i].y));}
+ if(keepStats){state.lastStats={...measure(),contacts,stepMove:maxMove};if(!drag){if(maxMove<.08 && state.lastStats.overlap<.16 && state.lastStats.outside<.12 && !bodies.some(b=>b.deploy!==undefined&&b.deploy<1))state.settleFrames++;else state.settleFrames=0;}else state.settleFrames=0;}
+ return maxMove;
+}
+function isQuiet(){const s=measure();return s.overlap<.12 && s.outside<.12 && s.maxSpeed<7;}
+function wake(){if(!state.active){state.active=true;state.lastFrame=0;}state.settleFrames=0;startLoop();}
+function startLoop(){if(!state.raf)state.raf=requestAnimationFrame(loop);}
+function loop(now){state.raf=0;
+ if(!state.active){drawFull();updateUI();return;}
+ if(!state.lastFrame)state.lastFrame=now;
+ state.accumulator+=Math.min(.06,Math.max(0,(now-state.lastFrame)/1000));state.lastFrame=now;
+ let count=0;while(state.accumulator>=STEP&&count<8){stepPhysics(STEP,true);state.accumulator-=STEP;count++;state.simFrames++;if(state.transaction&&!state.drag&&!state.held&&!state.stagedId)state.transaction.releaseSteps=(state.transaction.releaseSteps||0)+1;}
+ renderPositions();
+ if(!state.drag && state.transaction && (state.transaction.releaseSteps||0)>1440 && state.settleFrames<48){const m=state.lastStats;const message=(m.overlap>.22||m.outside>.16)?'Insertion did not fit; original layout restored.':'Motion did not settle within 12 simulated seconds; restored the previous layout.';cancelAction();say(message);return;}
+ if(!state.drag && state.settleFrames>48){
+  const m=measure();if(m.overlap>.18||m.outside>.15||state.bodies.some(b=>b.deploy!==undefined&&b.deploy<1)){if(state.transaction){cancelAction();say('Insertion could not settle inside the hex; the original pile and tray were restored.');return;}}
+  state.active=false;state.accumulator=0;state.lastFrame=0;
+  for(const b of state.bodies){b.vx=0;b.vy=0;delete b.deploy;delete b.incoming;}
+  if(state.insertion?.phase==='settling')state.insertion=null;
+  if(state.transaction&&!state.held&&!state.stagedId)commitAction();
+  state.voidDirty=true;refreshVoids();say('Pile settled. Positions retained.');
+ }
+ if(state.active)startLoop();else updateUI();
+}
+function createEl(tag,attrs={},parent){const el=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));if(parent)parent.appendChild(el);return el;}
+function drawFull(){drawLayer.replaceChildren();for(const b of state.bodies){const group=createEl('g',{class:'scroll', 'data-id':b.id,tabindex:0,role:'button','aria-label':'Scroll '+b.name},drawLayer);
+  group.classList.toggle('selected',b.id===state.selected);group.classList.toggle('staged',!!b.staged);group.classList.toggle('lowering',b.deploy!==undefined&&b.deploy<1);
+  createEl('circle',{cx:0,cy:0,r:b.r,fill:'url(#paperGrad)',class:'rim'},group);
+  createEl('circle',{cx:0,cy:0,r:b.r*.82,class:'paper'},group);
+  createEl('path',{d:`M ${(-b.r*.56).toFixed(2)} 0 Q 0 ${(-b.r*.47).toFixed(2)} ${(b.r*.47).toFixed(2)} 0 Q ${(.4*b.r).toFixed(2)} ${(.31*b.r).toFixed(2)} 0 ${(.37*b.r).toFixed(2)}`,class:'fiber'},group);
+  createEl('circle',{cx:0,cy:0,r:Math.max(2.7,b.r*.105),class:'core'},group);
+  createEl('circle',{cx:0,cy:0,r:b.r+3,class:'select'},group);
+ }
+ renderPositions();}
+function renderPositions(){for(const b of state.bodies){const el=drawLayer.querySelector(`[data-id="${b.id}"]`);if(!el)continue;el.setAttribute('transform',`translate(${b.x.toFixed(3)} ${b.y.toFixed(3)})`);el.classList.toggle('selected',b.id===state.selected);el.classList.toggle('staged',!!b.staged);el.classList.toggle('lowering',b.deploy!==undefined&&b.deploy<1);}
+ if(state.drag?.moved){const b=state.bodies.find(o=>o.id===state.drag.id);if(b){$('dragCue').style.display='';$('tether').setAttribute('x1',b.x);$('tether').setAttribute('y1',b.y);$('tether').setAttribute('x2',state.drag.target.x);$('tether').setAttribute('y2',state.drag.target.y);$('cursorCue').setAttribute('cx',state.drag.target.x);$('cursorCue').setAttribute('cy',state.drag.target.y);} }
+ else $('dragCue').style.display='none';
+ drawTray();renderDiagnostics();renderStatus();}
+function renderDiagnostics(){if(!$('details').open)return;const d=state.lastStats;
+ $('diagnostics').textContent=`Bodies:        ${state.bodies.length}\nContacts/step: ${d.contacts}\nMax overlap:   ${d.overlap.toFixed(3)} units\nWall escape:   ${d.outside.toFixed(3)} units\nMax speed:     ${d.maxSpeed.toFixed(1)} units/s\nMax step move: ${d.stepMove.toFixed(3)} units\nSim steps:     ${state.simFrames}\nActivity:      ${state.drag?'dragging':state.active?'settling':'sleeping'}\nHeld:          ${state.held?.name||'none'}
+Insertion:     ${state.insertion?.phase||'none'}`;}
+function updateUI(){const b=state.bodies.find(x=>x.id===state.selected);$('selection').textContent=b?b.name+' · radius '+b.r+' · '+(b.staged?'staged at top':'inside cell'):'Click a scroll to select it; click again to inspect details.';$('tray').textContent='Holding tray: '+(state.held?.name||'empty')+(state.insertion?' · insertion ready: '+state.insertion.name:'');
+ $('lift').disabled=!b||!!state.drag||!!state.held||!!state.transaction||!!state.insertion;
+ $('prepare').disabled=!!state.drag||!!state.insertion?.started||!!state.stagedId||!!state.transaction&&!state.held;
+ $('insertMark').disabled=!state.insertion?.mark||!!state.insertion?.started||!!state.drag||!inside(state.insertion.mark.x,state.insertion.mark.y,0);
+ $('stage').disabled=!!state.drag||!!state.stagedId||!!state.insertion?.started||!!state.transaction&&!state.held;
+ $('returnHeld').disabled=!state.held&&!state.insertion;
+ $('cancel').disabled=!state.transaction&&!state.insertion;
+ $('undo').disabled=!(state.history.length||state.transaction);
+ $('gravityOut').textContent=String(state.gravity);$('livelyOut').textContent=state.lively+'%';$('newSizeOut').textContent=state.insertion?.r||state.newSize;renderDiagnostics();drawVoid();renderStatus();}
+function pointerXY(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+function bodyElementFromEvent(e){const el=e.target.closest?.('[data-id]');return el?state.bodies.find(b=>b.id===Number(el.dataset.id)):null;}
+function pointerPositionTip(e){return{x:e.clientX,y:e.clientY};}
+function showTip(b,expanded,e){if(!b||state.drag?.moved)return;const type=purpose(b.name),seal=seals[type],ext=b.name.includes('.')?'.'+b.name.split('.').pop():'None';
+ const day=(b.id%22)+1;const code=type==='code'?'Source / script':type==='config'?'Configuration file':type==='logs'?'Diagnostic log':type==='system'?'System file':'Document';
+ $('tooltip').innerHTML=`<div class="tipcore"><div class="seal" style="--wax:${seal.wax}">${seal.sym}</div><div><div class="tipname">${esc(b.name)}</div><div class="tipdate">Modified · ${day} Nov 2026</div></div></div>${expanded?`<div class="tipdetails"><span>Purpose</span><span>${seal.name}</span><span>File type</span><span>${code}</span><span>Extension</span><span>${esc(ext)}</span><span>Added</span><span>02 Oct 2026</span><span>Size</span><span>${(b.id*17+33)} KiB</span><span>Path</span><span>~/Archive/Examples/${esc(b.name)}</span></div>`:''}<div class="tipfooter">${expanded?'Synthetic details · click to collapse':'Synthetic data · click for details'}</div>`;
+ const tip=$('tooltip');tip.style.display='block';let w=tip.offsetWidth,h=tip.offsetHeight;tip.style.left=clamp(e.x+15,8,innerWidth-w-8)+'px';tip.style.top=clamp(e.y+14,8,innerHeight-h-8)+'px';}
+function hideTip(){if(state.tipPinned)return;$('tooltip').style.display='none';}
+function hideAllTip(){state.tipPinned=null;$('tooltip').style.display='none';}
+svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;hideAllTip();const pos=pointerXY(e);
+ if(state.insertion?.phase==='ready'&&!state.pointer){
+   if(Math.hypot(pos.x-932,pos.y-375)<=state.insertion.r+12){state.pointer={kind:'incoming',pointerId:e.pointerId};state.insertion.cursor={x:pos.x,y:pos.y};svg.setPointerCapture(e.pointerId);drawTray();e.preventDefault();return;}
+   if(inside(pos.x,pos.y,0)){
+    if(markVoid(pos,e.shiftKey))say(regionAt(pos)?'Void selected. The ring shows the actual scroll center, projected inward only if needed.': 'Crowded target selected. The ring marks the wall-safe release center; neighbors may move.');
+    else say('Click a highlighted empty region, or Shift-click a crowded spot to attempt insertion.');
+    e.preventDefault();return;
+   }
+ }
+ // Storage Workshop direct mode: no tray setup required. Empty-space click
+ // arms insertion and locks its location; Shift-click targets an occupied spot.
+ const existing=bodyElementFromEvent(e);
+ if(!state.insertion&&!state.active&&inside(pos.x,pos.y,0)&&(e.shiftKey||(!existing&&regionAt(pos)))&&(!state.transaction||state.held)){
+  prepareInsertion();
+  if(markVoid(pos,e.shiftKey))say(e.shiftKey?'Crowded target marked; press Insert or drag the tray scroll.':'Void selected. Press Insert at selected void; neighbors may yield.');
+  e.preventDefault();return;
+ }
+ const b=existing;if(!b)return;
+ state.pointer={kind:'existing',id:b.id,pt:pos,client:{x:e.clientX,y:e.clientY},offset:{x:b.x-pos.x,y:b.y-pos.y},pointerId:e.pointerId,moved:false};state.selected=b.id;
+ svg.setPointerCapture(e.pointerId);updateUI();e.preventDefault();});
+svg.addEventListener('pointermove',e=>{
+ const p=pointerXY(e);
+ if(state.pointer?.kind==='incoming'&&state.pointer.pointerId===e.pointerId){
+   const ins=state.insertion;if(!ins)return;ins.cursor={x:p.x,y:p.y};
+   if(!ins.started&&inside(p.x,p.y,ins.r+.5)){startInsertion(p,true);}
+   if(ins.started&&state.drag){state.drag.target={x:p.x,y:p.y};wake();}
+   drawTray();return;
+ }
+ if(state.pointer&&state.pointer.pointerId===e.pointerId){const i=state.pointer;const moved=Math.hypot(e.clientX-i.client.x,e.clientY-i.client.y)>7;
+  if(!i.moved&&moved){i.moved=true;if(!state.transaction)beginAction('Drag scroll');const b=state.bodies.find(x=>x.id===i.id);if(b){b.staged=false;if(state.stagedId===b.id)state.stagedId=null;}
+   state.drag={id:i.id,target:{x:p.x+i.offset.x,y:p.y+i.offset.y},offset:i.offset,moved:true};hideAllTip();wake();}
+  if(i.moved&&state.drag){state.drag.target={x:p.x+i.offset.x,y:p.y+i.offset.y};wake();}
+ }else if(!state.tipPinned){const b=bodyElementFromEvent(e);if(b){if(state.hover!==b.id){state.hover=b.id;showTip(b,false,pointerPositionTip(e));}}
+ else{state.hover=null;hideTip();}
+ if((!state.insertion||state.insertion.phase==='ready')&&!state.active&&state.showVoids){
+  const hovered=inside(p.x,p.y,0)?regionAt(p):null;
+  if((hovered?.id??null)!==(regionAt(state.voidHover)?.id??null)){
+   state.voidHover=hovered?{x:p.x,y:p.y}:null;drawVoid();
+  }
+ }
+ }
+});
+function finishPointer(e){if(!state.pointer||e.pointerId!==state.pointer.pointerId)return;const p=state.pointer;state.pointer=null;
+ if(p.kind==='incoming'){
+   const ins=state.insertion;const point=pointerXY(e);
+   if(ins?.started){if(!inside(point.x,point.y,ins.r+.5)){
+      cancelAction();say('Released outside the rack. Original pile restored; insertion still ready.');
+    }else{state.drag=null;ins.phase='settling';state.selected=ins.id;wake();say('New scroll lowered. Letting the pile settle.');}
+   }else if(ins){ins.cursor=null;say('Insertion still ready. Drag the tray scroll into the cell, or mark a target.');}
+   try{if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);}catch(_){}drawTray();updateUI();return;
+ }
+ if(p.moved){state.drag=null;const b=state.bodies.find(x=>x.id===p.id);if(b&&state.stagedId===b.id){b.staged=false;state.stagedId=null;}
+  wake();say('Released. Letting the scrolls settle naturally.');updateUI();}
+ else{const b=state.bodies.find(x=>x.id===p.id);if(b){state.selected=b.id;const repeat=state.lastClicked===b.id&&state.lastClickAt&&performance.now()-state.lastClickAt<1200;state.tipPinned=repeat?null:b.id; if(repeat)showTip(b,false,pointerPositionTip(e));else showTip(b,true,pointerPositionTip(e));state.lastClicked=b.id;state.lastClickAt=performance.now();}updateUI();}
+ try{if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);}catch(_){}
+}
+svg.addEventListener('pointerup',finishPointer);
+svg.addEventListener('pointercancel',()=>{if(state.transaction)cancelAction();state.pointer=null;state.drag=null;if(state.insertion)state.insertion.cursor=null;drawTray();});
+svg.addEventListener('pointerleave',()=>{state.hover=null;state.voidHover=null;drawVoid();hideTip();});
+svg.addEventListener('keydown',e=>{const el=e.target.closest('[data-id]');if(!el||!['Enter',' '].includes(e.key))return;e.preventDefault();const b=state.bodies.find(b=>b.id===Number(el.dataset.id));if(b){state.selected=b.id;state.tipPinned=b.id;showTip(b,true,{x:Math.min(innerWidth-310,110),y:150});updateUI();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){hideAllTip();if(state.transaction)cancelAction();else if(state.insertion){state.insertion=null;drawTray();updateUI();say('Insertion preparation cancelled.');}else{state.selected=null;updateUI();}}});
+// A new scroll can enter through the *front face* of the rack. While held, it is
+// a cursor preview above the pile; when lowered, its collision footprint grows
+// gradually while the SAME live solver pushes neighboring scrolls aside.
+function drawTray(){
+ const ins=state.insertion, group=$('trayBody'),name=$('trayName'),banner=$('trayBanner'),mark=$('markLayer');
+ group.style.display=ins?.phase==='ready'&&!ins.started?'':'none';
+ if(ins?.phase==='ready'&&!ins.started){const pt=ins.cursor||{x:932,y:375};group.setAttribute('transform',`translate(${pt.x.toFixed(2)} ${pt.y.toFixed(2)})`);
+   for(const c of group.querySelectorAll('circle')){if(c.classList.contains('rim'))c.setAttribute('r',ins.r);else if(c.classList.contains('paper'))c.setAttribute('r',ins.r*.8);else c.setAttribute('r',Math.max(3,ins.r*.11));}
+   name.textContent=ins.name;banner.textContent='Drag, select a void, or drop from top';
+ }else{name.textContent='';banner.textContent=ins?.phase==='settling'?'Settling…':ins?.started?'Inside cell':'Prepare a scroll below';}
+ if(ins?.mark&&!ins.started){mark.style.display='';$('markRing').setAttribute('cx',ins.mark.x);$('markRing').setAttribute('cy',ins.mark.y);$('markRing').setAttribute('r',ins.r);$('markDot').setAttribute('cx',ins.mark.x);$('markDot').setAttribute('cy',ins.mark.y);
+   $('markRing').classList.toggle('invalid',!inside(ins.mark.x,ins.mark.y,ins.r+.5));$('markRing').classList.toggle('crowded',!regionAt(ins.mark));
+ }else mark.style.display='none';
+}
+function prepareInsertion(){if(state.insertion?.started){say('Finish or cancel the current insertion first.');return;}
+ if(state.insertion){state.insertion=null;state.voidAnchor=null;drawTray();drawVoid();updateUI();say('Insertion preparation cancelled.');return;}
+ if(state.stagedId||state.drag||state.transaction&&!state.held){say('Finish the current action before preparing an insertion.');return;}
+ const fromHeld=!!state.held,base=fromHeld?cloneBody(state.held):makeBody(state.nextId,files[(state.nextId+9)%files.length],state.newSize,932,375);
+ state.insertion={id:base.id,name:base.name,r:base.r,fromHeld,phase:'ready',started:false,mark:null,cursor:null};state.voidHover=null;state.voidAnchor=null;if(state.voidDirty||!state.voidAtlas)refreshVoids();
+ drawTray();drawVoid();updateUI();say('Ready. Hover a visible void and click to lock it; Shift-click a crowded point; then Insert, drag the tray scroll, or Drop from top.');
+}
+function startInsertion(pos,dragging){const ins=state.insertion;if(!ins||ins.started||!inside(pos.x,pos.y,ins.r+.5))return false;
+ if(!state.transaction)beginAction('Insert scroll');
+ if(ins.fromHeld){state.held=null;}else state.nextId++;
+ const b=makeBody(ins.id,ins.name,ins.r,pos.x,pos.y);b.deploy=.06;b.incoming=true;
+ state.bodies.push(b);ins.started=true;ins.phase=dragging?'dragging':'settling';ins.cursor=null;ins.mark=null;state.voidAnchor=null;state.voidHover=null;state.selected=b.id;
+ if(dragging)state.drag={id:b.id,target:{x:pos.x,y:pos.y},moved:true,insertion:true};
+ drawFull();drawVoid();wake();updateUI();return true;
+}
+function insertAtMark(){const ins=state.insertion;if(!ins||ins.started||!ins.mark)return;
+ if(!startInsertion({...ins.mark},false)){say('The chosen center is outside the valid hex interior. Mark another point.');return;}
+ say('Scroll is entering the selected void. Neighbors react under live physics; the move only commits after settling.');
+}
+function stageNew(){
+ if(state.drag||state.stagedId||state.transaction&&!state.held){say('Finish the current action first.');return;}
+ const ins=state.insertion,fromHeld=!!state.held;
+ const template=ins?{id:ins.id,name:ins.name,r:ins.r,fromHeld:ins.fromHeld}:
+  fromHeld?{id:state.held.id,name:state.held.name,r:state.held.r,fromHeld:true}:
+  {id:state.nextId,name:files[(state.nextId+9)%files.length],r:state.newSize,fromHeld:false};
+ const entrance=closestEntrance(CX,template.r,state.bodies);
+ if(!entrance){say('No clear top entry for this scroll size. Select a void instead; nothing moved.');return;}
+ if(!ins){state.insertion={...template,phase:'ready',started:false,mark:null,cursor:null};}
+ if(!startInsertion(entrance,false))return;
+ const b=state.bodies.find(b=>b.id===template.id);if(b){b.vy=10;b.deploy=1;}
+ state.insertion.phase='settling';
+ wake();say('Dropped through a clear top entrance; the scroll falls and collides with the pile.');
+}
+function liftSelected(){if(state.transaction||state.held||state.drag||state.insertion)return;const idx=state.bodies.findIndex(b=>b.id===state.selected);if(idx<0)return;
+ beginAction('Lift scroll');state.held=cloneBody(state.bodies[idx]);state.bodies.splice(idx,1);state.selected=null;drawFull();updateUI();wake();say('Scroll in holding tray. Feed held scroll or return it to its prior position.');}
+$('stage').addEventListener('click',stageNew);$('lift').addEventListener('click',liftSelected);
+$('prepare').addEventListener('click',prepareInsertion);$('insertMark').addEventListener('click',insertAtMark);
+$('newSize').addEventListener('input',e=>{state.newSize=+e.target.value;if(state.insertion&&!state.insertion.started&&!state.insertion.fromHeld)state.insertion.r=state.newSize;drawTray();updateUI();});
+$('returnHeld').addEventListener('click',()=>{if(state.insertion){if(state.transaction)cancelAction();state.insertion=null;drawTray();updateUI();say('Insertion tray cleared; held scroll returned if applicable.');return;}if(!state.held)return;if(state.transaction)cancelAction();else{state.held=null;updateUI();}say('Held scroll returned to its original position.');});
+$('cancel').addEventListener('click',()=>{if(state.transaction)cancelAction();else if(state.insertion){state.insertion=null;drawTray();updateUI();say('Insertion preparation cancelled.');}});
+$('undo').addEventListener('click',()=>{if(state.transaction){cancelAction();return;}const rec=state.history.pop();if(rec){restore(rec.before);say('Undid '+rec.label.toLowerCase()+'.');}});
+$('openPreset').addEventListener('click',()=>seedPreset('roomy'));
+$('crowdedPreset').addEventListener('click',()=>seedPreset('crowded'));
+$('reset').addEventListener('click',()=>seedPreset(state.preset));
+$('gravity').addEventListener('input',e=>{state.gravity=+e.target.value;updateUI();});
+$('lively').addEventListener('input',e=>{state.lively=+e.target.value;updateUI();});
+$('showVoids').addEventListener('change',e=>{state.showVoids=e.target.checked;drawVoid();updateUI();});
+$('defaults').addEventListener('click',()=>{state.gravity=150;state.lively=100;$('gravity').value=150;$('lively').value=100;updateUI();});
+window.__studyP2R={state,seedPreset,measure,stepPhysics,inside,vertices,beginAction,commitAction,cancelAction,stageNew,closestEntrance,makeBody,drawFull,wake,prepareInsertion,startInsertion,insertAtMark,drawTray,makeVoidAtlas,regionAt,refreshVoids,markVoid,projectInsideHex};
+seedPreset('roomy');
+})();
+</script>
+</body></html>
