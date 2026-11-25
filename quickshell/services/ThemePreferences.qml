@@ -13,6 +13,7 @@ Item {
     height: 0
 
     property bool ready: false
+    property bool initializationStarted: false
     property string readStatus: "pending"
     property bool writable: false
     property bool userSelected: false
@@ -24,11 +25,10 @@ Item {
 
     FileView {
         id: stateFile
-        // Explicit synchronous reads only: startup and post-write reload.
-        // No async preload or watch can deliver an unrelated completion.
-        preload: false
-        blockLoading: true
-        blockAllReads: true
+        // Set path after construction so no initial result is missed.
+        preload: true
+        blockLoading: false
+        blockAllReads: false
         atomicWrites: true
         // Tiny explicit preference writes, not animation/slider I/O.
         // Synchronous completion avoids competing writes and late save results.
@@ -43,14 +43,44 @@ Item {
         onSaveFailed: service.writeFailed()
     }
 
-    function noteRead(status) {
-        // Fresh readback has its own terminal decision, not startup recovery.
-        if (service.verifyStatus !== "idle") {
-            if (service.verifyStatus === "pending") service.verifyStatus = status;
-            return;
+    // Independent reader: keep startup nonblocking and never mistake a
+    // late startup callback or cached write for persisted readback.
+    FileView {
+        id: verifyFile
+        preload: false
+        blockLoading: true
+        blockAllReads: true
+        printErrors: false
+        watchChanges: false
+        onLoaded: service.noteVerify("loaded")
+        onLoadFailed: service.noteVerify("failed")
+    }
+
+    Timer {
+        id: initializationDeadline
+        interval: 3000
+        repeat: false
+        onTriggered: service.noteRead("timeout")
+    }
+
+    function startInitialization() {
+        if (service.initializationStarted || service.ready) return;
+        service.initializationStarted = true;
+        initializationDeadline.start();
+        try {
+            var path = Quickshell.statePath("theme.json");
+            if (typeof path !== "string" || path.charAt(0) !== "/")
+                throw Error("Theme state path unavailable");
+            stateFile.path = path;
+            // Background preload; read text only after loaded.
+        } catch (error) {
+            service.noteRead("failed");
         }
-        if (service.ready || service.readStatus !== "pending") return;
+    }
+    function noteRead(status) {
+        if (!service.initializationStarted || service.ready || service.readStatus !== "pending") return;
         service.readStatus = status;
+        initializationDeadline.stop();
         // Never write from inside a FileView load callback.
         Qt.callLater(service.finishInitialization);
     }
@@ -61,12 +91,13 @@ Item {
             decoded = Policy.decodePreferences(service.readStatus,
                 service.readStatus === "loaded" ? stateFile.text() : "");
         } catch (error) {
+            service.readStatus = "failed";
             decoded = Policy.decodePreferences("failed", "");
         }
         service.savedIndex = decoded.savedIndex;
         service.writable = decoded.writable;
         if (!decoded.writable) {
-            service.warning = "Theme preference " + decoded.status + " — session-only changes.";
+            service.warning = "Theme preference " + (service.readStatus === "timeout" ? "read timed out" : decoded.status) + " — session-only changes.";
             console.warn(service.warning + " Original file preserved; back up and repair or move theme.json before restarting.");
         }
         // Explicit selection while the read was pending wins.
@@ -98,8 +129,9 @@ Item {
             // v0.3.1 FileView may report saved even when QSaveFile::commit
             // fails. Its cached text is not disk evidence. Reload explicitly.
             service.verifyStatus = "pending";
-            stateFile.reload();
-            var actual = stateFile.text();
+            verifyFile.path = stateFile.path;
+            verifyFile.reload();
+            var actual = verifyFile.text();
             var confirmed = service.verifyStatus === "loaded" && actual === expected;
             service.verifyStatus = "idle";
             if (!confirmed) {
@@ -127,30 +159,10 @@ Item {
         service.warning = "Theme preference not confirmed — session-only changes.";
         console.warn(service.warning + " Check state storage and restart.");
     }
-    function startInitialization(path) {
-        if (service.ready || service.readStatus !== "pending") return;
-        try {
-            // Quickshell statePath is a local absolute path on the target.
-            // Empty/unusable paths are failures, not confirmed missing files.
-            if (typeof path !== "string" || path.charAt(0) !== "/")
-                throw Error("Theme state path unavailable");
-            stateFile.path = path;
-            stateFile.text(); // small explicit blocking read before shell windows
-        } catch (error) {
-            service.noteRead("failed");
-        }
-        // Normal blocking FileView reads signal completion before returning.
-        // A returned read without a decision is protected, not a missing file.
-        if (service.readStatus === "pending") service.noteRead("failed");
-        service.finishInitialization();
+    function noteVerify(status) {
+        if (service.writingIndex !== -1 && service.verifyStatus === "pending")
+            service.verifyStatus = status;
     }
 
-    Component.onCompleted: {
-        try {
-            service.startInitialization(Quickshell.statePath("theme.json"));
-        } catch (error) {
-            service.noteRead("failed");
-            service.finishInitialization();
-        }
-    }
+    Component.onCompleted: service.startInitialization()
 }

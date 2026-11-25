@@ -94,7 +94,13 @@ The production shell owns one `ThemePreferences.qml` adapter for
 of Quickshell I/O. Synthetic Archive checkpoints and local material overrides
 are unchanged and do not write desktop preferences.
 
-A valid saved index is restored before Veranda initialization. A missing file
+A valid saved index is restored before Veranda initialization. The initial read
+uses background FileView preload with a 3-second event-loop deadline (WP-07 /
+AUD-22). Timeout resolves to the explicit pending selection, or Twilight if
+none, and never authorizes a write. Late/repeated callbacks cannot replace
+that decision. Veranda waits for the resolved theme including protected fallback.
+The deadline is not a hard wall-clock guarantee against a stalled process
+or a blocking explicit preference write/readback. A missing file
 starts at Twilight and is not created until a deliberate selection. Unreadable,
 malformed or unsupported preferences start at Twilight and are protected from
 writes for the session; deliberate selection still changes the session theme.
@@ -103,22 +109,18 @@ written only if the read authorizes writes. Initialization alone never writes.
 The sole production writer is the capsule's explicit theme selection. Repeated
 selection of the already persisted value does not write.
 
-The adapter uses explicit synchronous FileView reads (no async preload) and
-atomic writes on deliberate selection, not on animation/frame/slider updates.
-A returned startup read without a terminal signal is treated as an unreadable
-preference, never as a missing file; readiness resolves without writing and
-late startup callbacks cannot reverse that decision. This is a returned-call
-guard, not a timeout for a blocked filesystem call.
-
-After a reported successful write the adapter explicitly reloads and checks
-the persisted bytes, rather than trusting FileView's in-memory cache. The
-[target v0.3.1 implementation](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/src/io/fileview.cpp#L287-L290)
-logs an atomic commit failure without setting the error field used to emit
-the saved signal. A missing completion, explicit failure or unconfirmed
-readback clears the write guard, keeps the chosen session theme and disables
-further writes until restart. Atomic failure should preserve the original
-file; an unconfirmed readback does not establish whether the write succeeded.
-A small ! on the theme glyph and a log warning distinguish session-only changes. Back up and repair the file or move it aside explicitly
+The adapter uses atomic synchronous writes on deliberate selection, not
+animation/frame/slider updates. An unavailable or invalid state path is a
+protected read failure, never confirmed absence. After a reported successful
+write, a separate FileView (no preload, explicit synchronous fresh read)
+verifies persisted bytes; startup callbacks cannot confirm this readback.
+The [v0.3.1 writer](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/src/io/fileview.cpp#L287-L290)
+can log a failed atomic commit without setting the error field used by the
+saved signal. A returned write without completion, failed write or
+unconfirmed readback clears the write guard and disables further persistence
+until restart while preserving the chosen session theme. Unconfirmed readback
+does not establish whether a write succeeded. A small ! on the theme glyph
+and log warning distinguish session-only changes. Back up and repair the file or move it aside explicitly
 while Quickshell is stopped; never automatically replace an unreadable or
 incompatible file. Restart to retry after a storage failure. Concurrent external
 edits/multiple production shell instances are not supported by this single-owner
@@ -126,10 +128,10 @@ preference adapter.
 
 Regression: `node scripts/check-theme-policy.js` exercises pure policy and
 actual adapter functions against mocked FileView callbacks, and
-`node scripts/check-veranda.js` covers the startup gate. The adapter regression includes returned reads/writes without notifications,
-false success with stale on-disk bytes, and fresh readback failures. These
-do not establish actual Quickshell file I/O, bounded GUI responsiveness during
-blocking storage calls or target-session restart behavior. During N4, use
+`node scripts/check-veranda.js` covers the startup gate. These do not establish
+actual Quickshell file I/O or target-session restart behavior. Tests distinguish
+cached text and persisted bytes, readback failure and stale startup callbacks.
+During N4, use
 disposable state storage: cycle all three themes, restart the actual shell,
 confirm the first wallpaper corresponds to the restored theme, check missing,
 malformed, unsupported and unreadable preferences, atomic write failure and
