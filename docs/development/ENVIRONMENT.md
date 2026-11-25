@@ -41,7 +41,9 @@ Availability is build- and machine-dependent. A missing optional Quickshell modu
 
 ## Machine-specific information to record later
 
-The following are intentionally not invented in this document. Fill them in from the actual target machine:
+Keep individual machine inventories and identifying hardware details in local or private validation records; publish only non-identifying compatibility information and reproducible test results.
+
+The following fields are intentionally not populated here. Record them from the actual target machine in those local or private validation records:
 
 - Fedora release / kernel:
 - GPU and driver:

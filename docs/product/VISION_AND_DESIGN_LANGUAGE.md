@@ -40,6 +40,8 @@ These are role colors. Do not invent a committed semantic `accent` role without 
 
 The handoff records the selected font-family direction as Elf-ish / Elfish for inscriptions, Nova Script for main desktop / browser-facing lettering, and [Maple Mono](https://github.com/subframe7536/maple-font) for terminal / code. Verify exact installed family spellings and font licenses before depending on them. Font binaries and embedded font specimens are not distributed with this project. Obtain fonts separately from their authorized sources; the upstream Maple Mono repository is linked for reference.
 
+The upstream license files for [Maple Mono](https://github.com/subframe7536/maple-font/blob/variable/OFL.txt), [Nova Script](https://github.com/google/fonts/blob/main/ofl/novascript/OFL.txt), [Bellota](https://github.com/google/fonts/blob/main/ofl/bellota/OFL.txt) and [Sirin Stencil](https://github.com/google/fonts/blob/main/ofl/sirinstencil/OFL.txt) specify the SIL Open Font License 1.1. The exact Elf-ish / Elfish edition and license remain unverified; use only a separately obtained, authorized local installation. Check the terms of the actual selected release before redistribution. These references do not add font binaries or authorize redistribution of other assets.
+
 Wallpapers, user Gallery artwork, fonts and personal assets may live locally and be ignored by Git. Do not commit or redistribute them without permission and license checks.
 
 ## Typography preferences and deferred shadow-font concept (November 19, 2026)

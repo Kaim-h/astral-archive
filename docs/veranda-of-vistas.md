@@ -78,8 +78,7 @@ an image-readiness timeout, not a guarantee against all GPU shader failures.
 ## Optional subject outlines — local preparation only
 
 All **29 supplied wallpaper manifest entries** default to pixel colonies;
-no `-g` image is included. Your mostly landscape-based collection usually
-has no isolated character to outline, so no segmentation is required.
+no `-g` image is included. Landscape wallpapers often lack a distinct subject to outline, so segmentation is optional.
 
 For a selected wallpaper with a well-defined subject (person, creature,
 architecture, etc.), produce a **PNG subject mask** matching the dimensions

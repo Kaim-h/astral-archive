@@ -83,7 +83,7 @@ Do not summarize every chat message. Preserve the requirements, decisions, const
 - Do not commit or push directly to `main`. Repository visibility changes require explicit owner authorization.
 - Use a focused branch and reviewable pull request for non-trivial changes.
 - Never discard or overwrite uncommitted user work. Check status and diffs first.
-- Do not rewrite Git history or run destructive reset/clean commands unless the owner explicitly requests it and the working tree is known safe.
+- Never rewrite published history. Do not rewrite unpublished history or run destructive reset/clean commands unless the owner explicitly requests it and the working tree is known safe.
 - Keep generated shader binaries (`*.qsb`) and personal runtime state out of commits unless the project explicitly changes that policy.
 
 ## Reproducible contributor continuity
