@@ -168,12 +168,21 @@ export function fixture(){
     return s;
 }
 
+// AUD-18: legal imported identifiers may also be Object.prototype names.
+export function cameraFor(cameras,id){
+    return cameras&&Object.prototype.hasOwnProperty.call(cameras,id)
+        ?cameras[id]:{zoom:1,x:0,y:0};
+}
+export function copyCameras(cameras){
+    return Object.assign(Object.create(null),cameras||{});
+}
+
  // AUD-14: normal creation is fresh even if exact snapshot Undo reused
  // its ID. Retain cameras only for current and restorable cubbies.
 export function reconcileCameras(previous,next,history,cameras,undoing,activeId,activeCamera){
-    const out=Object.assign({},cameras);
-    if(previous.cubbies[activeId]&&!next.cubbies[activeId])out[activeId]=Object.assign({},activeCamera);
-    if(!undoing)for(const id of Object.keys(next.cubbies))if(!previous.cubbies[id])delete out[id];
+    const out=copyCameras(cameras);
+    if(Object.prototype.hasOwnProperty.call(previous.cubbies,activeId)&&!Object.prototype.hasOwnProperty.call(next.cubbies,activeId))out[activeId]=Object.assign({},activeCamera);
+    if(!undoing)for(const id of Object.keys(next.cubbies))if(!Object.prototype.hasOwnProperty.call(previous.cubbies,id))delete out[id];
     const keep=new Set(Object.keys(next.cubbies));
     for(const state of history)for(const id of Object.keys(state.cubbies))keep.add(id);
     for(const id of Object.keys(out))if(!keep.has(id))delete out[id];

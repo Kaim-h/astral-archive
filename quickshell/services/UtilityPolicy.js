@@ -9,16 +9,30 @@ function volumeFraction(value) {
     return clampPercent(value) / 100;
 }
 
-// `brightnessctl -m` returns device,class,current,max,percentage%.
-// Find the LAST percentage token rather than guessing the device name.
+// brightnessctl -m info: device,class,current,percentage%,maximum.
+// A single backlight record is expected; refuse ambiguous/malformed output.
+function parseBrightnessDevice(output) {
+    var fields=String(output || "").trim().split(",");
+    if(fields.length!==5 || !fields[0] || /[\r\n\/\\\u0000-\u001f]/.test(fields[0]) ||
+       fields[1]!=="backlight" || !/^\d+$/.test(fields[2]) ||
+       !/^\d{1,3}%$/.test(fields[3]) || !/^\d+$/.test(fields[4])) return null;
+    var current=Number(fields[2]), maximum=Number(fields[4]), percent=Number(fields[3].slice(0,-1));
+    if(!Number.isSafeInteger(current)||!Number.isSafeInteger(maximum)||maximum<=0||
+       current>maximum||percent>100) return null;
+    return {device:fields[0],percent:percent};
+}
 function parseBrightness(output) {
-    var data = String(output || "").trim();
-    var matches = data.match(/(?:^|,|\s)([0-9]{1,3})%(?!\S)/g);
-    if (!matches || !matches.length) return null;
-    var last = matches[matches.length - 1].match(/([0-9]{1,3})%/);
-    if (!last) return null;
-    var number = Number(last[1]);
-    return number >= 0 && number <= 100 ? number : null;
+    var reading=parseBrightnessDevice(output);
+    return reading ? reading.percent : null;
+}
+function brightnessReadCommand(device) {
+    var args=["brightnessctl","-m","-c","backlight"];
+    if(device) args.push("-d",device);
+    args.push("info");
+    return args;
+}
+function brightnessWriteCommand(device,percent) {
+    return ["brightnessctl","-c","backlight","-d",device,"set",safeBrightnessPercent(percent)+"%"];
 }
 
 // UPower's `percentage` might be a 0-1 fraction or 0-100; the docs don't say.

@@ -95,3 +95,13 @@ test('required QML, documentation and config paths exist', () => {
     ]) assert.ok(fs.existsSync(path.join(root, filename)), filename);
 });
 console.log(`\n${count} revised capsule/shelf checks passed.`);
+
+test('AUD-20 inherited-name desktop IDs preserve pins, running order and overflow',()=>{
+ const special=[{appId:'constructor.desktop',title:'Constructor'},{appId:'__proto__',title:'Proto'},...apps];
+ const r=context.splitShelfApps(special,['CONSTRUCTOR','constructor.desktop'],['constructor','__proto__','firefox'],1,1);
+ assert.deepEqual(ids(r.pinned),['constructor.desktop']);
+ assert.deepEqual(ids(r.running),['__proto__']);
+ assert.equal(r.totalPinned,1);assert.equal(r.totalRunning,2);assert.equal(r.hiddenRunning,1);
+ const unpinned=context.splitShelfApps(special,[],['constructor.desktop'],5,5);
+ assert.deepEqual(ids(unpinned.running),['constructor.desktop']);
+});
