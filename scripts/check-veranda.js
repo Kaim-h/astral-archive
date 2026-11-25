@@ -157,7 +157,7 @@ const exitEnd=svc.lastIndexOf("\n        }\n    }\n}");
 assert.ok(exitStart>=0&&exitEnd>exitStart);
 const exitFn=svc.slice(exitStart,exitEnd+10).replace("onExited: function","function backendExit");
 function mockService(readStatus,raw,validManifest=true){
-    const s={Policy:ctx, initialized:false,manifestReady:false,stateReadStatus:readStatus,
+    const s={Policy:ctx, themeReady:true,initialized:false,manifestReady:false,stateReadStatus:readStatus,
       preferencesWritable:false,preferenceWarning:"",artworks:[],saved:ctx.initialState(),
       themeName:"twilight",wallpaperDirectory:"/tmp/a b#%/",lastSuccessful:null,
       message:"",busy:false,lastAppliedKey:"",lastAttemptKey:"",backendErrorText:"",
@@ -203,6 +203,14 @@ const waiting=mockService("pending","");
 waiting.loadAll();assert.equal(waiting.initialized,false);assert.equal(waiting.applies,0);
 waiting.stateReadStatus="failed";waiting.finishInitialization();
 assert.equal(waiting.initialized,true);waiting.backendExit(0,0);assert.equal(waiting.writes.length,0);
+const waitingTheme=mockService("loaded",raw);
+waitingTheme.themeReady=false;waitingTheme.loadAll();
+assert.equal(waitingTheme.initialized,false);assert.equal(waitingTheme.applies,0);
+waitingTheme.ensureToday(true);assert.equal(waitingTheme.applies,0);
+waitingTheme.themeName="midnight";waitingTheme.themeReady=true;waitingTheme.finishInitialization();
+assert.equal(waitingTheme.initialized,true);assert.equal(waitingTheme.applies,1);
+assert.equal(waitingTheme.pending.theme,"midnight");
+waitingTheme.finishInitialization();assert.equal(waitingTheme.applies,1);
 const empty=mockService("loaded",raw,false);
 empty.loadAll();empty.setRotationEnabled(true);
 assert.equal(empty.applies,0);assert.equal(empty.writes.length,0);

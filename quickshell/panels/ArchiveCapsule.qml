@@ -25,6 +25,8 @@ PanelWindow {
     signal verandaRequested()
     signal verandaCloseRequested()
     signal windowChooserRequested(string appId)
+    signal themeRequested(int index)
+    property string themePreferenceWarning: ""
 
     readonly property var palette: Themes.Theme.current
     property string precedingAppId: ""
@@ -285,19 +287,28 @@ PanelWindow {
                 color: "transparent"
                 border.color: capsule.palette.metal
                 border.width: 1
+                Accessible.name: "Cycle theme: " + capsule.palette.name
+                Accessible.description: capsule.themePreferenceWarning
                 Text {
                     anchors.centerIn: parent
                     text: capsule.palette.symbol
                     color: capsule.palette.metal
                     font.pixelSize: 19
                 }
+                Text {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.rightMargin: 2
+                    visible: capsule.themePreferenceWarning.length > 0
+                    text: "!"
+                    color: capsule.palette.text
+                    font.pixelSize: 10
+                }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        Themes.Theme.index = (Themes.Theme.index + 1)
-                            % Themes.Theme.palettes.length;
-                    }
+                    onClicked: capsule.themeRequested((Themes.Theme.index + 1)
+                        % Themes.Theme.palettes.length)
                 }
             }
 
