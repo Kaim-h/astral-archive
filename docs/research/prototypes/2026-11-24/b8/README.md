@@ -1,0 +1,56 @@
+# B8 — architectural design workshop
+
+Owner-authorized design-only topic, 2026-11-24. Historical source base `4366c5cae25d949ea7d21c8c595de8132893d6b4` (historical PRs 15 and 16 merged). This topic is recreated independently from the integrated technical baseline; continue on this branch/PR, do not modify native implementation or merge without owner authorization. Corrective work and audit documentation remain separate topics. Original revision, run and artifact IDs below are historical provenance, not current destination refs. No new browser or native verification is claimed by migration.
+
+## Authority and context
+
+Read AGENTS.md, docs/product/MAP_ROOM_AND_CONTAINERS.md, PHYSICAL_FIXTURES_AND_SCROLL_BEHAVIOR.md, REPRESENTATION_ASSETS.md, VISION_AND_DESIGN_LANGUAGE.md, docs/development/B7_N2_MIXED_CUBBIES.md and docs/archive-roadmap.md. B6r12b3 and B7r3/s11/u3/p10 remain accepted visual baselines. B7-N2 is complete in isolated synthetic scope; native target hardware validation remains pending. Instruments remain research-only; application books retain distinct identities. Do not redesign accepted cubby internals. Historical Map Room v1/v2 scattered unsupported furniture is rejected. The earlier cubby sketch is not included in this workshop; no Map Room sketch is established as a design input.
+
+## Owner decisions — accepted direction, November 24
+
+- Hybrid architectural cabinetry and modular furniture, with a slight architectural-niche influence; Shelf must feel distinct from ordinary cubby.
+- Shelf is a higher-order recursive cubby, not exclusively a cubby holder. It can directly contain racks, boards, nested cubbies, mounted artwork, plinths and other supported fixtures/objects.
+- Freely positioned, physically supported rectangular modules, not compulsory rows.
+- Configurable open and closed cubby previews.
+- Decorative recessed panels in unused space.
+- Predominantly stone with metal detailing; common design language.
+- Ornament mainly additive, outside the usable rectangular interior. Avoid arches cutting into usable area; no nonrectangular module requirement.
+- Module tops can act as shelves where sufficient overhead space exists. Suitable flat structural surfaces should be reusable support datums; exact eligibility rules remain to be designed.
+- Hybrid envelope: manual dimensions remain authoritative, offer explicit expansion preview when needed. Ornament stays consistent during resizing.
+
+## Existing contracts to preserve
+
+Browse enters containers; Arrange selects, never enters on double click. Contextual creation and transient right-click menus, keyboard equivalents; explicit Apply/Cancel/Undo; independent grid visibility and snapping, same interval/local origin, no relocation when interval changes. Parent footprint and interior size independent. No silent resize/reflow of contents; block invalid shrink, optionally suggest conservative rearrangement. Fixed outer window, uniform fit; understated transitions (180–250 ms candidate). Universal Scroll Case. No disk operations in design studies. Preserve theme roles Evening/Twilight/Midnight. Room/Shelf character inherits common motif/material language with independent overrides; no finalized catalog.
+
+## Candidates, not decisions
+
+Initial alternatives: traditional bookcase (rigid), built-in cabinetry (coherent), modular stack (flexible), architectural niche (atmospheric but potentially subtractive). Selected hybrid incorporates cabinetry/modularity and a restrained niche character, not the earlier arch-shaped aperture. Candidate exterior treatments: rectangular pilasters, cornice, plinth, external crest/pediment, inlaid fascia; keep corners/crest unscaled, extend straight runs and repeat motifs as dimensions change. Recesses are decorative backing, not obstacles. Open cubby preview is a faithful miniature with navigation-level hit target; direct Shelf objects retain normal interactions, closed face same footprint. Candidate support policies: base, module top, ledge, appropriate wall attachment; move supporting module with dependents in preview, height change carries dependents if clearance permits, block unsupported shrink, removal requires resolution. No structural engineering simulation. Generalizing tops to ordinary cubbies is proposed, not separately approved implementation scope.
+
+## Study sequence
+
+1. B8s1 Shelf visual foundation (this checkpoint): rectangular envelope, mixed furniture, stack contact, open/closed preview, recessed panel, consistent resizing and profile comparison. Synthetic vector representations are placeholders, not replacement assets.
+2. Iterate Shelf visuals; then arrangement/editor, support dependencies, overflow/expansion transactions and acceptance tests.
+3. Room interior: orderly Shelf structures, elevation vs interior perspective, dimensions, identity.
+4. Motif inheritance across levels; restrained variants, no obligatory themed attractions.
+5. Map Room: user-authored expanding top-down floorplan, movable/resizable/recolorable/renameable rooms, pan/zoom, single-room presentation, adjacency/corridors unresolved. No mandatory connectivity.
+6. Accepted prototypes and exact implementation contracts, tests, assets, unresolved decisions and non-goals for separate development handoff.
+
+## Study index
+
+- [B8s1](Astral_Archive_Shelf_Study_B8s1.html) — candidate, not visually accepted. Static supported arrangement with interactive envelope dimensions, profiles, themes and individual cubby preview toggles. No free drag, production rendering, real files, persistence, full transaction editor or auto-expansion solver. Width/height edits preview and Apply/Cancel; floor-relative coordinates keep the furniture intact. Layout and art are illustrative. Exact geometry, profiles and ornament are not accepted.
+
+## B8s2 — owner feedback and continuity revision (candidate)
+
+Owner accepts the general atmosphere of S1, typography remains provisional. Owner directs: distinguish rack from cubby by construction, remove permanent names from non-cubby fixtures (file metadata remains), reuse pre-established non-scroll representations. S2 retains the additive architectural envelope and module-top support. Source review: ArchiveCubbyFace.qml, ArchiveRack.qml, ArchiveScrollEnd.qml, ArchiveView.mjs, B6r12b3 and B7-C manifest at base 4366c5c. Actual native mixed-cubby capture from CI artifact 14961002527 inspected; masonry has point-up hexes and sparse bottom-settled scroll clusters, cubby recess/plaque is distinct. S2 embeds seven exact B7 SVG blobs, uses viewport/contact transforms, keeps open/veiled/inventory/closed preview modes. Sample rack artwork approximates native masonry, not the live solver. Named cubbies only, plus Shelf title and file labels. Native code unchanged. Fixed synthetic arrangement; explicit envelope preview/Apply/Cancel/Undo; visual comparison controls not production menus. No real navigation, drag, persistence, expansion solver or physics. [Standalone B8s2](Astral_Archive_Shelf_Study_B8s2.html). Visual approval pending.
+
+### B8s2 validation and delivery
+
+Initial B8s2 browser CI 45493785017 (historical `actions/runs/45493785017`) passed the dedicated shelf-study job (actual pointer/keyboard, seven byte-exact SVG comparisons and decode, themes/profiles, provisional resizing, narrow viewport). Retrieved its actual screenshot and HTML artifact 14967736997. Visual review found the miniature rack empty because cell radius was too large and the wall artwork letterboxed. Corrected both at commit 8d3716203fa61c478abe0be7c0b23fe1e7809073; also adjusted board fascia and inscription spacing. Final exact delivered HTML is Git blob 7b9fe4caf2f41dad0adf096fdaac9f2f457fe9b3 (50,209 bytes). Local system Chromium via Python Playwright set_content of exact bytes passed four-mode pointer cycling, keyboard activation, all-open/all-closed, all nine theme/profile combinations, seven embedded asset Git hashes and image decode, populated miniature rack, envelope preview/Apply/Cancel/Undo, pending draft preservation on hide/reopen, support guides, 500px width and zero uncaught page errors. Container file:// navigation blocked by local browser policy; initial CI file:// check passed on earlier exact blob. Final local capture inspected: cropped artwork fills aperture, miniature rack populated, module tops and boards align. Final-head GitHub CI separate; no native/runtime claim. Added branch-specific design-only workflow and browser regression to package standalone artifacts. No native code touched; B8s1 remains preserved.
+
+## Owner review of B8s2 — next visual revision
+
+Owner finds overall direction improved, agrees oversized decorative panel is problematic, notes vertical holder treatment does not read like the accepted holder and hover metadata is missing. Owner reiterates historical visual preference: file representations should have an icon or other minimal plaque with details revealed on hover, not persistent filename text. Lack of scroll physics is acceptable in this visual prototype; lack of hover is understandable but changes the visible appearance and should be addressed for visual fidelity.
+
+Source reconciliation: S2 embeds three original U3 edge SVGs but draws its own simplified holder; this is not full U3 fixture reuse. Native B7MetadataPlaque.qml currently uses compact filename text, whereas accepted browser B7r3/B7s11/B7p10 use compact icon and engraved strokes, expanding into metadata. Follow the owner-directed browser visual baseline for the next Shelf study, not the provisional native text treatment. Existing U3 holder contract includes edge thickness, rear rails, cheeks, separators, fascia dots, reserved presentation slot and supported face cradle.
+
+Proposed B8s3 (not included in this branch and not approved): use canonical holder geometry and original face/edge art; implement compact plaque hover/focus and Escape dismissal, anchored/clamped overlay with no geometry change; preserve named cubbies/Shelf only; no miniature file hit targets within nested cubby previews. Replace door-like backing panel with restrained, adaptable backing ornament (e.g. thin inlaid border and small medallion, or motifs repeated in discrete unused regions), without reducing usable area. Preserve S2 architecture, dimensions and physics-free scope. Deliver standalone HTML and preserve the exact committed prototype for review. Full arrangement editor still deferred.

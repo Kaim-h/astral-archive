@@ -1,0 +1,25 @@
+name: B8 design study validation
+on:
+  push:
+    branches: [design/archive-b8-architecture]
+permissions:
+  contents: read
+jobs:
+  shelf-study:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node docs/research/prototypes/2026-11-24/b8/check-b8s2.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: B8s2-standalone-and-capture
+          path: |
+            docs/research/prototypes/2026-11-24/b8/Astral_Archive_Shelf_Study_B8s2.html
+            B8s2-preview.png
+          retention-days: 21

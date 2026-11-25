@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Astral Archive — B8s1</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}main{max-width:1200px;margin:auto;padding:24px}h1{font:26px Georgia,serif;letter-spacing:2px;margin:0}p{line-height:1.5;color:var(--text);opacity:.8}header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}button,select,input{font:inherit}button,select{background:var(--panel);color:var(--text);border:1px solid var(--metal);border-radius:4px;padding:8px 12px}button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--etch);outline-offset:3px}button:disabled{opacity:.45}#scene{width:100%;height:min(72vh,680px);min-height:330px;display:block;background:var(--bg)}svg text{font-family:Georgia,serif;fill:var(--text)}.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0}.controls label{display:flex;align-items:center;gap:8px}input[type=range]{accent-color:var(--metal);width:130px}.note{font-size:13px;opacity:.8}#status{min-height:1.5em}svg [role=button]{cursor:pointer}svg [role=button]:hover .outline,svg [role=button]:focus .outline{stroke:var(--etch);stroke-width:2.5}details{border-top:1px solid var(--metal);padding:12px 0}summary{cursor:pointer}body{--bg:#121e23;--panel:#263c37;--metal:#8c6e5a;--etch:#91ada1;--text:#e6e1d8}
+</style>
+<main><header><div><h1>The Western Collection</h1><p class="note">Astral Archive · B8s1 · architectural Shelf study</p></div><div class="controls"><label>Theme <select id="theme"><option>Twilight</option><option>Evening</option><option>Midnight</option></select></label><label>Profile <select id="profile"><option value="crest">Crested lintel</option><option value="cornice">Straight cornice</option><option value="pilaster">Pilaster frame</option></select></label></div></header>
+<svg id="scene" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Shelf elevation with supported modules and configurable cubby previews"></svg>
+<div class="controls"><button id="allOpen">Open all previews</button><button id="allClosed">Close all previews</button><button id="guides" aria-pressed="false">Support guides</button><button id="edit" aria-expanded="false" aria-controls="resize">Envelope dimensions</button></div>
+<section id="resize" hidden><div class="controls"><label>Width <input id="width" type="range" min="700" max="1100" step="20" value="840"><output id="wo">840</output></label><label>Height <input id="height" type="range" min="420" max="660" step="20" value="480"><output id="ho">480</output></label><button id="apply">Apply</button><button id="cancel">Cancel</button><button id="undo">Undo</button></div><p class="note">Preview only until Apply. Furniture retains its dimensions and floor-relative position; the decorative frame adapts. Minimum dimensions are preset for this sample.</p></section>
+<p id="status" role="status">Select a cubby face to toggle its preview in this visual study.</p><details><summary>Study limitations and controls</summary><p>Illustrative synthetic contents, not canonical B6/B7 artwork. Cubby clicks toggle preview here for comparison; production Browse enters the cubby and Arrange selects it. No drag, actual navigation, physics, filesystem actions, persistence, automated expansion solver or native rendering. Theme and profile are immediate visual comparisons. Width/height are provisional until Apply; Undo restores the last committed envelope. Decorative panel is backing, not a physical obstruction. Module tops support objects at the same contact datum.</p></details></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), scene=$('scene');
+const palettes={Twilight:['#121e23','#263c37','#8c6e5a','#91ada1','#e6e1d8'],Evening:['#343c43','#3f524f','#c2aa78','#b7a2c8','#f0f0e8'],Midnight:['#080f10','#101c1b','#869c9c','#568f80','#dadfd9']};
+let committed={w:840,h:480},draft=null,history=[],guides=false,open={manuscripts:true,notes:false,records:true};
+const c={bg:'var(--bg)',panel:'var(--panel)',metal:'var(--metal)',etch:'var(--etch)',text:'var(--text)'};
+const rect=(x,y,w,h,fill=c.panel,stroke=c.metal,extra='')=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+fill+'" stroke="'+stroke+'" '+extra+'/>';
+const line=(x,y,x2,y2,stroke=c.metal,extra='')=>'<path d="M'+x+' '+y+'L'+x2+' '+y2+'" stroke="'+stroke+'" fill="none" '+extra+'/>';
+const text=(x,y,s,size=12)=>'<text x="'+x+'" y="'+y+'" font-size="'+size+'" text-anchor="middle">'+s+'</text>';
+const circle=(x,y,r,fill,stroke=c.metal)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'"/>';
+const group=(x,y,body)=>'<g transform="translate('+x+' '+y+')">'+body+'</g>';
+function motif(x,y,r){return circle(x,y,r,'none',c.etch)+circle(x,y,r*.72,'none',c.metal)+line(x-r-5,y,x+r+5,y,c.etch)+line(x,y-r-5,x,y+r+5,c.etch)+'<path d="M'+x+' '+(y-r)+'l'+r*.55+' '+r+'l-'+r*.55+' '+r+'l-'+r*.55+' -'+r+'Z" fill="none" stroke="'+c.etch+'" opacity=".7"/>';}
+function plaque(x,y,w,name){return rect(x,y,w,15,c.panel,c.metal)+text(x+w/2,y+11,name,10)}
+function frame(w,h){return rect(0,0,w,h,'url(#stone)',c.metal,'class="outline"')+rect(7,7,w-14,h-25,'url(#recess)',c.etch,'stroke-opacity=".55"')+line(0,0,w,0,c.etch,'stroke-width="2"')+line(3,h-2,w-3,h-2,c.bg,'stroke-width="2"');}
+function scrolls(w,h){let s='';for(let y=19;y+10<=h-25;y+=23){for(let x=19;x+10<=w-7;x+=24){s+=circle(x,y,10,'#bba98a','#806b52')+circle(x,y,3.5,'#70614c','#9c8969')+line(x-6,y-5,x-3,y-7,'#e0c6a0')}}return s;}
+function books(w,h){let s='';for(let x=12,i=0;x<w-17;x+=19,i++){let bh=35+(i%3)*7;s+=rect(x,h-23-bh,16,bh,['#8c6e5a','#54766b','#657b80'][i%3],c.metal)+line(x+3,h-31,x+13,h-31,'#b9aa8e')+line(x+3,h-23-bh+8,x+13,h-23-bh+8,'#b9aa8e');}return s+rect(7,h-23,w-14,5,'url(#stone)',c.metal);}
+function cubby(id,x,y,w,h,name,content){let interior=open[id]?content:rect(8,8,w-16,h-27,'url(#stone)',c.metal)+rect(13,13,w-26,h-37,'none',c.etch,'stroke-opacity=".35"')+motif(w/2,(h-19)/2,Math.min(30,(h-44)/2));return '<g role="button" tabindex="0" aria-label="'+name+' preview '+(open[id]?'open':'closed')+'" aria-pressed="'+open[id]+'" data-cubby="'+id+'" transform="translate('+x+' '+y+')">'+frame(w,h)+interior+plaque(w/2-65,h-17,130,name)+'</g>';}
+function rack(x,y,w,h){return group(x,y,frame(w,h)+scrolls(w,h)+plaque(w/2-54,h-17,108,'FIELD SCROLLS'))}
+function vase(x,y){return group(x,y,'<path d="M-22 0L-22 -13Q-42 -32 -17 -56L-12 -62V-69H12V-62L17 -56Q42 -32 22 -13V0Z" fill="#8ba69a" stroke="#b5c6b9"/><ellipse cy="-69" rx="12" ry="4" fill="#324d43" stroke="#b5c6b9"/><path d="M-25 -40Q0 -29 25 -40M-27 -28Q0 -17 27 -28M-21 -13Q0 -6 21 -13" fill="none" stroke="#607f70"/>');}
+function parcel(x,y){return group(x,y,rect(-26,-30,52,30,'#92765a','#c5ac8b')+'<path d="M-26 -30L0 -12L26 -30M0 -12V0" fill="none" stroke="#5b4b3d"/>'+circle(0,-12,5,'#785044','#b18b70'));}
+function artwork(x,y){return group(x,y,rect(0,0,150,98,'url(#stone)',c.metal)+rect(7,7,136,84,'#263c37',c.etch)+circle(110,27,12,'#b6b69b','none')+'<path d="M8 72L45 30L80 74L105 51L142 80V90H8Z" fill="#759085"/><path d="M8 86L54 63L92 85L116 72L142 86V90H8Z" fill="#405c52"/>'+plaque(73,78,67,'HORIZON'));}
+function render(){
+const {w,h}=draft||committed;scene.setAttribute('viewBox',[-56,-80,w+112,h+132].join(' '));
+let s='<defs><linearGradient id="stone" x2=".7" y2="1"><stop stop-color="'+c.panel+'"/><stop offset=".15" stop-color="'+c.etch+'" stop-opacity=".45"/><stop offset=".17" stop-color="'+c.panel+'"/><stop offset="1" stop-color="'+c.panel+'"/></linearGradient><linearGradient id="recess" x2="0" y2="1"><stop stop-color="'+c.bg+'"/><stop offset="1" stop-color="'+c.panel+'"/></linearGradient></defs>';
+s+=rect(0,0,w,h,'url(#recess)',c.etch);
+const profile=$('profile').value, post=profile==='pilaster'?27:16;
+s+=rect(-post,0,post,h,'url(#stone)',c.metal)+rect(w,0,post,h,'url(#stone)',c.metal)+rect(-post-9,h,w+2*post+18,19,'url(#stone)',c.metal)+rect(-post-4,h+19,w+2*post+8,7,c.panel,c.metal)+rect(-post-9,-25,w+2*post+18,25,'url(#stone)',c.metal)+line(-post-9,-4,w+post+9,-4,c.etch);
+for(const x of [-post/2,w+post/2]){s+=line(x,13,x,h-13,c.etch,'stroke-opacity=".65"');for(const y of [12,h-12])s+=circle(x,y,3,c.metal,c.etch)}
+if(profile==='crest'){s+='<path d="M'+(w/2-110)+' -25Q'+(w/2-62)+' -28 '+(w/2-35)+' -48Q'+w/2+' -76 '+(w/2+35)+' -48Q'+(w/2+62)+' -28 '+(w/2+110)+' -25Z" fill="url(#stone)" stroke="'+c.metal+'"/>'+motif(w/2,-44,12)}
+if(profile==='pilaster'){for(const x of [-post,w]){s+=rect(x,-10,post,10,'url(#stone)',c.metal)+rect(x,h,post,10,'url(#stone)',c.metal)}}
+for(let x=20;x<w-15;x+=28){if(Math.abs(x-w/2)>155)s+= '<path d="M'+x+' -16l5 4l-5 4l-5 -4Z" fill="none" stroke="'+c.etch+'" opacity=".55"/>'}
+s+=text(w/2,-9,'T H E   W E S T E R N   C O L L E C T I O N',12);
+// All furniture coordinates are measured from the interior floor. No scaling or reflow.
+s+=rect(574,20,w-594,h-40,c.panel,c.metal,'stroke-opacity=".65"')+rect(581,27,w-608,h-54,'none',c.etch,'stroke-opacity=".35"')+motif((574+w-20)/2,h/2,Math.min(32,(w-610)/3));
+s+=cubby('manuscripts',20,h-170,252,170,'MANUSCRIPTS',scrolls(252,170));
+s+=cubby('notes',20,h-280,142,110,'PRIVATE NOTES',books(142,110));
+s+=vase(216,h-170);
+s+=rack(300,h-105,252,105);
+s+=cubby('records',300,h-230,150,125,'RECORDS',books(150,125));
+s+=parcel(505,h-105);
+s+=vase(375,h-230);
+s+=artwork(400,h-395);
+if(guides){for(const p of [[0,h,w],[20,h-170,252],[20,h-280,142],[300,h-105,252],[300,h-230,150]])s+=line(p[0],p[1],p[0]+p[2],p[1],c.etch,'stroke-width="3" stroke-dasharray="6 3" pointer-events="none"');}
+if(draft)s+=rect(0,0,w,h,'none',c.etch,'stroke-width="2" stroke-dasharray="7 4" pointer-events="none"');
+scene.innerHTML=s;
+$('width').value=w;$('height').value=h;$('wo').value=w;$('ho').value=h;$('apply').disabled=!draft;$('undo').disabled=!history.length;
+}
+function status(s){$('status').textContent=s}
+function toggle(id){open[id]=!open[id];render();scene.querySelector('[data-cubby="'+id+'"]').focus();status(id+' preview '+(open[id]?'opened':'closed')+'.')}
+scene.addEventListener('click',e=>{const target=e.target.closest('[data-cubby]');if(target)toggle(target.dataset.cubby)});
+scene.addEventListener('keydown',e=>{const target=e.target.closest('[data-cubby]');if(target&&(e.key==='Enter'||e.key===' ')){e.preventDefault();toggle(target.dataset.cubby)}});
+$('theme').onchange=()=>{palettes[$('theme').value].forEach((v,i)=>document.body.style.setProperty(['--bg','--panel','--metal','--etch','--text'][i],v));render()};
+$('profile').onchange=render;
+$('allOpen').onclick=()=>{Object.keys(open).forEach(k=>open[k]=true);render();status('All cubby previews open.')};
+$('allClosed').onclick=()=>{Object.keys(open).forEach(k=>open[k]=false);render();status('All cubby previews closed.')};
+$('guides').onclick=()=>{guides=!guides;$('guides').setAttribute('aria-pressed',guides);render()};
+$('edit').onclick=()=>{$('resize').hidden=!$('resize').hidden;$('edit').setAttribute('aria-expanded',!$('resize').hidden);if($('resize').hidden&&draft)status('Envelope preview remains pending. Reopen dimensions to Apply or Cancel.')};
+for(const id of ['width','height'])$(id).oninput=()=>{draft={w:Number($('width').value),h:Number($('height').value)};render();status('Uncommitted envelope preview.')};
+$('apply').onclick=()=>{if(!draft)return;history.push({...committed});committed=draft;draft=null;render();status('Envelope applied.')};
+$('cancel').onclick=()=>{draft=null;render();status('Envelope preview discarded.')};
+$('undo').onclick=()=>{if(draft){status('Apply or Cancel the pending preview before Undo.');return}if(history.length){committed=history.pop();render();status('Previous envelope restored.')}};
+render();
+</script></html>
