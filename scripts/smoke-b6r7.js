@@ -55,11 +55,17 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
     guards:Object.fromEntries(['drag','pointer','insertion','held','stagedId','transaction'].map(k=>[k,!!st[k]])),
     trace:window.__b6r7CutSmokeTrace||[]};
   });
-  const expected={carried:before.ids.slice(0,3),remaining:before.ids.slice(3)};
+  // The cell bridge maps persistent IDs to temporary numeric IDs 1..N.
+  // Verify the bridge itself before comparing the two identity domains.
+  const bridge=await page.evaluate(()=>window.__cubbyB6r7.cellBridge.indexMap);
+  assert.deepEqual(Object.keys(bridge).map(Number),before.ids.map((_,i)=>i+1),'Bridge keys');
+  assert.deepEqual(before.ids.map((_,i)=>bridge[i+1]),before.ids,'Bridge preserves persistent IDs');
+  const temporary=before.ids.map((_,i)=>i+1);
+  const expected={carried:temporary.slice(0,3),remaining:temporary.slice(3)};
   const selected=await readCut();
   assert.equal(selected.selected.length,3,'Ctrl+click group');
   assert.deepEqual([...selected.selected].sort(),[...expected.carried].sort(),'Exact selected IDs');
-  assert.deepEqual([...selected.source].sort(),[...before.ids].sort(),'Initial cell IDs');
+  assert.deepEqual([...selected.source].sort(),[...temporary].sort(),'Initial temporary cell IDs');
   assert.equal(selected.case.length,0,'Initially empty Case');
   // Historical SVG focus is not necessarily effective. Preserve actual input,
   // allow either legitimate keyboard route, and record where the key went.
@@ -100,11 +106,13 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
   }
   const saved=await page.evaluate(([rack,key])=>{
    const a=window.__cubbyB6r7,m=a.current().mods.find(v=>v.id===rack);
-   return{open:!!a.cellBridge.rackId,remaining:m.scrollCells[key].length,case:a.holder.items.map(b=>({id:b.id,mode:b.moveMode})),active:a.holder.active.length};
+   return{open:!!a.cellBridge.rackId,remaining:m.scrollCells[key].length,remainingIds:m.scrollCells[key].map(b=>b.id),case:a.holder.items.map(b=>({id:b.id,mode:b.moveMode})),active:a.holder.active.length};
   },[before.rack,before.key]);
   assert.equal(saved.open,false,'Save after settling');
   assert.equal(saved.remaining,before.count-3);
+  assert.deepEqual([...saved.remainingIds].sort(),before.ids.slice(3).sort(),'Remaining persistent IDs stable');
   assert.deepEqual(saved.case.map(x=>x.id),before.ids.slice(0,3),'Identities stable');
+  assert(saved.case.every(x=>x.mode==='cut'),'Saved cut mode preserved');
   assert.equal(saved.active,0,'One authoritative case');
   await page.locator('#b6HolderToggle').click();
   assert.equal(await page.locator('#b6HolderToggle').evaluate(el=>getComputedStyle(el).display),'none','No expanded dock bar');
