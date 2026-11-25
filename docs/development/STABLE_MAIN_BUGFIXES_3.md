@@ -1,4 +1,10 @@
-# Third stable-main audit fixes — historical PR #17
+# Third stable-main audit fixes — AUD-16–21
+
+## Integrated public correction
+
+Public [PR #4](https://github.com/Kaim-h/astral-archive/pull/4) merged at `966728ecce8aae6039cea60f7c1cec38746a832d` with final corrective head `34cb69a9e64698bde5858cc8a25dfcc618aac792`. Both final [push CI 45611368692](https://github.com/Kaim-h/astral-archive/actions/runs/45611368692) and [PR CI 45611379137](https://github.com/Kaim-h/astral-archive/actions/runs/45611379137) passed offline-js, browser-cubby-studies and native-archive-qt; [post-merge CI 45612723162](https://github.com/Kaim-h/astral-archive/actions/runs/45612723162) also passed all three at the merge commit. AUD-16–21 are integrated with this bounded verification, not target desktop certification. The sections below retain historical checkpoint statuses, superseded by the final evidence at the end. See [regression verification](REGRESSION_VERIFICATION.md) for generalizable safeguards.
+
+## Historical PR #17 and public PR #4 checkpoints
 
 **Migration checkpoint:** The entries below retain original implementation and CI identifiers as historical evidence, not live destination refs. All five candidate source fixes are present in this draft; the latest correction at original head `25e2ac2e5c184711718bbf7e64e388efb3680d21` remains unverified. Earlier CI success, subsequent actual native pixel assertion failure and later pre-execution infrastructure-blocked jobs are distinct evidence. No new run or target acceptance is claimed. Keep this corrective topic separate from the audit ledger and B8 design.
 
@@ -35,3 +41,11 @@ Bounded test-only candidate: keep actual Ctrl-click and Ctrl+X, assert exact sel
 
 ### AUD-21 first CI follow-up
 Both browser jobs (139194129180 and 139194168235) failed at the added Exact selected IDs assertion before Ctrl+X: observed numeric physics IDs [1,2,3] versus persistent IDs ['s3','s4','s5']. This is a regression-test mistake introduced in the preceding checkpoint, not an observed application failure. The prototype's openCellPhysics builds b4Cell.indexMap from the persistent IDs and assigns temporary i+1 IDs; Save translates them back. Verify the actual bridge mapping, compare temporary IDs during selection/cut, retain exact persistent carried IDs after Save, additionally assert exact remaining persistent IDs and cut mode. No application changes, retries or relaxed assertions. Syntax and representative mapping tested in isolate; full browser CI pending.
+
+## Final corrective evidence — public PR #4
+
+At `34cb69a9e64698bde5858cc8a25dfcc618aac792`, AUD-17 uses permanent scene-graph parchment fill with separate decorative Canvas detail; mapped interior-region assertions test the actual composited scene, with capture saved before assertion. Both final native Qt jobs passed. The corrective review reports inspection of actual intermediate captures showing visible parchment and preserved fixture geometry; this documentation review did not independently inspect image artifacts. The cause of the earlier isolated pixel failure remains inconclusive.
+
+AUD-21 verifies the actual `b4Cell.indexMap` bridge mapping, temporary selected/source/carried physics identities and persistent remaining/carried identities after Save, cut mode, manifest and single Case. The real input path is retained; a bounded 3-second exact completion predicate replaces the assumption that input completion implies operation completion, with no repeated cut. Both final browser logs (jobs [139195456432](https://github.com/Kaim-h/astral-archive/actions/runs/45611368692/job/139195456432) and [139195492144](https://github.com/Kaim-h/astral-archive/actions/runs/45611379137/job/139195492144)) report parent keydown, child cut relay receipt, BODY focus, inactive guard flags and immediate/final source counts of 1. The asynchronous route is confirmed, but the original delayed observation was not reproduced in either instrumented run. This is a corrected synchronization weakness with passing regression evidence, not proof of the sole original cause or elimination of every intermittent failure. The earlier numeric-versus-persistent identity assertion failure was a test defect, not an application failure; B6r12b3 and native Archive use distinct interaction paths.
+
+The merge and subsequent successful main workflow are recorded above. Retain the audit evidence and historical regression gates. N4 real Fedora/Hyprland/Quickshell validation remains outstanding; no physical service, full-theme appearance, performance or production readiness claim follows from these results.

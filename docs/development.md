@@ -33,6 +33,10 @@ Use the workflow and actual files to confirm the current list; do not assume thi
 
 These checks validate pure JavaScript policy, assertions over source text and / or repository structure. They do not prove QML parsing, Quickshell module availability, shader compilation, Wayland focus / anchoring, hardware service behavior, visual fidelity or performance.
 
+## Interaction and rendering regressions
+
+Use [regression verification](development/REGRESSION_VERIFICATION.md) for practical browser and offscreen Qt test design, diagnostic capture and identity-domain checks. Retain historical regression gates, distinguish actual operation completion from input delivery, and test intermediate states as well as settled results. Read the relevant source, accepted reference and workflow before changing a test.
+
 ## Native validation
 
 When the target Linux machine is available:

@@ -21,7 +21,7 @@ Maintain base and branch of the active topic. Do not retarget, stack, delete, me
 
 ## Checkpoint and review
 
-Inspect actual changes and exact artifact bytes. Record base/head, commands, outcomes and uncertainty. Older CI is historical evidence only. Update PR discussion when useful. Log significant failures and recovery; do not hide failures or mark ready solely to obtain a merge. Owner controls integration and branch deletion; verify dependencies and unique commits before suggesting cleanup. After integration verify actual main head and post-merge checks.
+Inspect actual changes and exact artifact bytes. Record base/head, commands, outcomes and uncertainty. Older CI is historical evidence only. Record the event (push or pull request), exact checked-out commit/tree, run/attempt and relevant job results; distinguish a prospective merge tree from the topic head. For intermittent failures and intermediate-state evidence use [regression verification](REGRESSION_VERIFICATION.md). Update PR discussion when useful. Log significant failures and recovery; do not hide failures or mark ready solely to obtain a merge. Owner controls integration and branch deletion; verify dependencies and unique commits before suggesting cleanup. After integration verify actual main head and post-merge checks.
 
 For a substantial milestone record topic, branch/PR/base/head, scope, next concrete step, requirements versus candidates, canonical paths, actual tests and outcomes, observed failures and renders, open invariants, blockers and pending decisions in the relevant technical documentation. Preserve identity, user data, KDE/TTY recovery, and no production shell exposure or autostart without validation.
 
