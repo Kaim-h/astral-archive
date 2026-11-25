@@ -4,7 +4,7 @@
 
 ## Source and version sequence
 
-The supplied November 20 proposal ZIP (`ASTRAL_ARCHIVE_B6_UNCOMMITTED_DOCS_AND_PROTOTYPES.zip`, SHA-256 `c71c267a2d8d07af4158d362b9dd62b09388574b94d9fd8555f52da0278db48b`) inventories 66 entries, including 30 HTML studies, seven PNG diagnostic previews, notes and proposed doc overlays. Its proposal was prepared against `main` `82e850e96e1bf5c1d75c50d9b43840d11498fe32`. The ZIP itself is **not in this branch**, and its older prototype contents have not all been individually imported. This index preserves the manifest of those supplied sources without pretending that an untracked source is linked or implemented. The original ZIP remains an external handoff artifact pending an explicit byte-preserving import.
+The supplied November 20 proposal ZIP (SHA-256 `c71c267a2d8d07af4158d362b9dd62b09388574b94d9fd8555f52da0278db48b`) was recovered and rehashed on November 25; all 63 overlay checksums match. [Exact source audit and import inventory](ZIP_SOURCE_INVENTORY.md) identifies five already tracked byte-identical Storage Workshop sources, 25 missing HTML studies and four missing original notes at the audited main revision. The archive itself is not distributed; the audit alone does not establish import of missing sources. Seven diagnostic previews and obsolete doc replacements remain excluded.
 
 The proposed older study sequence:
 - Storage Workshop `v5.1`–`v5.12` (12 files): furniture / tessellation, contact and object-representation explorations, including the v5.4 reference already archived in November 17 materials.
@@ -12,7 +12,7 @@ The proposed older study sequence:
 - Cubby Study `B1`, `B2`, `B3`, `B3 Bookmark Revision`, `B4`, `B4r`, `B5`, `B6` (8 files): object/tooltips, attachment, transactional placement, per-cell live physics, cross-cell transfer and rack reflow.
 - Scroll Physics `P1`, `P2`, `P2R` (3 files): increasingly refined live-circle, void and drop interactions.
 - Map Room `v3` (1 file): spatial layout experimentation.
-- Notes for B4, B4r, B6 and rack/holder design, plus seven diagnostic PNGs, are in that external ZIP.
+- B4, B4r, B6 and rack/holder notes are listed in the exact source inventory; seven diagnostic PNGs remain external.
 
 **Important historical distinction:** B5 (SHA-256 `041ceabfb7edcfa6e1dd3d8cbcbb680cb18cebcac7278f9c0c0481e8512995c7`) is the positively reviewed cross-cell interaction baseline. Original B6 (SHA-256 `33a173c6f118c36b7c90d73c28e80c3fbefac6c9a77b4190ebc2e9ddc45d0841`) was observed to have dangerous reflow defects; do **not** assume it safe to open and resize without isolation. Later B6r iterations are separate preserved copies, not edits to B6.
 
