@@ -1,0 +1,354 @@
+{
+    "schemaVersion": 1,
+    "note": "Artwork titles are filename-derived placeholders until verified. Personal image binaries are never bundled.",
+    "wallpapers": [
+        {
+            "id": "alayna-lemmer-oasis-e",
+            "file": "alayna-lemmer-oasis - e.jpg",
+            "title": "Oasis",
+            "artist": "Alayna Lemmer",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "andreas-rocha-ceruleanbreeze02-m",
+            "file": "andreas-rocha-ceruleanbreeze02 - m.jpg",
+            "title": "Ceruleanbreeze02",
+            "artist": "Andreas Rocha",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "andreas-rocha-hiddenvillage02-t",
+            "file": "andreas-rocha-hiddenvillage02 - t.jpg",
+            "title": "Hiddenvillage02",
+            "artist": "Andreas Rocha",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "andreas-rocha-springiscoming03-e",
+            "file": "andreas-rocha-springiscoming03 -e.jpg",
+            "title": "Springiscoming03",
+            "artist": "Andreas Rocha",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "andreas-rocha-twinspires02-e",
+            "file": "andreas-rocha-twinspires02 - e.jpg",
+            "title": "Twinspires02",
+            "artist": "Andreas Rocha",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "andreas-rocha-watchtower01-m",
+            "file": "andreas-rocha-watchtower01 - m.jpg",
+            "title": "Watchtower01",
+            "artist": "Andreas Rocha",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "dylan-milliot-finalv2-min-m-2",
+            "file": "dylan-milliot-finalv2-min-m(2).jpg",
+            "title": "Untitled — finalv2 min",
+            "artist": "Dylan Milliot",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "emilie-v-f-enviro1-colors-e",
+            "file": "emilie-v-f-enviro1-colors -e.jpg",
+            "title": "Untitled — enviro1 colors",
+            "artist": "Emilie Vaccarini",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "ferdinand-ladera-torrent-of-gelion-2k-t-2",
+            "file": "ferdinand-ladera-torrent-of-gelion-2k-t(2).jpg",
+            "title": "Torrent of Gelion 2k",
+            "artist": "Ferdinand Ladera",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "greg-semkow-castle-ruins-1-t-2",
+            "file": "greg-semkow-castle-ruins-1-t(2).jpeg",
+            "title": "Castle Ruins",
+            "artist": "Greg Semkow",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jan-rozanski-towers-janrozanski-e",
+            "file": "jan-rozanski-towers-janrozanski-e.jpg",
+            "title": "Towers Janrozanski",
+            "artist": "Jan Różański",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-a-safe-place-re-visited-by-jjcanvas-d9nwse7-t-2",
+            "file": "jorge-jacinto-a-safe-place-re-visited-by-jjcanvas-d9nwse7-t(2).jpg",
+            "title": "a Safe Place Re Visited by Jjcanvas D9nwse",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-after-the-end-red-t-2",
+            "file": "jorge-jacinto-after-the-end-red-t(2).jpg",
+            "title": "After the End Red",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-forgotten-kingdom-ii-t-2",
+            "file": "jorge-jacinto-forgotten-kingdom-ii-t(2).jpg",
+            "title": "Forgotten Kingdom Ii",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-forgotten-landsi-t-2",
+            "file": "jorge-jacinto-forgotten-landsi-t(2).jpg",
+            "title": "Forgotten Landsi",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-half-remembered-ruins-t",
+            "file": "jorge-jacinto-half-remembered-ruins-t.jpg",
+            "title": "Half Remembered Ruins",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-landscape-7-red-t",
+            "file": "jorge-jacinto-landscape-7-red-t.jpg",
+            "title": "Untitled — landscape 7 red",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-les-chroniques-de-ren-final-lowres-m",
+            "file": "jorge-jacinto-les-chroniques-de-ren-final-lowres-m.jpg",
+            "title": "Les Chroniques De Ren Final Lowres",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-stranger-in-a-strange-land-revisited-m-2",
+            "file": "jorge-jacinto-stranger-in-a-strange-land-revisited-m(2).jpg",
+            "title": "Stranger in a Strange Land Revisited",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "jorge-jacinto-wisp-red-m-4",
+            "file": "jorge-jacinto-wisp-red-m(4).jpg",
+            "title": "Wisp Red",
+            "artist": "Jorge Jacinto",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "marvin-hillmann-08052023-m-2",
+            "file": "marvin-hillmann-08052023-m(2).jpg",
+            "title": "Untitled — 08052023",
+            "artist": "Marvin Hillmann",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "marvin-hillmann-hillmann-marvin-university-e",
+            "file": "marvin-hillmann-hillmann-marvin-university-e.jpg",
+            "title": "Hillmann Marvin University",
+            "artist": "Marvin Hillmann",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "ryan-okita-15-environment-work-1-small-m-2",
+            "file": "ryan-okita-15-environment-work-1-small-m(2).jpg",
+            "title": "15 Environment Work 1 Small",
+            "artist": "Ryan Okita",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "terraform-studios-031422-xaya-cristal-2-t-2",
+            "file": "terraform-studios-031422-xaya-cristal-2-t(2).jpg",
+            "title": "Untitled — 031422 xaya cristal",
+            "artist": "Terraform Studios",
+            "themes": [
+                "twilight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "terraform-studios-terraform-studios-022322-totem-xar-vistashot-3-qm-w-e",
+            "file": "terraform-studios-terraform-studios-022322-totem-xar-vistashot-3-qm-w-e.jpg",
+            "title": "Terraform Studios 022322 Totem Xar Vistashot 3 Qm W",
+            "artist": "Terraform Studios",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "wallhaven-4dr81g-2560x1440-e",
+            "file": "wallhaven-4dr81g_2560x1440-e.png",
+            "title": "Untitled (Wallhaven ID 4dr81g)",
+            "artist": "Uncredited — verify",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "wallhaven-8x585o-1920x1080-e",
+            "file": "wallhaven-8x585o_1920x1080-e.png",
+            "title": "Untitled (Wallhaven ID 8x585o)",
+            "artist": "Uncredited — verify",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "wallhaven-x8ollv-2560x1440-m-2",
+            "file": "wallhaven-x8ollv_2560x1440-m(2).png",
+            "title": "Untitled (Wallhaven ID x8ollv)",
+            "artist": "Uncredited — verify",
+            "themes": [
+                "midnight"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        },
+        {
+            "id": "yoona-oh-final-post-e",
+            "file": "yoona-oh-final-post-e.jpg",
+            "title": "Untitled — final post",
+            "artist": "Yoona Oh",
+            "themes": [
+                "evening"
+            ],
+            "focusX": 0.5,
+            "focusY": 0.5,
+            "titleVerified": false
+        }
+    ]
+}
