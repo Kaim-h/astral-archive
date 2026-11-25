@@ -131,12 +131,7 @@ actual adapter functions against mocked FileView callbacks, and
 `node scripts/check-veranda.js` covers the startup gate. These do not establish
 actual Quickshell file I/O or target-session restart behavior. Tests distinguish
 cached text and persisted bytes, readback failure and stale startup callbacks.
-During N4, use
-disposable state storage: cycle all three themes, restart the actual shell,
-confirm the first wallpaper corresponds to the restored theme, check missing,
-malformed, unsupported and unreadable preferences, atomic write failure and
-session-only indicator, and confirm isolated study checkpoints do not touch
-the desktop preference. Preserve real user state and recovery path.
+Follow the [N4 desktop preference and startup checklist](bringup.md#n4-desktop-preference-and-startup-acceptance) with disposable state. The independent theme readback safeguard is not shared by [Veranda](veranda-of-vistas.md#bounded-startup-recovery-wp-07--aud-22); actual write/commit behavior remains unverified.
 
 ## Native testing required
 
