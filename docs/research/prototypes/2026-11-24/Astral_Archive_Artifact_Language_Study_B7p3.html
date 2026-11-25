@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astral Archive · B7p3 Artifact Language Study</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#121e23; --panel:#263c37; --panel2:#1a2a2d; --metal:#8c6e5a; --engraving:#91ada1; --text:#e6e1d8;
+}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45, Georgia, serif}
+main{max-width:1200px;margin:auto;padding:22px clamp(12px,3vw,36px)}
+header{display:flex;justify-content:space-between;gap:20px;align-items:baseline;flex-wrap:wrap;border-bottom:1px solid color-mix(in srgb,var(--metal) 70%,transparent);padding-bottom:12px}
+h1{font-size:26px;font-weight:normal;margin:0}.muted{color:var(--engraving);font:12px/1.45 system-ui,sans-serif}
+.controls{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:end;padding:16px 0}
+label{display:grid;gap:4px;font:12px system-ui,sans-serif;color:var(--engraving)}
+select,button{font:14px Georgia,serif;background:var(--panel);color:var(--text);border:1px solid var(--metal);border-radius:6px;padding:7px 10px}
+button{cursor:pointer}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+.stage{border:1px solid color-mix(in srgb,var(--metal) 60%,transparent);border-radius:8px;background:linear-gradient(var(--panel),var(--panel2));overflow:hidden}
+svg{display:block;width:100%;height:auto}
+.detail{border:1px solid color-mix(in srgb,var(--metal) 50%,transparent);border-radius:8px;padding:14px;background:color-mix(in srgb,var(--panel) 92%, black 8%)}
+.detail h2{font-size:18px;font-weight:normal;margin:0 0 10px}
+.detail p{margin:8px 0;overflow-wrap:anywhere}
+.detail .note{font:12px/1.45 system-ui,sans-serif;color:var(--engraving)}
+.item{cursor:pointer;outline:none}
+.item .outline{opacity:0;fill:none;stroke:var(--engraving);stroke-width:1.8;stroke-dasharray:5 3}
+.item.selected .outline,.item:focus-visible .outline{opacity:1}
+.item:hover .outline{opacity:.7}
+.badge{display:inline-block;border:1px solid color-mix(in srgb,var(--metal) 75%,transparent);border-radius:999px;padding:2px 8px;margin-right:6px;color:var(--engraving);font:11px system-ui,sans-serif}
+.footer-note{margin-top:14px;max-width:78ch;color:var(--engraving);font:12px/1.5 system-ui,sans-serif}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Artifact language study <span class="muted">/ B7p3</span></h1>
+    <div class="muted">Focused redraw: leather pouch, wrapped parcel, armillary sphere, astrolabe</div>
+  </header>
+
+  <div class="controls">
+    <label>Theme<select id="theme"><option>Evening</option><option selected>Twilight</option><option>Midnight</option></select></label>
+    <label>Fixture<select id="fixture"><option value="shelf">Shelf</option><option value="tray">Shallow tray</option></select></label>
+    <label>Presentation<select id="scale"><option value="normal">Normal</option><option value="compact">Compact</option></select></label>
+    <button id="reset">Reset study</button>
+  </div>
+
+  <div class="layout">
+    <section class="stage"><svg id="scene" viewBox="0 0 920 520" aria-label="Artifact study stage"></svg></section>
+    <aside class="detail">
+      <h2>Selected object</h2>
+      <svg id="preview" viewBox="0 0 250 240" aria-hidden="true"></svg>
+      <p id="name"></p>
+      <p id="meta" class="note"></p>
+      <p><span class="badge" id="family"></span><span class="badge" id="material"></span></p>
+      <p class="note" id="reading"></p>
+      <p class="note">The experiment deliberately uses fewer details, stronger silhouettes, line-led construction and restrained shading to avoid the generic rendered-icon feel of B7p2.</p>
+    </aside>
+  </div>
+
+  <p class="footer-note">Each drawing is an original symbolic illustration. The aim is not photorealism but constructional clarity. If this language works, it can be expanded to the rest of the parcel and instrument family before QML implementation.</p>
+</main>
+
+<script>
+const THEMES={
+  Evening:['#343c43','#3f524f','#c2aa78','#b7a2c8','#f0f0e8'],
+  Twilight:['#121e23','#263c37','#8c6e5a','#91ada1','#e6e1d8'],
+  Midnight:['#080f10','#101c1b','#869c9c','#568f80','#dadfd9']
+};
+const OBJECTS=[
+  {id:'pouch',name:'Archive satchel.bundle',family:'Compressed archive',material:'Leather / cord',summary:'Gathered mouth, hanging weight and tied throat. The front flap is omitted to keep the silhouette honest.',note:'Success depends on believable tension and gravity rather than decorative stitching.'},
+  {id:'parcel',name:'Folded packet.tar',family:'Compressed archive',material:'Linen / parchment',summary:'A rectangular payload wrapped in cloth, with the folds derived from how a real bundle closes.',note:'The folds should read as pressure and overlap, not random polygons.'},
+  {id:'armillary',name:'Celestial model.csv',family:'Scientific data',material:'Bronze / stone',summary:'A small armillary with consistent ring centers, simplified but mechanically coherent.',note:'The construction is ring-first. Decorative marks are secondary.'},
+  {id:'astrolabe',name:'Observatory plate.tsv',family:'Scientific data',material:'Bronze',summary:'Planispheric disc with a central pin, suspension ring and purposeful radial engraving.',note:'The engravings should feel measured and functional, not merely ornamental.'}
+];
+let selected=0;
+const $=id=>document.getElementById(id);
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function applyTheme(){const [bg,panel,metal,engraving,text]=THEMES[$('theme').value]; for(const [k,v] of Object.entries({bg,panel,metal,engraving,text,panel2:mix(panel,bg,.55)})) document.documentElement.style.setProperty('--'+k,v)}
+function mix(a,b,t){const p=n=>parseInt(n,16),A=a.slice(1),B=b.slice(1); const r=Math.round(p(A.slice(0,2))*(1-t)+p(B.slice(0,2))*t).toString(16).padStart(2,'0'),g=Math.round(p(A.slice(2,4))*(1-t)+p(B.slice(2,4))*t).toString(16).padStart(2,'0'),c=Math.round(p(A.slice(4,6))*(1-t)+p(B.slice(4,6))*t).toString(16).padStart(2,'0'); return '#'+r+g+c;}
+function defs(){return `
+<defs>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000" flood-opacity=".22"/></filter>
+  <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--engraving)" stroke-opacity=".15" stroke-width="1"/></pattern>
+  <pattern id="hatch2" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-30)"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--engraving)" stroke-opacity=".12" stroke-width="1"/></pattern>
+</defs>`}
+function fixture(){
+ const shelf=$('fixture').value==='shelf';
+ if(shelf) return `<g><rect x="65" y="378" width="790" height="20" rx="3" fill="var(--metal)" opacity=".7"/><rect x="65" y="391" width="790" height="7" fill="#000" opacity=".22"/><rect x="70" y="365" width="780" height="11" rx="2" fill="color-mix(in srgb,var(--panel) 62%, var(--metal) 38%)"/></g>`;
+ return `<g><rect x="62" y="334" width="796" height="78" rx="6" fill="color-mix(in srgb,var(--panel) 64%, black 10%)" stroke="var(--metal)"/><rect x="74" y="346" width="772" height="54" rx="4" fill="color-mix(in srgb,var(--panel) 86%, black 14%)"/><rect x="62" y="396" width="796" height="16" rx="4" fill="var(--metal)" opacity=".7"/></g>`;
+}
+function plaque(x,y,w,label){
+ return `<g><rect x="${x}" y="${y}" width="${w}" height="22" rx="4" fill="color-mix(in srgb,var(--bg) 82%, black 18%)" stroke="var(--metal)"/><text x="${x+w/2}" y="${y+14.6}" text-anchor="middle" fill="var(--engraving)" font-size="10.5" font-family="system-ui,sans-serif">${esc(label)}</text></g>`
+}
+function satchel(x,y,s){
+ const w=118*s,h=118*s;
+ return `<g transform="translate(${x} ${y})" filter="url(#softShadow)">
+   <path d="M18 ${84*s} Q20 ${24*s} ${56*s} ${18*s} Q90 ${16*s} ${104*s} ${39*s} Q108 ${47*s} ${104*s} ${84*s} Q102 ${109*s} ${61*s} ${111*s} Q19 ${110*s} 18 ${84*s}Z" fill="color-mix(in srgb,var(--metal) 56%, #3d2519 44%)" stroke="var(--metal)" stroke-width="1.6"/>
+   <path d="M29 ${45*s} Q31 ${74*s} ${39*s} ${96*s}" fill="none" stroke="var(--engraving)" stroke-opacity=".34" stroke-width="1.1"/>
+   <path d="M89 ${45*s} Q87 ${74*s} ${80*s} ${96*s}" fill="none" stroke="var(--engraving)" stroke-opacity=".34" stroke-width="1.1"/>
+   <path d="M27 ${44*s} Q60 ${31*s} ${93*s} ${44*s}" fill="none" stroke="color-mix(in srgb,var(--metal) 78%, black 22%)" stroke-width="2"/>
+   <path d="M51 ${18*s} Q51 ${4*s} ${59*s} ${4*s} Q67 ${4*s} ${67*s} ${18*s}" fill="none" stroke="var(--metal)" stroke-width="2"/>
+   <path d="M42 ${38*s} L42 ${58*s} M50 ${35*s} L50 ${65*s} M58 ${34*s} L58 ${67*s} M66 ${35*s} L66 ${64*s} M74 ${38*s} L74 ${57*s}" stroke="#472c1e" stroke-width="2.2" stroke-linecap="round"/>
+   <path d="M42 ${39*s} L42 ${57*s} M50 ${36*s} L50 ${64*s} M58 ${35*s} L58 ${66*s} M66 ${36*s} L66 ${63*s} M74 ${39*s} L74 ${56*s}" stroke="#d1b287" stroke-opacity=".35" stroke-width="1" stroke-linecap="round"/>
+   <ellipse cx="${58*s}" cy="${78*s}" rx="${31*s}" ry="${24*s}" fill="url(#hatch)" opacity=".45"/>
+ </g>`;
+}
+function parcel(x,y,s){
+ return `<g transform="translate(${x} ${y})" filter="url(#softShadow)">
+   <path d="M14 ${65*s} L28 ${30*s} L95 ${26*s} L111 ${59*s} L86 ${95*s} L23 ${93*s}Z" fill="color-mix(in srgb,var(--text) 75%, var(--metal) 25%)" stroke="var(--metal)" stroke-width="1.5"/>
+   <path d="M28 ${30*s} L52 ${54*s} L14 ${65*s} M52 ${54*s} L111 ${59*s} M52 ${54*s} L23 ${93*s} M52 ${54*s} L86 ${95*s}" fill="none" stroke="color-mix(in srgb,var(--metal) 64%, black 36%)" stroke-width="1.4"/>
+   <path d="M24 ${43*s} Q55 ${37*s} ${97*s} ${39*s}" fill="none" stroke="var(--engraving)" stroke-opacity=".22" stroke-width="1"/>
+   <path d="M52 ${22*s} L52 ${92*s} M18 ${61*s} L106 ${61*s}" stroke="#6d5747" stroke-width="2"/>
+   <path d="M49 ${20*s} Q52 ${16*s} ${55*s} ${20*s} M16 ${58*s} Q12 ${61*s} ${16*s} ${64*s} M104 ${58*s} Q108 ${61*s} ${104*s} ${64*s} M49 ${90*s} Q52 ${94*s} ${55*s} ${90*s}" fill="none" stroke="#6d5747" stroke-width="1.7"/>
+   <path d="M23 ${92*s} Q49 ${83*s} ${86*s} ${95*s}" fill="none" stroke="var(--engraving)" stroke-opacity=".16" stroke-width="1"/>
+ </g>`;
+}
+function armillary(x,y,s){
+ return `<g transform="translate(${x} ${y})" filter="url(#softShadow)">
+   <ellipse cx="${54*s}" cy="${83*s}" rx="${36*s}" ry="${8*s}" fill="color-mix(in srgb,var(--panel) 72%, black 28%)"/>
+   <path d="M36 ${82*s} L45 ${54*s} H63 L72 ${82*s}" fill="none" stroke="var(--metal)" stroke-width="4" stroke-linecap="round"/>
+   <circle cx="${54*s}" cy="${39*s}" r="${25*s}" fill="none" stroke="var(--metal)" stroke-width="3"/>
+   <ellipse cx="${54*s}" cy="${39*s}" rx="${38*s}" ry="${11*s}" fill="none" stroke="var(--metal)" stroke-width="3"/>
+   <ellipse cx="${54*s}" cy="${39*s}" rx="${16*s}" ry="${37*s}" fill="none" stroke="var(--metal)" stroke-width="3"/>
+   <path d="M28 ${39*s} H80 M54 ${14*s} V64" stroke="var(--metal)" stroke-width="2.1" opacity=".9"/>
+   <circle cx="${54*s}" cy="${39*s}" r="${4*s}" fill="var(--metal)"/>
+   <path d="M25 ${39*s} A29 ${29*s} 0 0 1 84 ${39*s}" fill="none" stroke="var(--engraving)" stroke-opacity=".22" stroke-width="1.1"/>
+ </g>`;
+}
+function astrolabe(x,y,s){
+ return `<g transform="translate(${x} ${y})" filter="url(#softShadow)">
+   <path d="M54 ${10*s} Q54 ${2*s} ${60*s} ${2*s} Q66 ${2*s} ${66*s} ${10*s}" fill="none" stroke="var(--metal)" stroke-width="2.2"/>
+   <circle cx="${60*s}" cy="${17*s}" r="${7*s}" fill="none" stroke="var(--metal)" stroke-width="2"/>
+   <circle cx="${60*s}" cy="${58*s}" r="${40*s}" fill="color-mix(in srgb,var(--metal) 30%, var(--panel) 70%)" stroke="var(--metal)" stroke-width="3"/>
+   <circle cx="${60*s}" cy="${58*s}" r="${30*s}" fill="none" stroke="var(--engraving)" stroke-opacity=".35" stroke-width="1.2"/>
+   <path d="M60 ${19*s} V97 M21 ${58*s} H99 M33 ${31*s} L87 ${85*s} M33 ${85*s} L87 ${31*s}" stroke="var(--engraving)" stroke-opacity=".4" stroke-width="1.1"/>
+   <path d="M28 ${45*s} Q60 ${36*s} 92 ${45*s} Q60 ${71*s} 28 ${45*s}Z" fill="none" stroke="var(--metal)" stroke-width="2"/>
+   <path d="M60 ${26*s} L64 ${58*s} L60 ${90*s} L56 ${58*s}Z" fill="color-mix(in srgb,var(--metal) 68%, black 32%)" stroke="var(--metal)" stroke-width="1.2"/>
+   <circle cx="${60*s}" cy="${58*s}" r="${3.4*s}" fill="var(--metal)"/>
+   <g stroke="var(--engraving)" stroke-opacity=".42" stroke-width="1">${Array.from({length:24},(_,i)=>{const a=i*Math.PI/12,x1=60+33*Math.cos(a),y1=58+33*Math.sin(a),x2=60+37*Math.cos(a),y2=58+37*Math.sin(a);return `<line x1="${x1*s}" y1="${y1*s}" x2="${x2*s}" y2="${y2*s}"/>`}).join('')}</g>
+ </g>`;
+}
+function drawObject(obj,x,y,s){
+ switch(obj.id){
+   case 'pouch': return satchel(x,y,s);
+   case 'parcel': return parcel(x,y,s);
+   case 'armillary': return armillary(x,y,s);
+   case 'astrolabe': return astrolabe(x,y,s);
+ }
+}
+function renderScene(){
+ applyTheme();
+ const compact=$('scale').value==='compact';
+ const scale=compact?.85:1;
+ const positions=[[110,220],[320,220],[535,195],[720,195]];
+ let svg=`${defs()}<rect width="920" height="520" fill="var(--bg)"/><rect x="32" y="26" width="856" height="468" rx="6" fill="var(--panel)" stroke="var(--metal)" stroke-width="2"/><rect x="44" y="38" width="832" height="444" rx="4" fill="none" stroke="var(--engraving)" stroke-opacity=".32"/>${fixture()}`;
+ OBJECTS.forEach((o,i)=>{
+   const [x,y]=positions[i];
+   const draw=drawObject(o,x,y,scale);
+   const outline=[{x:x+6,y:y+2,w:110*scale,h:118*scale},{x:x+5,y:y+18,w:115*scale,h:84*scale},{x:x+8,y:y+6,w:92*scale,h:88*scale},{x:x+10,y:y+0,w:100*scale,h:102*scale}][i];
+   const py=$('fixture').value==='shelf'?410:424;
+   svg+=`<g class="item ${i===selected?'selected':''}" data-id="${i}" tabindex="0" role="button" aria-label="${esc(o.name)}">${draw}<rect class="outline" x="${outline.x}" y="${outline.y}" width="${outline.w}" height="${outline.h}" rx="6"/>${plaque(x+6,py,118*scale,o.name.split('.')[0])}</g>`;
+ });
+ $('scene').innerHTML=svg;
+ const o=OBJECTS[selected];
+ $('name').textContent=o.name;
+ $('meta').textContent=o.summary;
+ $('family').textContent=o.family;
+ $('material').textContent=o.material;
+ $('reading').textContent=o.note;
+ $('preview').innerHTML=`${defs()}<rect width="250" height="240" rx="5" fill="var(--panel)"/>`+drawObject(o,65,55,1.1);
+ bind();
+}
+function bind(){
+ $('scene').querySelectorAll('.item').forEach(el=>{
+   el.onclick=()=>{selected=+el.dataset.id; renderScene();};
+   el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault(); selected=+el.dataset.id; renderScene();}}
+ });
+}
+['theme','fixture','scale'].forEach(id=>$(id).addEventListener('change',renderScene));
+$('reset').onclick=()=>{$('theme').value='Twilight';$('fixture').value='shelf';$('scale').value='normal';selected=0;renderScene();};
+renderScene();
+</script>
+</body>
+</html>
