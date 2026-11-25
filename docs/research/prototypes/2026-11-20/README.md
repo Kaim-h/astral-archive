@@ -4,15 +4,15 @@
 
 ## Source and version sequence
 
-The supplied November 20 proposal ZIP (SHA-256 `c71c267a2d8d07af4158d362b9dd62b09388574b94d9fd8555f52da0278db48b`) was recovered and rehashed on November 25; all 63 overlay checksums match. [Exact source audit and import inventory](ZIP_SOURCE_INVENTORY.md) identifies five already tracked byte-identical Storage Workshop sources, 25 missing HTML studies and four missing original notes at the audited main revision. The archive itself is not distributed; the audit alone does not establish import of missing sources. Seven diagnostic previews and obsolete doc replacements remain excluded.
+The supplied November 20 proposal ZIP (SHA-256 `c71c267a2d8d07af4158d362b9dd62b09388574b94d9fd8555f52da0278db48b`) was recovered and rehashed on November 25; all 63 overlay checksums match. [Exact source audit and import inventory](ZIP_SOURCE_INVENTORY.md) identifies five already tracked byte-identical Storage Workshop sources, 25 missing HTML studies and four missing original notes at the audited main revision. The 29 missing originals are now restored in the [linked source index](ZIP_IMPORTED_SOURCES.md), with exact Git blob matches to the ZIP. The archive itself is not distributed. Seven diagnostic previews and obsolete doc replacements remain excluded.
 
-The proposed older study sequence:
+The older study sequence (all 30 HTML sources preserved across this dated archive and the November 17 handoff):
 - Storage Workshop `v5.1`–`v5.12` (12 files): furniture / tessellation, contact and object-representation explorations, including the v5.4 reference already archived in November 17 materials.
 - Cubby Study `A1`–`A6` (6 files): nested storage, geometry, inherited colors, independent child footprint/interior and camera scale.
 - Cubby Study `B1`, `B2`, `B3`, `B3 Bookmark Revision`, `B4`, `B4r`, `B5`, `B6` (8 files): object/tooltips, attachment, transactional placement, per-cell live physics, cross-cell transfer and rack reflow.
 - Scroll Physics `P1`, `P2`, `P2R` (3 files): increasingly refined live-circle, void and drop interactions.
 - Map Room `v3` (1 file): spatial layout experimentation.
-- B4, B4r, B6 and rack/holder notes are listed in the exact source inventory; seven diagnostic PNGs remain external.
+- B4, B4r, B6 and rack/holder notes are restored and linked in the source index; seven diagnostic PNGs remain external.
 
 **Important historical distinction:** B5 (SHA-256 `041ceabfb7edcfa6e1dd3d8cbcbb680cb18cebcac7278f9c0c0481e8512995c7`) is the positively reviewed cross-cell interaction baseline. Original B6 (SHA-256 `33a173c6f118c36b7c90d73c28e80c3fbefac6c9a77b4190ebc2e9ddc45d0841`) was observed to have dangerous reflow defects; do **not** assume it safe to open and resize without isolation. Later B6r iterations are separate preserved copies, not edits to B6.
 

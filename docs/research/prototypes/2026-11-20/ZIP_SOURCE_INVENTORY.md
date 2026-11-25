@@ -4,7 +4,7 @@
 
 ## Verified overlap and missing sources
 
-Five of 30 HTML studies already exist byte-identically under the November 17 handoff. Comparison used Git blob hashes computed from the actual ZIP bytes against the nontruncated public tree, not filename alone. Preserve those existing locations. The other 25 HTML studies and four original research notes (2,070,145 bytes total) were absent at the audit base. Later B6r variants are distinct. This documentation checkpoint records the gap and exact intended imports; it does not assert that the missing payloads are already in Git.
+Five of 30 HTML studies already exist byte-identically under the November 17 handoff. Comparison used Git blob hashes computed from the actual ZIP bytes against the nontruncated public tree, not filename alone. Preserve those existing locations. The other 25 HTML studies and four original research notes (2,070,145 bytes total) were absent at the audit base. Later B6r variants are distinct. The [imported source index](ZIP_IMPORTED_SOURCES.md) links all 29 restored originals; this inventory records the earlier audit base.
 
 | Already tracked source | ZIP SHA-256 |
 |---|---|
@@ -16,7 +16,7 @@ Five of 30 HTML studies already exist byte-identically under the November 17 han
 
 ## Exact import inventory
 
-Paths below are relative to this dated directory. These are expected source files, **not links to files known to be present** at the audit base. The following SHA-256 manifest is suitable for verification from this directory after an additive import.
+Paths below are relative to this dated directory. All 29 files were absent at the audit base and have now been restored byte-for-byte on the review branch. The SHA-256 manifest is suitable for independent verification from this directory.
 
 ```text
 45e06fe5c767bd41725378d5c1d1c9616b5680a65778e466ebf1547cfe7da69f  cubby-studies/Astral_Archive_Cubby_Study_A1.html
@@ -67,6 +67,6 @@ Screened archive names, text, metadata, local path/contact/credential patterns, 
 
 Withhold the seven diagnostic PNGs (not needed for this import; not visually reviewed for publication), original transfer ZIP, top-level proposal/manifest texts and 22 non-note Markdown overlays. The latter are obsolete replacement proposals or already synthesized specifications, not instructions to overwrite current docs. No private context, identifying local paths or external asset files added. Follow [publication preflight](../../../PUBLICATION_PREFLIGHT.md) and [licensing scope](../../../../LICENSING.md); retain project-authored executable/visual/prose license distinctions and any applicable third-party notices.
 
-## Import acceptance
+## Source import verification
 
-Use only the 29 missing originals, with paths under this directory and no normalization (all are UTF-8 LF). Preserve historical notes as originals; the dated index governs supersession. Do not replace newer prototypes, live specifications, existing older handoffs or runtime/test/CI files. Verify all 29 SHA-256 digests, actual committed blobs and exact added-path set before owner-controlled integration. Record source import separately from this documentation audit; do not mark archive completeness on inventory alone. No additional later-prototype work is included.
+All 29 missing originals (2,070,145 bytes) were reconstructed from the reviewed additive patch in seven family-based commits ending at `3d20f686e178a539613da318607442adeaec4580`. Before publication each source was matched by byte length and Git blob SHA-1 computed from the independently reviewed ZIP bytes; the resulting Git tree was then checked against those same original blob IDs. Final inventory comparison verified all 29 paths and blob IDs plus the five pre-existing byte-identical Storage Workshop versions. All original source text and trailing whitespace remain intact. The SHA-256 manifest above records the digests independently computed from the ZIP originals. No newer prototypes, live specifications, existing older handoffs, runtime/test/CI files or diagnostic PNGs were replaced or added outside this bounded import. Owner-controlled integration and final-head checks remain separate. No additional later-prototype work is included.

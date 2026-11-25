@@ -2,11 +2,11 @@
 
 > Historical provenance only. The original ZIP is not distributed here; old pull request and commit identifiers do not identify current work.
 >
-> **November 25 update:** The exact original archive was recovered and all 63 overlay digests independently verified. See the [source audit and exact import inventory](ZIP_SOURCE_INVENTORY.md) for byte-identical deduplication, 29 missing sources at the audited base, publication review and outstanding import. The earlier filename-only audit below is retained as historical evidence.
+> **November 25 update:** The exact original archive was recovered and all 63 overlay digests independently verified. See the [source audit and exact import inventory](ZIP_SOURCE_INVENTORY.md) for byte-identical deduplication, 29 missing sources at the audited base, publication review. The [imported source index](ZIP_IMPORTED_SOURCES.md) now links all 29 restored originals; their committed blobs match the reviewed ZIP bytes. All 30 HTML sources and four research notes are accounted for, without duplicating the five earlier Storage Workshop files. The earlier filename-only audit and pending-import language below are retained as historical evidence, not current absence claims.
 
 **Source file:** user-provided `ASTRAL_ARCHIVE_B6_UNCOMMITTED_DOCS_AND_PROTOTYPES(1).zip` (2,980,789 bytes; SHA-256 `c71c267a2d8d07af4158d362b9dd62b09388574b94d9fd8555f52da0278db48b`). The original ZIP explicitly says it was prepared outside Git from `main` commit `82e850e96e1bf5c1d75c50d9b43840d11498fe32` and warns **not to apply wholesale over changed docs**. The user's subsequent message authorized creating a new review branch and PR, not overwriting history or merging to main.
 
-This ledger is a transparent record of what was reviewed and what is still absent. **Listing a file here does not mean its content is checked into the repository.**
+This ledger is a transparent record of what was reviewed and what remained absent at the earlier checkpoints. **Listing a file here does not mean its content is checked into the repository.**
 
 ## ZIP inventory
 
