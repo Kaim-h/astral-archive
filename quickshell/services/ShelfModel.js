@@ -10,9 +10,9 @@ function normalizeShelfId(value) {
 function splitShelfApps(catalogue, pinnedIds, runningIds, maxPinned, maxRunning) {
     var pinned = [];
     var running = [];
-    var available = {};
-    var seen = {};
-    var runningSet = {};
+    var available = Object.create(null);
+    var seen = Object.create(null);
+    var runningSet = Object.create(null);
     var i, app, id;
     var pinnedLimit = Math.max(0, Math.floor(Number(maxPinned) || 0));
     var runningLimit = Math.max(0, Math.floor(Number(maxRunning) || 0));

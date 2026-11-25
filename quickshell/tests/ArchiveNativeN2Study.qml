@@ -24,8 +24,8 @@ Rectangle {
     function checkpointView(){
         // Prune deleted cubby cameras and capture the currently open camera
         // without modifying the live view or creating an Undo entry.
-        var cameras={}
-        for(var id in sceneView.cameras)if(archive.snapshot.cubbies[id])cameras[id]=Core.clone(sceneView.cameras[id])
+        var cameras=View.copyCameras({})
+        for(var id of Object.keys(sceneView.cameras))if(Object.prototype.hasOwnProperty.call(archive.snapshot.cubbies,id))cameras[id]=Core.clone(sceneView.cameras[id])
         cameras[sceneView.cubbyId]={zoom:sceneView.zoom,x:sceneView.pan.x,y:sceneView.pan.y}
         return {path:sceneView.reachableViewPath.slice(),theme:Themes.Theme.index,cameras:cameras,
             cubbyPreviewMode:sceneView.cubbyPreviewMode,snapEnabled:sceneView.snapEnabled,
@@ -66,7 +66,7 @@ Rectangle {
             closeContext();closeMaterials();rackInspector=false;pickId=""
             sceneView.mode="browse"
             sceneView.viewPath=view.path.slice()
-            sceneView.cameras=Core.clone(view.cameras)
+            sceneView.cameras=View.copyCameras(view.cameras)
             sceneView.restoreCamera()
             Themes.Theme.index=view.theme
             sceneView.cubbyPreviewMode=view.cubbyPreviewMode||"veiled"

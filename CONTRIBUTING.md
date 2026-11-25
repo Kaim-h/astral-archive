@@ -4,8 +4,8 @@ These technical and review requirements apply equally to human contributors, AI 
 
 ## Start here
 
-1. Read `README.md` and `docs/README.md`.
-2. Read `docs/development/CURRENT_STATE.md` and `docs/development/ACTIVE_WORK.md` when present; during baseline preparation consult the checkpoint status in the README. Do not start implementation against an incomplete baseline.
+1. Read `README.md`, `docs/README.md` and [publication preflight](docs/PUBLICATION_PREFLIGHT.md). Apply the preflight before any public write, not only before integration.
+2. Read `docs/development/CURRENT_STATE.md` and `docs/development/ACTIVE_WORK.md` for the recorded integrated revision, named verification, active topics and remaining dependencies. Confirm live refs and checks before working; do not infer implementation authorization from a verified baseline.
 3. For representation work read `docs/product/REPRESENTATION_ASSETS.md` and the asset manifest; consult only the relevant accepted prototype if needed. Identify the requested subsystem and read only its relevant specification, existing documentation, source files, tests, and applicable ADRs.
 4. Check the current Git branch/head and inspect the working tree before editing. Never assume an older handoff's commit is still current.
 
@@ -63,6 +63,8 @@ Classify evidence accurately:
 - **Native desktop check:** actual Fedora/KDE/Hyprland/Wayland session, hardware and service integration.
 
 Run the checks relevant to the change when authorized and available; report exact revision, commands and outcomes. Distinguish a test that actually failed from a check that was not run, was canceled, or was blocked by infrastructure or compute limits. Do not say "tests pass" without saying which tests ran. A successful historical run is not evidence for a changed head; a successful offline check is not a native runtime sign-off. Do not weaken or omit regression checks to manufacture a pass.
+
+For interaction, rendering, identity, external-service and geometry regressions, follow the practical safeguards in [regression verification](docs/development/REGRESSION_VERIFICATION.md). Verify operation completion and actual visual output, not merely input delivery or component existence; assert identities within their correct domains and preserve evidence of failures.
 
 For risky desktop/session changes, preserve the KDE/TTY recovery path, a known-good Git state and a manual terminal launch route. Avoid changing autostart/boot/system services as a cosmetic convenience.
 

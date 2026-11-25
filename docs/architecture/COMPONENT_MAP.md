@@ -1,8 +1,8 @@
 # Current component map
 
-This preserves the **Batch 11 shell composition snapshot** below for provenance; consult current shell.qml for actual wiring. Later Patch 12 and isolated B6 Archive source are merged. See the current extension at the end and CURRENT_STATE for evidence.
+This preserves the **Batch 11 shell composition snapshot** below for provenance; consult current shell.qml for actual wiring. Later Patch 12 and isolated B6 through B7-N2 Archive source are integrated in the public baseline. See the current extension at the end and [current state](../development/CURRENT_STATE.md) for the exact verified public revision. N4 remains outstanding.
 
-## Runtime composition (`quickshell/shell.qml`)
+## Historical Batch 11 runtime composition (`quickshell/shell.qml`)
 
 ```text
 ShellRoot (quickshell/shell.qml)
@@ -51,7 +51,8 @@ The shared Gallery customization editor is proposed in the separate supplied Pat
 - `WindowService` observes Hyprland toplevels and requests activation; window addresses are transient.
 - `WorkspaceService` requests Hyprland workspace changes. Hyprland remains the window manager / compositor.
 - `UtilityService` wraps available Quickshell system-service APIs and optional `brightnessctl` / KDE settings actions.
-- `VerandaService` owns wallpaper preferences and `awww` requests. It does not render the desktop wallpaper itself.
+- `ThemePreferences` owns production desktop theme persistence and resolves theme readiness before Veranda initialization; isolated Archive checkpoint themes do not write production preferences. See [Capsule](../capsule.md).
+- `VerandaService` owns wallpaper preferences and `awww` requests. It does not render the desktop wallpaper itself. See [startup recovery and persistence limits](../veranda-of-vistas.md#bounded-startup-recovery-wp-07--aud-22).
 - `GalleryCatalogue` owns artwork metadata and per-artwork celestial customization. Gallery assets remain separate from Veranda wallpapers.
 
 ## Coupling and change-review checklist
@@ -81,7 +82,7 @@ This section describes an earlier checkpoint, superseded by the B7-N2 extension 
 - `quickshell/tests/ArchiveNativeN2Window.qml` and N1/N2/N3 Qt tests: actual offscreen synthetic study, not imported into shell.qml.
 - B7-C candidate `RepresentationCatalog.mjs` and `representation-assets/`: pure policy/geometry and SVG/manifest; no runtime import or fixture renderer yet. See [asset contract](../product/REPRESENTATION_ASSETS.md).
 
-Patch 12 supersedes the historical editor-wiring omission above. Remaining editor/persistence parity and target validation are tracked in ACTIVE_WORK. No Map Room or actual file actions yet.
+Patch 12 supersedes the historical editor-wiring omission above. The B6-N3r1 and B7-N2 work subsequently added isolated structural editing and explicit study checkpoint persistence; production Archive layout persistence, Map Room, actual file actions and target validation remain outstanding. See [active work](../development/ACTIVE_WORK.md).
 
 ## Integrated B7-N2 extension
 

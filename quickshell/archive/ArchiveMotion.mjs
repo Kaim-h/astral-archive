@@ -3,6 +3,7 @@
 // never change until every affected cell is settled and validated.
 import * as C from "./ArchiveCore.mjs";
 import * as Mixed from "./representation/B7Ownership.mjs";
+import * as Layout from "./representation/B7Layout.mjs";
 export function same(a,b){return !!a&&!!b&&a.cubbyId===b.cubbyId&&a.rackId===b.rackId&&a.key===b.key;}
 function key(loc){return [loc.cubbyId,loc.rackId,loc.key].join("|");}
 export function select(snapshot,cubbyId,kind,ids,anchor,id,ctrl,shift){
@@ -114,4 +115,31 @@ export function members(q){
  const racks=new Map();for(const loc of q.touched.values())racks.set(loc.rackId,C.rackAt(q.draft,loc.cubbyId,loc.rackId));
  for(const [id,rack] of racks){const list=[];for(const cell of C.geometry(rack).cells)for(const s of rack.scrollCells[cell.key]||[])list.push(s);out[id]=C.clone(list);}
  return out;
+}
+
+ // AUD-17: publish a lightweight view projection only on membership changes.
+ // Keep committed delegates, support dimensions and gesture targets intact.
+ // A pending mixed placement is represented by one scroll until commit.
+export function mixedVisuals(q){
+ const hidden=[],pending=[];
+ if(!q||!q.lifted)return {hidden,pending};
+ for(const e of q.entries)if(!["rack","case"].includes(e.where))hidden.push(e.id);
+ if(q.carried.length)return {hidden,pending};
+ const ids=new Set(q.entries.map(e=>e.id));
+ for(const e of C.owners(q.draft)){
+  if(!ids.has(e.id)||["rack","case"].includes(e.where))continue;
+  const m=q.draft.cubbies[e.cubbyId].mods.find(v=>v.id===e.moduleId);
+  let x=m.x+m.w/2,y=m.y+m.h/2;
+  if(e.where==="shelf"){
+   const i=m.items.findIndex(v=>v.kind==="object"&&v.record.id===e.id);
+   const b=Mixed.validateShelf(m)[i];x=m.x+m.items[i].x;y=m.y+b.y+b.h/2;
+  }else if(e.where==="holder"){
+   const h=m.items.find(v=>v.kind==="holder"&&v.id===e.holderId);
+   const records=h.slots.map(r=>r?{id:r.id,variant:Mixed.preferred(r).variant}:null);
+   const layout=Layout.uprightGeometry(records,h.scale,h.w-24,0),slot=layout.slots[e.slot];
+   x=m.x+h.x+(h.w-layout.span)/2+slot.cx;y=m.y-22-slot.h/2;
+  }
+  pending.push({record:C.clone(e.scroll),cubbyId:e.cubbyId,moduleId:e.moduleId,x,y});
+ }
+ return {hidden,pending};
 }

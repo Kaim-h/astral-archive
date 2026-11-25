@@ -250,3 +250,104 @@ assert.deepEqual(retained[cid],cam);
 const recovered=Core.undo(gone);assert.deepEqual(recovered.snapshot,made.snapshot);
 assert.deepEqual(View.reconcileCameras(gone.snapshot,recovered.snapshot,recovered.history,retained,true,'root',cam)[cid],cam);
 console.log('B7-N2 exact mixed origins, stale slot guard and AUD-14 camera lifecycle passed');
+
+
+ // AUD-18: valid imported IDs must not inherit Object.prototype camera entries.
+for(const name of ['toString','hasOwnProperty','valueOf','isPrototypeOf']){
+ const sample=Core.fixture();
+ sample.cubbies.root.mods.push({id:'import-child',type:'cubby',x:520,y:0,w:160,h:120,childId:name});
+ sample.cubbies[name]={id:name,w:470,h:340,mods:[]};
+ assert.equal(Core.validate(sample),null);
+ const view={path:['root',name],theme:0,cameras:{}};
+ const decoded=CP.decode(CP.encode(Core.session(sample),view));
+ assert.deepEqual(decoded.snapshot,sample);
+ assert.deepEqual(View.cameraFor(decoded.view.cameras,name),{zoom:1,x:0,y:0});
+ const saved={zoom:1.4,x:31,y:-17};
+ decoded.view.cameras[name]=saved;
+ assert.deepEqual(View.cameraFor(View.copyCameras(decoded.view.cameras),name),saved);
+ const round=CP.decode(CP.encode(Core.session(sample),decoded.view));
+ assert.deepEqual(View.cameraFor(round.view.cameras,name),saved);
+ const without=Core.clone(sample);delete without.cubbies[name];without.cubbies.root.mods.pop();
+ const retained=View.reconcileCameras(sample,without,[sample],{},false,name,saved);
+ assert.deepEqual(View.cameraFor(retained,name),saved);
+ assert.deepEqual(View.cameraFor(View.reconcileCameras(without,sample,[],retained,false,'root',saved),name),{zoom:1,x:0,y:0});
+ assert.deepEqual(View.cameraFor(View.reconcileCameras(without,sample,[],retained,true,'root',saved),name),saved);
+}
+ // AUD-19: every permitted upright scale and variant fits a shared reserved envelope.
+import * as Layout from '../quickshell/archive/representation/B7Layout.mjs';
+const uprightAssets=Layout.assetEntries().filter(e=>e.edge).map(e=>e.id);
+assert.equal(uprightAssets.length,18);
+for(const scale of [.4,.86,1,1.2,1.3]){
+ const env=Layout.holderEnvelope(scale,130);
+ for(const id of uprightAssets){
+  const face=Layout.supportedLayout(id,env.cradleWidth/2,env.height-36,scale).box;
+  assert.ok(face.x>=2-1e-7);assert.ok(face.x+face.width<=env.cradleWidth-2+1e-7);
+  assert.ok(face.y>=2-1e-7);assert.ok(face.y+face.height<=env.height-36+1e-7);
+ }
+ const holder={kind:'holder',id:'test-holder',x:0,w:130,scale,slots:[null]};
+ const board={type:'shelf',id:'test-board',x:540,y:400,w:env.width,h:15,items:[holder]};
+ assert.equal(Mixed.validateShelf(board)[0].w,env.width);
+ assert.throws(()=>Mixed.validateShelf({...board,w:env.width-1}),/exceeds shelf width/);
+ for(const id of uprightAssets){
+  const r={id:'upright-test',name:'Test',r:13,representation:id.split('/')[0],variant:id};
+  assert.deepEqual(Mixed.validateShelf({...board,items:[{...holder,slots:[r]}]}),Mixed.validateShelf(board));
+ }
+}
+assert.equal(Layout.holderEnvelope(.86,130).width,390);
+assert.equal(Layout.holderEnvelope(.86,130).cradleWidth,244);
+assert.equal(Layout.holderEnvelope(1.3,130).cradleWidth,251);
+const large=Core.fixture();large.cubbies.root.w=1400;large.cubbies.root.h=800;
+const env=Layout.holderEnvelope(1.3,130);
+large.cubbies.root.mods.push({id:'max-scale-board',type:'shelf',x:540,y:400,w:env.width,h:15,items:[{kind:'holder',id:'max-holder',x:0,w:130,scale:1.3,slots:[null]}]});
+assert.equal(Core.validate(large),null);
+const wide=Core.session(large),small=Core.previewStructure(wide,{kind:'shelf',cubbyId:'root',moduleId:'max-scale-board',patch:{w:390}});
+assert.equal(small.ok,false);assert.equal(Core.applyStructure(wide,small).snapshot,wide.snapshot);
+const shifted=Core.editStructure(wide,{kind:'shelf',cubbyId:'root',moduleId:'max-scale-board',patch:{w:env.width+10}});
+assert.equal(shifted.error,'');assert.deepEqual(Core.undo(shifted).snapshot,wide.snapshot);
+assert.deepEqual(CP.decode(CP.encode(wide,{path:['root'],theme:0,cameras:{}})).snapshot,large);
+console.log('PASS AUD-18/19: imported camera identities, full-face reservation, boundary refusal and exact Undo');
+
+// A camera entry must refer to a real cubby, not an inherited property.
+// Earlier v2 checkpoints that only fit by the missing 7-unit reservation
+// are refused atomically rather than silently resized or repositioned.
+const ghostView={path:['root'],theme:0,cameras:{toString:{zoom:1,x:0,y:0}}};
+assert.throws(()=>CP.encode(Core.session(Core.fixture()),ghostView),/Invalid camera/);
+const tightLegacy=JSON.parse(CP.encode(wide,{path:['root'],theme:0,cameras:{}}));
+const tightBoard=tightLegacy.snapshot.cubbies.root.mods.find(m=>m.id==='max-scale-board');
+tightBoard.w=390;
+// The shelf validator gives the precise cause. Core checks every fixture
+// against every other fixture; an invalid shelf can fail the earlier rack's
+// geometry check first. Preserve that existing validation/error contract.
+assert.throws(()=>Mixed.validateShelf(tightBoard),/exceeds shelf width/);
+const tightError=Core.validate(tightLegacy.snapshot);
+assert.equal(tightError,'Invalid rack geometry');
+assert.throws(()=>CP.decode(JSON.stringify(tightLegacy)),e=>e.message===tightError);
+assert.equal(Core.validate(wide.snapshot),null);
+
+ // AUD-17: visual projection reflects private ownership without publishing.
+const visBase=Core.session(Fixture.fixture()),visBefore=JSON.stringify(visBase.snapshot);
+const visRack=Core.rackAt(visBase.snapshot,'root','rack-1');
+const visCell=Core.geometry(visRack).cells.find(c=>c.area>14000&&!(visRack.scrollCells[c.key]||[]).length);
+const visDest={cubbyId:'root',rackId:visRack.id,key:visCell.key,local:{x:visCell.cx,y:visCell.cy}};
+for(const id of ['mixed-jar','mixed-picture','mixed-audio']){
+ const q=Motion.begin(visBase,[id],true);
+ assert.deepEqual(Motion.mixedVisuals(q),{hidden:[],pending:[]});
+ Motion.lift(q);assert.deepEqual(Motion.mixedVisuals(q),{hidden:[id],pending:[]});
+ assert.equal(q.carried[0].id,id);
+ Motion.insert(q,visDest,{});assert.deepEqual(Motion.mixedVisuals(q),{hidden:[id],pending:[]});
+ assert.equal(q.carried.length,0);assert.ok(Motion.members(q)[visRack.id].some(r=>r.id===id));
+ assert.equal(JSON.stringify(visBase.snapshot),visBefore);
+}
+const packedVis=motionMove(visBase,'mixed-jar',visDest);
+const vq=Motion.begin(packedVis,['mixed-jar']);Motion.lift(vq);
+assert.deepEqual(Motion.mixedVisuals(vq),{hidden:[],pending:[]});
+Motion.insert(vq,{kind:'shelf',cubbyId:'root',moduleId:'mixed-lower',x:200,scale:.86,support:'plinth'},{});
+const pendingVis=Motion.mixedVisuals(vq);
+assert.equal(pendingVis.hidden.length,0);assert.equal(pendingVis.pending.length,1);
+assert.equal(pendingVis.pending[0].record.id,'mixed-jar');
+assert.equal(pendingVis.pending[0].moduleId,'mixed-lower');
+assert.equal(pendingVis.pending[0].x,750);assert.ok(Number.isFinite(pendingVis.pending[0].y));
+assert.equal(Core.owners(packedVis.snapshot).find(e=>e.id==='mixed-jar').where,'rack');
+assert.deepEqual(Motion.mixedVisuals(null),{hidden:[],pending:[]});
+assert.equal(Core.rackAt(Core.fixture(),'toString','rack-1'),null);
+console.log('PASS AUD-17: private membership, mixed source suppression, pending destination and unchanged committed ownership');

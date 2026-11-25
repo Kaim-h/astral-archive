@@ -1,9 +1,6 @@
 # Native Linux bring-up guide
 
-Nothing in this project has been run natively yet. The offline Node checks only
-test pure logic and file structure; they are **not** QML tests. This page is the
-plan for the first real run, and a list of everything the code assumes about
-Quickshell that has not been confirmed.
+The target Quickshell/Hyprland desktop has not been validated (N4). Offline Node checks test pure logic and file structure; separate offscreen Qt Quick checks exercise QML and rendering, not actual shell/service integration. This page is the plan for the first real target run and retains the original Quickshell assumptions; see [current state](development/CURRENT_STATE.md) for exact verification.
 
 Plain-words glossary:
 
@@ -64,8 +61,9 @@ Do these in order and stop at the first failure. Copy the exact error text.
 
 1. [ ] Make sure a plain terminal / KDE login still works as a fallback.
 2. [ ] `qs --version` prints a version. The code targets **Quickshell v0.3.1**.
-3. [ ] Normalize line endings first (`git add --renormalize .`, see CHANGES.md).
-       Then `head -1 scripts/compile-gallery-shader.sh | od -c` must end in `\n`, not `\r \n`.
+3. [ ] Check shell-script line endings first: `head -1 scripts/compile-gallery-shader.sh | od -c`
+       must end in `\n`, not `\r \n`. Inspect `git ls-files --eol scripts/compile-gallery-shader.sh`
+       and the repository's [attributes](../.gitattributes) if the checkout has CRLF. Correct only affected tracked scripts in an authorized clean worktree; inspect the diff. `git add --renormalize` stages normalization and is not a repair of checkout bytes; do not indiscriminately stage unrelated work.
 4. [ ] `which qsb` finds Qt Shader Tools. Then `bash scripts/compile-gallery-effects.sh`
        and `bash scripts/compile-vista-shader.sh`. (Without them the shell still
        runs, with a plain fallback instead of shader effects.)
@@ -85,6 +83,20 @@ Do these in order and stop at the first failure. Copy the exact error text.
         number like `81`. The shelf must show the real charge either way.
 12. [ ] Brightness slider (needs `brightnessctl`), volume, mute, Wi-Fi and Bluetooth toggles.
 13. [ ] Write down anything that failed, with the log line, for Batch 13.
+
+## N4 desktop preference and startup acceptance
+
+**Outstanding; not performed by CI or this documentation review.** Apply to the WP-01/07 candidate or its eventual integrated revision, after the first-hour safety/dependency checks. Record exact revision, actual Quickshell/Qt/backend versions and results. Use a disposable shell/session and isolated state directory; confirm resolved Quickshell state paths are inside that disposable directory before creating fixtures or starting the shell. Never modify, move, corrupt, replace or test failure against real user preference files. Retain terminal/KDE/TTY recovery, manual launch and no premature autostart; use synthetic wallpaper fixtures and safe backend isolation for failure injection. If a fault cannot be induced safely, record it as untested.
+
+- [ ] Cycle Evening, Twilight and Midnight by explicit capsule selection; verify persisted bytes and restore each selection across actual Quickshell restarts. Verify initialization and repeated already-saved choices do not write. First wallpaper request uses the restored/resolved theme, not provisional Twilight; count requests and check backend outcome, both completion orders and no duplicate apply.
+- [ ] Exercise missing, malformed, unsupported-version and unreadable theme and Veranda preference fixtures independently. Confirm only confirmed absence or valid preferences authorize writes (Veranda also requires a valid nonempty catalogue); compare original bytes before/after, verify protected session-only changes, warning and recovery on restart.
+- [ ] Exercise missing/late/repeated or contradictory completion and timeout for theme, catalogue and Veranda reads, separately and combined, using a safe disposable native harness or controlled fault injection. The three-second deadlines are responsive-event-loop deadlines, not wall-clock guarantees. Confirm first terminal result is retained, explicit pending theme selection wins, protected theme fallback resolves before Veranda, and delayed callbacks do not replace decisions or unlock persistence.
+- [ ] Veranda preference timeout: verify MANUAL state, no automatic initial apply, tick, theme-triggered apply or retry, no preference writes; explicitly select an eligible wallpaper and confirm one manual request, session-only animation changes and no later automatic rotation. Verify unavailable catalogue disables application and persistence.
+- [ ] Exercise actual reported save failure, missing completion (theme) and atomic commit failure in disposable storage. Inspect file bytes independently of cached FileView text or saved signals; verify theme readback and write latch, Veranda reported-failure latch and whether the known false-success limitation occurs. Record asynchronous completion and already-submitted writes separately; do not infer original-byte preservation or successful persistence from a signal. Test restart recovery safely. See [theme persistence](capsule.md#desktop-theme-persistence-wp-01) and [Veranda persistence limitation](veranda-of-vistas.md#bounded-startup-recovery-wp-07--aud-22).
+- [ ] Exercise isolated Archive study theme/material changes and synthetic Save/Load; verify production theme preference bytes remain unchanged.
+- [ ] Preserve existing Veranda daemon, paused-selection/tick, theme/day, filename and transition tests, service availability, focus/scaling/shader and recovery requirements in the [Veranda guide](veranda-of-vistas.md), [environment](development/ENVIRONMENT.md) and relevant subsystem guides.
+
+Record observed native behavior separately from mocked callback or offscreen Qt evidence; no claim of target acceptance until these checks are actually executed and assessed.
 
 ## Assumptions about Quickshell (not confirmed on hardware)
 

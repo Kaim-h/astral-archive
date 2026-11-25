@@ -1,7 +1,6 @@
 # Architecture
 
-Updated for revised Batch 7 (November 2026). Target: Fedora Linux, Hyprland and
-Quickshell/QML, with KDE retained as a fallback desktop during development.
+Historical desktop Batch 6/7 architecture (November 2026), retained for the original layering and interaction rationale. Later shell batches and the isolated B6–B7-N2 Archive are integrated; see [component map](architecture/COMPONENT_MAP.md) and [current state](development/CURRENT_STATE.md) for current implementation and named public baseline verification. The Archive study is not imported by the production shell and does not operate on real files. Target: Fedora Linux, Hyprland and Quickshell/QML, with KDE retained as a fallback desktop during development. Target validation (N4) remains outstanding.
 
 ## Layering
 
@@ -75,14 +74,14 @@ Linux testing. A failed activation request is not proof that focus succeeded.
 - `running`, `focused desktop app`, `keyboard selected` and `mouse hovered`
   are separate states. A running ribbon is not a keyboard selection indicator.
 
-## Known status and limitations
+## Historical Batch 6 status and limitations
 
 **Implemented in Batch 6 source, but not natively verified:** application
 catalogue, small default shelves, Index search, keyboard selection, global
 shortcut declaration, window matching, recent-focus ordering, window chooser,
 launch/focus requests and straightforward count marker.
 
-**Not yet implemented:** saved shelf configuration, file-backed scroll racks,
+**Not yet implemented at Batch 6:** saved shelf configuration, file-backed scroll racks,
 Map Room, persistent app/window mapping overrides, actual hotbar compositor
 integration, broader system services and reliable integration tests.
 

@@ -13,7 +13,7 @@ function searchMatches(app, text) {
 
 function homeApplications(catalogue, pins, capacity) {
     var output = [];
-    var seen = {};
+    var seen = Object.create(null);
     var cap = Math.max(0, Math.floor(capacity));
     var i, j, app;
 

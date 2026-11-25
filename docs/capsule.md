@@ -85,6 +85,54 @@ running application when the pointer merely passes over the capsule.
 **not** part of the runtime shell after revised Batch 7. This is intentional
 and avoids breaking any earlier `BarTest.qml` test scenes.
 
+## Desktop theme persistence (WP-01)
+
+The production shell owns one `ThemePreferences.qml` adapter for
+`Quickshell.statePath("theme.json")`, with a version-1 envelope
+(`{"version":1,"index":1}`; 0 Evening, 1 Twilight, 2 Midnight).
+`themes/Theme.qml` remains the shared in-memory palette singleton, independent
+of Quickshell I/O. Synthetic Archive checkpoints and local material overrides
+are unchanged and do not write desktop preferences.
+
+A valid saved index is restored before Veranda initialization. The initial read
+uses background FileView preload with a 3-second event-loop deadline (WP-07 /
+AUD-22). Timeout resolves to the explicit pending selection, or Twilight if
+none, and never authorizes a write. Late/repeated callbacks cannot replace
+that decision. Veranda waits for the resolved theme including protected fallback.
+The deadline is not a hard wall-clock guarantee against a stalled process
+or a blocking explicit preference write/readback. A missing file
+starts at Twilight and is not created until a deliberate selection. Unreadable,
+malformed or unsupported preferences start at Twilight and are protected from
+writes for the session; deliberate selection still changes the session theme.
+If a user selects before the initial read completes, that choice wins, but is
+written only if the read authorizes writes. Initialization alone never writes.
+The sole production writer is the capsule's explicit theme selection. Repeated
+selection of the already persisted value does not write.
+
+The adapter uses atomic synchronous writes on deliberate selection, not
+animation/frame/slider updates. An unavailable or invalid state path is a
+protected read failure, never confirmed absence. After a reported successful
+write, a separate FileView (no preload, explicit synchronous fresh read)
+verifies persisted bytes; startup callbacks cannot confirm this readback.
+The [v0.3.1 writer](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/src/io/fileview.cpp#L287-L290)
+can log a failed atomic commit without setting the error field used by the
+saved signal. A returned write without completion, failed write or
+unconfirmed readback clears the write guard and disables further persistence
+until restart while preserving the chosen session theme. Unconfirmed readback
+does not establish whether a write succeeded. A small ! on the theme glyph
+and log warning distinguish session-only changes. Back up and repair the file or move it aside explicitly
+while Quickshell is stopped; never automatically replace an unreadable or
+incompatible file. Restart to retry after a storage failure. Concurrent external
+edits/multiple production shell instances are not supported by this single-owner
+preference adapter.
+
+Regression: `node scripts/check-theme-policy.js` exercises pure policy and
+actual adapter functions against mocked FileView callbacks, and
+`node scripts/check-veranda.js` covers the startup gate. These do not establish
+actual Quickshell file I/O or target-session restart behavior. Tests distinguish
+cached text and persisted bytes, readback failure and stale startup callbacks.
+Follow the [N4 desktop preference and startup checklist](bringup.md#n4-desktop-preference-and-startup-acceptance) with disposable state. The independent theme readback safeguard is not shared by [Veranda](veranda-of-vistas.md#bounded-startup-recovery-wp-07--aud-22); actual write/commit behavior remains unverified.
+
 ## Native testing required
 
 - Popup placement on different resolutions, scale factors, and multiple monitors.

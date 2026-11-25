@@ -55,6 +55,40 @@ Item {
             compare(scene.cubbyId,id);compare(scene.zoom,1.35);compare(scene.pan,Qt.point(-23,19))
             compare(JSON.stringify(ctl.snapshot),created);compare(ctl.archiveState.history.length,0)
         }
+        function test_imported_camera_identity(){
+            var scene=study.scene,ctl=study.controller,sample=Core.fixture()
+            sample.cubbies.root.mods.push({id:"import-child",type:"cubby",x:520,y:0,w:160,h:120,childId:"toString"})
+            sample.cubbies.toString={id:"toString",w:470,h:340,mods:[]}
+            compare(Core.validate(sample),null)
+            ctl.reset(sample)
+            var payload=ctl.exportCheckpoint({path:["root","toString"],theme:0,cameras:{}})
+            verify(payload.length>0)
+            var restored=ctl.importCheckpoint(payload);verify(!!restored)
+            scene.viewPath=restored.path.slice();scene.cameras=restored.cameras;scene.restoreCamera()
+            compare(scene.cubbyId,"toString");compare(scene.zoom,1);compare(scene.pan,Qt.point(0,0))
+            scene.zoom=1.4;scene.pan=Qt.point(31,-17)
+            verify(scene.back());verify(scene.openChild("toString"))
+            compare(scene.zoom,1.4);compare(scene.pan,Qt.point(31,-17))
+            var saved=ctl.exportCheckpoint(study.checkpointView());verify(saved.length>0)
+            var view=ctl.importCheckpoint(saved);verify(!!view)
+            scene.viewPath=view.path.slice();scene.cameras=view.cameras;scene.restoreCamera()
+            compare(scene.zoom,1.4);compare(scene.pan,Qt.point(31,-17))
+        }
+        function test_maximum_cradle_reservation(){
+            var scene=study.scene,ctl=study.controller,sample=Core.fixture()
+            sample.cubbies.root.w=1400;sample.cubbies.root.h=800
+            sample.cubbies.root.mods.push({id:"max-scale-board",type:"shelf",x:540,y:400,w:397,h:15,items:[
+                {kind:"holder",id:"max-holder",x:0,w:130,scale:1.3,slots:[{id:"max-audio",name:"Max.flac",r:13,representation:"record",variant:"record/v1"}]}
+            ]})
+            compare(Core.validate(sample),null);ctl.reset(sample)
+            var shelf=scene.moduleItem("max-scale-board")
+            tryVerify(function(){shelf=scene.moduleItem("max-scale-board");return !!shelf})
+            var holder=findChild(shelf,"holder-max-holder"),cradle=findChild(shelf,"cradle-max-holder")
+            verify(!!holder&&!!cradle);compare(cradle.width,251)
+            click(findChild(holder,"b7-slot-0"));tryCompare(cradle,"imageStatus",Image.Ready)
+            verify(cradle.facePlacement.box.x>=2)
+            verify(cradle.facePlacement.box.x+cradle.facePlacement.box.width<=cradle.width-2)
+        }
         function test_case_return_to_mixed_origin(){
             var scene=study.scene,ctl=study.controller,before=Core.clone(ctl.snapshot)
             var jar=findChild(scene.moduleItem("mixed-board"),"mixed-jar")
@@ -100,6 +134,98 @@ Item {
             verify(study.controller.undo());compare(JSON.stringify(study.controller.snapshot),before)
             scene.clearSelection();mouseMove(study,2,2);wait(150)
             grabImage(study).save("archive-b7-native-mixed.png")
+        }
+        // Verify the actual composited scene, not a separately grabbed
+        // transformed delegate or one pixel which may fall on an ink line.
+        // Save the exact image being tested even if its color check fails.
+        function captureMotionCue(cue,filename){
+            verify(!!cue&&cue.visible)
+            verify(study.scene.motion.busy)
+            var pixels=grabImage(study)
+            verify(pixels.width>0&&pixels.height>0)
+            pixels.save(filename)
+            var a=cue.mapToItem(study,cue.width*.25,cue.height*.25)
+            var b=cue.mapToItem(study,cue.width*.75,cue.height*.75)
+            var left=Math.max(0,Math.ceil(a.x*pixels.width/study.width))
+            var right=Math.min(pixels.width-1,Math.floor(b.x*pixels.width/study.width))
+            var top=Math.max(0,Math.ceil(a.y*pixels.height/study.height))
+            var bottom=Math.min(pixels.height-1,Math.floor(b.y*pixels.height/study.height))
+            verify(right>left&&bottom>top,"Cue must occupy an on-screen region")
+            var color=cue.parchmentColor,matched=0,total=0
+            for(var y=top;y<=bottom;y++)for(var x=left;x<=right;x++){
+                var r=pixels.red(x,y),g=pixels.green(x,y),bl=pixels.blue(x,y)
+                // Allow the existing 0.85 provisional opacity over the dark
+                // backing, antialiasing and fine engraved marks. An empty
+                // outline or the dark shelf/rack background cannot qualify.
+                if(Math.abs(r-color.r*255)<=42&&Math.abs(g-color.g*255)<=42&&
+                   Math.abs(bl-color.b*255)<=42)matched++
+                total++
+            }
+            verify(matched>total*.5,"Parchment pixels "+matched+"/"+total+" in "+filename+
+                " at "+left+","+top+"–"+right+","+bottom)
+            verify(study.scene.motion.busy)
+        }
+        function test_provisional_mixed_rendering(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
+            var rack=scene.moduleItem("rack-1"),m=Core.rackAt(ctl.snapshot,"root","rack-1")
+            var c=Core.geometry(m).cells.find(q=>q.area>14000&&!(m.scrollCells[q.key]||[]).length)
+            verify(!!c)
+            var target=rack.mapToItem(scene,c.cx,c.cy)
+            var jar=findChild(scene.moduleItem("mixed-board"),"mixed-jar")
+            var start=jar.mapToItem(scene,jar.width/2,jar.height/2)
+            mousePress(scene,start.x,start.y,Qt.LeftButton)
+            mouseMove(scene,target.x,target.y,40,Qt.LeftButton)
+            tryCompare(scene,"pointerActive",true)
+            tryCompare(jar,"suppressed",true);compare(jar.opacity,0);verify(jar.visible)
+            verify(findChild(scene,"carry-ghost").visible)
+            compare(JSON.stringify(ctl.snapshot),before)
+            captureMotionCue(findChild(findChild(scene,"carry-ghost"),"scroll-mixed-jar"),"archive-b7-native-aud17-carry.png")
+            keyClick(Qt.Key_Escape);mouseRelease(scene,target.x,target.y,Qt.LeftButton)
+            tryCompare(scene,"busy",false);tryCompare(jar,"suppressed",false)
+            compare(JSON.stringify(ctl.snapshot),before)
+            mousePress(scene,start.x,start.y,Qt.LeftButton)
+            mouseMove(scene,target.x,target.y,40,Qt.LeftButton)
+            tryCompare(jar,"suppressed",true)
+            mouseRelease(scene,target.x,target.y,Qt.LeftButton)
+            verify(scene.motion.busy);verify(scene.motion.released)
+            compare(jar.opacity,0);verify(!findChild(scene,"carry-ghost").visible)
+            verify(!!scene.moduleItem("rack-1").scrollItem("mixed-jar"))
+            compare(JSON.stringify(ctl.snapshot),before)
+            captureMotionCue(scene.moduleItem("rack-1").scrollItem("mixed-jar"),"archive-b7-native-aud17-settling-rack.png")
+            tryCompare(scene.motion,"busy",false,15000)
+            compare(Core.owners(ctl.snapshot).find(e=>e.id==="mixed-jar").where,"rack")
+            var packed=JSON.stringify(ctl.snapshot),glyph=scene.moduleItem("rack-1").scrollItem("mixed-jar")
+            var board=scene.moduleItem("mixed-lower")
+            start=glyph.mapToItem(scene,glyph.width/2,glyph.height/2)
+            target=board.mapToItem(scene,200,board.supportY-4)
+            mousePress(scene,start.x,start.y,Qt.LeftButton)
+            mouseMove(scene,target.x,target.y,40,Qt.LeftButton)
+            tryCompare(scene,"pointerActive",true)
+            mouseRelease(scene,target.x,target.y,Qt.LeftButton)
+            verify(scene.motion.busy);verify(scene.motion.released)
+            var pending=findChild(scene,"pending-mixed-mixed-jar")
+            verify(!!pending&&pending.visible)
+            verify(!scene.moduleItem("rack-1").scrollItem("mixed-jar"))
+            verify(!findChild(board,"mixed-jar"))
+            compare(JSON.stringify(ctl.snapshot),packed)
+            captureMotionCue(pending,"archive-b7-native-aud17-settling-shelf.png")
+            tryCompare(scene.motion,"busy",false,15000)
+            tryVerify(function(){return !!findChild(scene.moduleItem("mixed-lower"),"mixed-jar")})
+            verify(!findChild(scene,"pending-mixed-mixed-jar"))
+            compare(Core.owners(ctl.snapshot).find(e=>e.id==="mixed-jar").where,"shelf")
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),packed)
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            var mount=scene.moduleItem("mixed-art"),face=findChild(mount,"mixed-mount-frame-mixed-picture")
+            verify(!!face);start=face.mapToItem(scene,face.width/2,face.height/2)
+            rack=scene.moduleItem("rack-1");target=rack.mapToItem(scene,c.cx,c.cy)
+            mousePress(scene,start.x,start.y,Qt.LeftButton)
+            mouseMove(scene,target.x,target.y,40,Qt.LeftButton)
+            tryCompare(face,"suppressed",true);compare(face.opacity,0);verify(face.visible)
+            compare(JSON.stringify(ctl.snapshot),before)
+            mouseRelease(scene,target.x,target.y,Qt.LeftButton)
+            verify(scene.motion.busy);compare(face.opacity,0)
+            scene.abortGesture();tryCompare(face,"suppressed",false)
+            compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,0)
         }
         function test_direct_mixed_drag(){
             var scene=study.scene,before=JSON.stringify(study.controller.snapshot)

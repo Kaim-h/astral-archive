@@ -6,9 +6,9 @@
 
 - Documentation-only review; recommendations are not accepted architecture or implementation mandates. Coordinate with separate design, audit and corrective topics.
 - Aim for a responsive, efficient desktop shell. Use evidence-led performance work on the target environment; faster compatible languages are an option only for demonstrated bottlenecks or justified capability needs.
-- Goal: eventual file-manager replacement if feasible and safe. Retain conventional recovery/file manager while validating. No approval yet of specific filesystem backend, indexing roots, deletion policies or production integration.
+- Goal: eventual file-manager replacement if feasible and safe. Retain conventional recovery/file manager while validating. No approval yet of specific filesystem backend, indexing roots, deletion policies or production Archive integration.
 
-## Current architectural organization
+## Architecture at the historical source checkpoint
 
 PRs #10 (assets), #11 (N3r1), #13 (AUD-01–08), #14 (B7-N1), #16 (B7-N2) and #15 (AUD-09–15) merged. B7-N2 is an isolated synthetic study with mixed shelf/holder/mount/rack owners, universal Case, transactional arrangement and versioned checkpoint. Production shell has no Archive study import; real file operations and production Map Room absent. See [B7-N2 checkpoint](../development/B7_N2_MIXED_CUBBIES.md), [environment](../development/ENVIRONMENT.md) and [current state](../development/CURRENT_STATE.md) for dated evidence.
 
@@ -45,7 +45,7 @@ Reuse cubby geometry/ownership/transaction contracts where appropriate. Distingu
 
 ### C — Near-term before production persistence: bound layout and separate durable records
 
-Capacity limits: 128 cubbies, 64 modules/cubby, 12,000 cells, 4,096 records, 2,000,000 snapshot string characters; Core.commit retains up to 30 previous snapshots. Codec stores complete JSON snapshot plus view; test adapter writes one synchronous SQLite slot. These are reasonable study guards, not production catalog requirements. Do not merely increase caps or put the entire filesystem in one QML property. Consider bounded active spatial layout and separate indexed metadata, stable lookup interfaces, distinct durable layout and operation log lifecycles. Preserve v1/v2 compatibility or explicit migration/refusal. No automatic production persistence approved. Alternatives: bounded workspace snapshots initially, or transactional incremental persistence as needed. Cost: design/roundtrip fixtures before production persistence. Validate commit/save budget agreement, restart, corrupt/unsupported schema, no silent partial replacement and recovery.
+Capacity limits: 128 cubbies, 64 modules/cubby, 12,000 cells, 4,096 records, 2,000,000 snapshot string characters; Core.commit retains up to 30 previous snapshots. Codec stores complete JSON snapshot plus view; test adapter writes one synchronous SQLite slot. These are reasonable study guards, not production catalog requirements. Do not merely increase caps or put the entire filesystem in one QML property. Consider bounded active spatial layout and separate indexed metadata, stable lookup interfaces, distinct durable layout and operation log lifecycles. Preserve v1/v2 compatibility or explicit migration/refusal. No automatic production Archive layout persistence approved. Alternatives: bounded workspace snapshots initially, or transactional incremental persistence as needed. Cost: design/roundtrip fixtures before production persistence. Validate commit/save budget agreement, restart, corrupt/unsupported schema, no silent partial replacement and recovery.
 
 ### D — Investigative after hardware availability: measure before optimization
 
@@ -53,19 +53,19 @@ Hypotheses only: whole JSON copies and same-ID sorting, repeated ownership enume
 
 ## Lessons from prior regressions (not a competing audit)
 
-The continuing audit ledger remains authoritative audit history (historical PR #12). AUD-01–15 source fixes are integrated through historical PRs #13, #15 and #16; AUD-16–20 remain a separate corrective topic (historical PR #17). Lessons derive from historical audit evidence and main source, not new reproductions.
+The continuing audit ledger remains authoritative audit history (historical PR #12). AUD-01–15 source fixes are integrated through historical PRs #13, #15 and #16; AUD-16–20 remain a separate corrective topic (historical PR #17). Lessons derive from historical audit evidence and source at that checkpoint, not new reproductions. The later public [PR #4](https://github.com/Kaim-h/astral-archive/pull/4) integrated AUD-16–21 corrections; see [correction evidence](../development/STABLE_MAIN_BUGFIXES_3.md) and [regression verification](../development/REGRESSION_VERIFICATION.md). Public [PR #11](https://github.com/Kaim-h/astral-archive/pull/11) subsequently integrated desktop theme persistence, AUD-22 startup recovery and documentation consolidation. These are not native verification; see [current state](../development/CURRENT_STATE.md) for updated evidence and outstanding limits.
 
 - AUD-02: empty cell customization includes depth as well as pigment. Preserve identity/metadata and consent even without contents; test each independent field during reflow.
 - AUD-09: a committed layout exceeded checkpoint budget. Share capacity contract across commit and codec; test below/above boundaries.
 - AUD-14: cubby ID reuse after Undo could inherit obsolete camera state. View caches must follow identity lifecycle and reset/Undo; reused ID alone is not proof of same entity.
-- AUD-17/19: provisional ownership display and support reservation must agree with actual intermediate rendering and geometry, not only final state. Assert live membership and occupied visual extents. Separate corrective work remains unverified at its latest correction.
-- AUD-18/20: ID strings can collide with inherited object properties; own-key lookup or suitable dictionaries at all ID-keyed boundaries, including view/adapters. Test adversarial valid IDs. Preserve the separate corrective topic.
+- AUD-17/19: provisional ownership display and support reservation must agree with actual intermediate rendering and geometry, not only final state. Assert live membership and occupied visual extents. At this historical review checkpoint separate corrective work was still pending; consult the later corrective evidence above.
+- AUD-18/20: ID strings can collide with inherited object properties; own-key lookup or suitable dictionaries at all ID-keyed boundaries, including view/adapters. Test adversarial valid IDs. Preserve the separate corrective evidence.
 - AUD-16: external service fixtures must match upstream field order/contract. Mocked green tests alone do not establish integration.
 - Keep static, logic, browser, offscreen Qt, target and visual/performance evidence separate. No new runtime fixes here.
 
 ## Documentation hygiene and coordination
 
-The historical source review identified stale README and current-state/active-work/roadmap claims and a component map predating mixed rendering. The integrated migration baseline has since reconciled those status summaries; preserve historical evidence, not obsolete next actions. Follow-up proposal after active merges: compact current snapshot with exact head/CI; one focused active handoff; historical checkpoints linked rather than duplicated, prominent superseded labels, selective retrieval. Coordinate status with topic authors and verify post-merge main. Not a parallel state ledger.
+The historical source review identified stale README and current-state/active-work/roadmap claims and a component map predating mixed rendering. The integrated migration baseline has since reconciled those status summaries; preserve historical evidence, not obsolete next actions. The proposed compact current snapshot, focused active handoff and historical checkpoints linked rather than duplicated were implemented through WP-05/06 in public PR #11; see the [history map](../development/history/README.md). Retain prominent historical labels and selective retrieval. Coordinate status with topic authors and verify post-merge main. Not a parallel state ledger.
 
 Keep the audit, corrective and design topics distinct. Reapply only missing technical improvements to the current README and component map; preserve newer technical baseline wording and independent audit index changes. Recheck actual changed-path overlap before integration. Use existing decision records after acceptance; proposals here are not binding.
 
