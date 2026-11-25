@@ -9,9 +9,18 @@ Current source establishes implementation, accepted product requirements establi
 - [Topic workflow](development/TOPIC_WORKFLOW_AND_HANDOFF.md) — branch continuity, checkpoints and review.
 - [Asset guidance](assets.md) — redistribution and local-resource boundaries.
 
-## Planned technical index
+## Technical index
 
-The complete baseline will include architecture, product specifications, current implementation and active-work records, development/bring-up guides, source and tests, relevant accepted prototypes and provenance. Links will be added as the reviewed files arrive. This checkpoint does not assert that those files are present or that any runtime checks have passed.
+- [Current state](development/CURRENT_STATE.md) and [active work](development/ACTIVE_WORK.md) — integrated implementation and historical checkpoint evidence.
+- [Roadmap](archive-roadmap.md) — milestones and dependencies.
+- [Architecture](architecture.md) and [component map](architecture/COMPONENT_MAP.md).
+- [Design decisions](design-decisions.md) and [product specifications](product/) — intended behavior and design boundaries.
+- [Development guide](development.md), [environment](development/ENVIRONMENT.md) and [native bring-up](bringup.md) — dependencies, safe launch and verification.
+- [Archive native studies](../quickshell/archive/README.md), [mixed cubbies](development/B7_N2_MIXED_CUBBIES.md) and [representation assets](product/REPRESENTATION_ASSETS.md).
+- [Capsule](capsule.md), [utility shelf](utility-shelf.md), [Veranda](veranda-of-vistas.md), [Gallery](celestial-gallery-qml.md) and [Gallery customization](gallery-customization.md).
+- [Research index](research/README.md) — standalone studies, accepted baselines and historical evidence.
+
+Historical status entries are not live assignments. Baseline review is ongoing; no new runtime validation is claimed.
 
 ## Status vocabulary
 

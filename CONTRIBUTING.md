@@ -108,7 +108,7 @@ The `main` branch is the owner-controlled integration branch.
 - Preserve existing work and report conflicts rather than silently overwriting changes.
 - Stop and request clarification if an operation would violate these requirements.
 
-These requirements apply to all contributors. See the topic workflow guide at `docs/development/TOPIC_WORKFLOW_AND_HANDOFF.md` once included.
+These requirements apply to all contributors. See [topic workflow](docs/development/TOPIC_WORKFLOW_AND_HANDOFF.md).
 
 ### Visual regression safeguards
 

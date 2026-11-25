@@ -4,14 +4,18 @@ Astral Archive is a practical, illustrated Linux desktop shell and a planned spa
 
 The design combines a quiet storybook-library / observatory metaphor with ordinary desktop priorities: useful controls, clear navigation, responsive interactions, keyboard access, recoverability and safe filesystem behavior.
 
-## Baseline preparation
+## Implementation status
 
-This checkpoint establishes contributor policy and repository configuration. Application source, the technical specifications, accepted research assets and validation infrastructure are being reviewed before inclusion. This tree is not yet runnable and should not be treated as a release or a verified implementation. Ordinary development has not resumed.
+The tracked shell includes the illustrated launcher, Archive Capsule, utility controls, Veranda wallpaper selector and Celestial Gallery. The separate Archive study includes B6 native geometry/interaction foundations and B7 symbolic representations and mixed furnished cubbies. Its records and file operations are synthetic; it is not a production file manager.
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md) and the [documentation index](docs/README.md).
+Read the [current state](docs/development/CURRENT_STATE.md), [roadmap](docs/archive-roadmap.md) and [native Linux bring-up guide](docs/bringup.md). Baseline preparation is still under review. This is not a release or evidence of successful target desktop validation.
+
+## Contributing
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md) and the [documentation index](docs/README.md). Keep changes focused and reviewable. Do not resume ordinary development against an incomplete baseline.
 
 ## Verification and assets
 
-Source presence does not establish native validation. Static checks, JavaScript unit tests, browser studies, offscreen Qt Quick, actual Quickshell and target desktop validation are distinct evidence classes. See the contribution requirements.
+Static checks, JavaScript unit tests, browser studies, offscreen Qt Quick, actual Quickshell and target desktop validation are distinct evidence classes. Historical results are recorded in the technical documentation; the migrated baseline has not yet been runtime-tested.
 
-Personal wallpapers, fonts, artwork and runtime state are not project assets by default. Redistribution requires appropriate permission and attribution. See [asset guidance](docs/assets.md). No project license is established by this checkpoint; do not infer permission to redistribute from repository access.
+Personal wallpapers, fonts, artwork and runtime state are not bundled. Wallpaper metadata serves as a theme reference, not permission to redistribute the associated images. Obtain local assets separately from authorized sources. See [asset guidance](docs/assets.md) and [design language](docs/product/VISION_AND_DESIGN_LANGUAGE.md). No project license is established by this checkpoint; do not infer permission to redistribute from repository access.
