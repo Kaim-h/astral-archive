@@ -64,6 +64,8 @@ Classify evidence accurately:
 
 Run the checks relevant to the change when authorized and available; report exact revision, commands and outcomes. Distinguish a test that actually failed from a check that was not run, was canceled, or was blocked by infrastructure or compute limits. Do not say "tests pass" without saying which tests ran. A successful historical run is not evidence for a changed head; a successful offline check is not a native runtime sign-off. Do not weaken or omit regression checks to manufacture a pass.
 
+For interaction, rendering, identity, external-service and geometry regressions, follow the practical safeguards in [regression verification](docs/development/REGRESSION_VERIFICATION.md). Verify operation completion and actual visual output, not merely input delivery or component existence; assert identities within their correct domains and preserve evidence of failures.
+
 For risky desktop/session changes, preserve the KDE/TTY recovery path, a known-good Git state and a manual terminal launch route. Avoid changing autostart/boot/system services as a cosmetic convenience.
 
 ## Documentation and continuity
