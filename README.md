@@ -18,4 +18,10 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md) and the [d
 
 Static checks, JavaScript unit tests, browser studies, offscreen Qt Quick, actual Quickshell and target desktop validation are distinct evidence classes. Historical results are recorded in the technical documentation; the migrated baseline has not yet been runtime-tested.
 
-Personal wallpapers, fonts, artwork and runtime state are not bundled. Wallpaper metadata serves as a theme reference, not permission to redistribute the associated images. Obtain local assets separately from authorized sources. See [asset guidance](docs/assets.md) and [design language](docs/product/VISION_AND_DESIGN_LANGUAGE.md). No project license is established by this checkpoint; do not infer permission to redistribute from repository access.
+Personal wallpapers, fonts, artwork and runtime state are not bundled. Wallpaper metadata serves as a theme reference, not permission to redistribute the associated images. Obtain local assets separately from authorized sources. See [asset guidance](docs/assets.md) and [design language](docs/product/VISION_AND_DESIGN_LANGUAGE.md).
+
+## License and AI-assisted development
+
+Project-authored software is licensed under GPL-3.0-or-later; original artwork and documentation under CC BY 4.0, subject to applicable third-party terms and the rights actually held by contributors. See [licensing scope](LICENSING.md), [GPL license](LICENSE), [CC BY license](LICENSES/CC-BY-4.0.txt) and [attribution](ATTRIBUTION.md).
+
+Astral Archive is a non-commercial personal project developed extensively using generative AI for implementation, visual assets, documentation and testing, under human direction and review. The project is shared openly for learning, experimentation, modification and reuse; this intent does not restrict commercial use permitted by the licenses.
