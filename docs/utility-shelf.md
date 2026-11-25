@@ -103,3 +103,7 @@ hover-triggered. The capsule stays compact at all times.
 - https://quickshell.org/docs/v0.3.1/types/Quickshell.Bluetooth/Bluetooth/
 - https://quickshell.org/docs/v0.3.1/types/Quickshell.Io/Process/
 - https://quickshell.org/docs/v0.3.1/types/Quickshell/PopupWindow/
+
+## AUD-16 — brightness backend correction
+
+Machine-readable brightnessctl info uses device,class,current,percentage%,maximum. Read only the backlight class and select one returned device; subsequent reads and writes target that same device explicitly. Invalid, ambiguous or failed reads disable the control and clear selection; next popup refresh can rediscover a device. A failed write clears selection and retains Display Settings fallback. Existing 5% safety floor and event-driven read policy remain. No physical brightness command was executed in development. Target acceptance: check real backlight discovery, 0/100% reads, keyboard/slider changes above the safety floor, device disappearance, permissions and no-device fallback. Multiple lines are refused rather than guessing a device.

@@ -10,6 +10,7 @@ Item {
     // Standalone N1 keeps local synthetic slots; the integrated cubby uses
     // revision-bound model commits and never independently changes ownership.
     property bool controlled:false
+    property var hiddenIds:[]
     property Item gestureHost:null
     signal moveRequested(int from,int to,string recordId)
     signal presented(string recordId)
@@ -130,6 +131,7 @@ Item {
             objectName:"b7-slot-"+index
             x:holder.slotOrigin+slotGeometry.left;y:holder.hitTop;width:slotGeometry.width;height:holder.height-y
             property var record:holder.slots[index]
+            readonly property bool suppressed:!!record&&holder.hiddenIds.indexOf(record.id)>=0
             readonly property bool presented:!!record&&record.id===holder.selectedId
             readonly property var edgePlacement:record?Layout.uprightEdge(record,slotGeometry,holder.artScale,holder.layout.fit,holder.slotOrigin):null
             activeFocusOnTab:true
@@ -145,7 +147,7 @@ Item {
             }
             Loader {
                 active:!!slot.record
-                visible:!slot.presented
+                visible:!slot.presented&&!slot.suppressed
                 opacity:holder.dragActive&&holder.pressSlot===slot.index?.35:1
                 sourceComponent:B7AssetImage {
                     assetId:slot.record?slot.record.variant:"record/v1";edge:true;fillMode:Image.Stretch
@@ -159,7 +161,7 @@ Item {
                 x:slot.slotGeometry.cx-slot.slotGeometry.left-slot.slotGeometry.w/2
                 y:slot.slotGeometry.y-slot.y;width:slot.slotGeometry.w;height:slot.slotGeometry.h
                 radius:2;color:"transparent";border.color:holder.colors.engraving;opacity:.45
-                visible:slot.presented
+                visible:slot.presented||slot.suppressed
             }
             Text {
                 visible:!slot.record
@@ -214,8 +216,8 @@ Item {
             }
             Rectangle {
                 x:parent.width/2-2.6;y:29;width:5.2;height:5.2;radius:2.6
-                color:holder.slots[index]?Layout.assetFor(holder.slots[index].variant).geometry.accent:"transparent"
-                border.color:holder.slots[index]?color:holder.colors.engraving
+                color:holder.slots[index]&&holder.hiddenIds.indexOf(holder.slots[index].id)<0?Layout.assetFor(holder.slots[index].variant).geometry.accent:"transparent"
+                border.color:holder.slots[index]&&holder.hiddenIds.indexOf(holder.slots[index].id)<0?color:holder.colors.engraving
                 opacity:.7
             }
         }

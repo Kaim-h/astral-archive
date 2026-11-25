@@ -64,8 +64,8 @@ function holderRect(entry){
     // tallest possible face for this scale, even while no item is presented.
     const records=entry.slots.map(r=>r===null?null:{id:r.id,variant:preferred(r).variant});
     L.uprightGeometry(records,entry.scale,entry.w-24,0);
-    const h=Math.max(87,36+205*entry.scale+2);
-    return rect(entry.x,-h,entry.w+16+244,h);
+    const envelope=L.holderEnvelope(entry.scale,entry.w);
+    return rect(entry.x,-envelope.height,envelope.width,envelope.height);
 }
 export function validateShelf(module){
     const entries=module.items===undefined?[]:module.items;
@@ -244,7 +244,7 @@ export function holderAt(module,p){
 export function newHolderPatch(c,module,step){
     const p={x:0,w:160,count:4};
     if(!Number.isInteger(step)||step<1)return p;
-    for(let x=0;x<=module.w-p.w-260;x+=step){
+    for(let x=0;x<=module.w-L.holderEnvelope(.86,p.w).width;x+=step){
         const entry={kind:"holder",id:"preview-holder",x,w:p.w,scale:.86,slots:Array(p.count).fill(null)};
         const candidate=Object.assign({},module,{items:(module.items||[]).concat([entry])});
         try{

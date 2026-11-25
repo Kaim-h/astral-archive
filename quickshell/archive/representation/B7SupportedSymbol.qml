@@ -13,6 +13,9 @@ Item {
     property real artScale: 1
     property bool edge: false
     property bool selected: false
+    // Opacity, not visibility/enabled: preserve active MouseArea capture.
+    property bool suppressed:false
+    opacity:suppressed?0:1
     property Item gestureHost:null
     readonly property var placement: Layout.supportedLayout(assetId,contactX,supportY,artScale,edge)
     readonly property alias imageStatus: art.status

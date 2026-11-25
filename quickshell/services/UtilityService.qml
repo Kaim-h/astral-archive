@@ -84,14 +84,18 @@ Item {
     property int brightnessPercent: 0
     property bool brightnessChecked: false
     property bool brightnessWritePending: false
+    property string brightnessDevice: ""
+    property string brightnessReadOutput: ""
 
     function refreshBrightness() {
         if (brightnessRead.running || brightnessWrite.running) return;
+        brightnessReadOutput = "";
+        brightnessRead.command = Policy.brightnessReadCommand(brightnessDevice);
         brightnessRead.running = true;
     }
     function setBrightness(percent) {
-        if (!brightnessAvailable || brightnessWrite.running) return;
-        brightnessWrite.command = ["brightnessctl", "set", Policy.safeBrightnessPercent(percent) + "%"];
+        if (!brightnessAvailable || !brightnessDevice || brightnessRead.running || brightnessWrite.running) return;
+        brightnessWrite.command = Policy.brightnessWriteCommand(brightnessDevice,percent);
         brightnessWritePending = true;
         brightnessWrite.running = true;
     }
@@ -99,11 +103,13 @@ Item {
         setBrightness(Policy.adjustPercent(brightnessPercent, delta));
     }
     function readBrightness(text) {
-        var level = Policy.parseBrightness(text);
-        if (level !== null) {
-            brightnessPercent = level;
+        var reading = Policy.parseBrightnessDevice(text);
+        if (reading && (!brightnessDevice || reading.device === brightnessDevice)) {
+            brightnessDevice = reading.device;
+            brightnessPercent = reading.percent;
             brightnessAvailable = true;
         } else {
+            brightnessDevice = "";
             brightnessAvailable = false;
         }
         brightnessChecked = true;
@@ -114,24 +120,22 @@ Item {
 
     Process {
         id: brightnessRead
-        command: ["brightnessctl", "-m"]
+        command: Policy.brightnessReadCommand("")
         stdout: StdioCollector {
-            onStreamFinished: utility.readBrightness(this.text)
+            onStreamFinished: utility.brightnessReadOutput = this.text
         }
         onExited: function(exitCode, exitStatus) {
-            if (exitCode !== 0) {
-                utility.brightnessAvailable = false;
-                utility.brightnessChecked = true;
-            }
+            utility.readBrightness(exitCode === 0 ? utility.brightnessReadOutput : "");
         }
     }
     Process {
         id: brightnessWrite
-        command: ["brightnessctl", "set", "50%"]
+        command: []
         onExited: function(exitCode, exitStatus) {
             utility.brightnessWritePending = false;
             if (exitCode !== 0) {
                 utility.message = "Brightness change failed; use Display Settings";
+                utility.brightnessDevice = "";
                 utility.brightnessAvailable = false;
             } else {
                 utility.refreshBrightness();

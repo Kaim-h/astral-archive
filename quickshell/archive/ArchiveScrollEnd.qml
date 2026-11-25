@@ -15,6 +15,16 @@ Item {
     width:2*visualRadius;height:width
     objectName:"scroll-"+record.id
     opacity:provisional ? .85 : 1
+    // The parchment base is a normal scene-graph node, not an asynchronous
+    // Canvas texture. Never remove it on a paint notification: paint completion
+    // is not proof that the texture is visible in the composited scene.
+    // Preserve the existing dimensions, palette and detailed 2x ink overlay.
+    readonly property color parchmentColor:View.parchment(record)
+    Rectangle {
+        anchors.fill:parent;radius:width/2
+        color:end.parchmentColor
+        antialiasing:true
+    }
     Canvas {
         id:art
         x:-1;y:-1
@@ -33,7 +43,7 @@ Item {
         onPaint:{
             var ctx=getContext("2d"),r=end.visualRadius,c=r+1
             ctx.save();ctx.clearRect(0,0,width,height);ctx.scale(2,2)
-            circle(ctx,c,r,View.parchment(end.record),"#8d7659",1,1)
+            circle(ctx,c,r,null,"#8d7659",1,1)
             circle(ctx,c,r*.76,null,end.ink,.7,.6)
             circle(ctx,c,r*.32,null,end.ink,.65,.32)
             circle(ctx,c,Math.max(1.4,r*.12),end.ink,null,0,.65)
