@@ -94,7 +94,13 @@ The production shell owns one `ThemePreferences.qml` adapter for
 of Quickshell I/O. Synthetic Archive checkpoints and local material overrides
 are unchanged and do not write desktop preferences.
 
-A valid saved index is restored before Veranda initialization. A missing file
+A valid saved index is restored before Veranda initialization. The initial read
+uses background FileView preload with a 3-second event-loop deadline (WP-07 /
+AUD-22). Timeout resolves to the explicit pending selection, or Twilight if
+none, and never authorizes a write. Late/repeated callbacks cannot replace
+that decision. Veranda waits for the resolved theme including protected fallback.
+The deadline is not a hard wall-clock guarantee against a stalled process
+or a blocking explicit preference write. A missing file
 starts at Twilight and is not created until a deliberate selection. Unreadable,
 malformed or unsupported preferences start at Twilight and are protected from
 writes for the session; deliberate selection still changes the session theme.
