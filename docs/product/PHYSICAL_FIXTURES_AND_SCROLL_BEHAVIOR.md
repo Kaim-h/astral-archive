@@ -1,6 +1,6 @@
 # Physical fixtures, placement and scroll behavior
 
-**Provenance:** [November 17 cross-platform handoff](../research/handoffs/2026-11-17/ASTRAL_ARCHIVE_CROSS_PLATFORM_HANDOFF_2026-11-17.md). Older historical documents and prototypes may contain superseded material.
+**Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** product requirements and prototype lessons from the November 17 cross-platform handoff. v5.4 is historical. B6r12b3 is the accepted scroll browser direction; B6-N1–N3 is isolated native synthetic source. See [current state](../development/CURRENT_STATE.md) and [B7 asset contract](REPRESENTATION_ASSETS.md) for later evidence.
 

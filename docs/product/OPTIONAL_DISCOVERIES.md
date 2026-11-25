@@ -1,6 +1,6 @@
 # Optional discoveries and hidden customizations
 
-**Provenance:** [November 17 cross-platform handoff](../research/handoffs/2026-11-17/ASTRAL_ARCHIVE_CROSS_PLATFORM_HANDOFF_2026-11-17.md). Older historical documents and prototypes may contain superseded material.
+**Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** candidate backlog, not implemented scope and not a mandatory progression system. This document consolidates the November 17 historical “Secrets & Distribution Notes” and the cross-platform handoff. Candidate ideas require owner review before implementation.
 

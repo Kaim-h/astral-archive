@@ -1,6 +1,6 @@
 # Map Room and recursive container model
 
-**Provenance:** [November 17 cross-platform handoff](../research/handoffs/2026-11-17/ASTRAL_ARCHIVE_CROSS_PLATFORM_HANDOFF_2026-11-17.md). Older historical documents and prototypes may contain superseded material.
+**Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** approved product direction consolidated from the November 17 handoff. The wider Map Room is not implemented; B6-N1–N3 supplies an isolated synthetic recursive cubby study. Mixed fixtures and real directory binding remain future work. See current state.
 

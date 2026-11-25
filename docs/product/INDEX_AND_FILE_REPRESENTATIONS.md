@@ -1,6 +1,6 @@
 # Index behavior and symbolic file representations
 
-**Provenance:** [November 17 cross-platform handoff](../research/handoffs/2026-11-17/ASTRAL_ARCHIVE_CROSS_PLATFORM_HANDOFF_2026-11-17.md). Older historical documents and prototypes may contain superseded material.
+**Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** the search semantics and object taxonomy below are approved / direction from the November 17 handoff. The existing native Index only searches applications; file / room / cubby indexing is future work.
 

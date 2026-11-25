@@ -34,7 +34,7 @@ The handoff lists genuine unresolved engineering / design questions: final fixtu
 
 ## November 23 continuation — B6r12 Session 2 review
 
-The historical Batch 13 snapshot above is unchanged. The merged browser baseline is B6r12a at `c53be32542eccf78a59266265adc43564bb93c93`. GitHub Actions run 45306855919 (historical `actions/runs/45306855919`) reported both offline and Chromium jobs successful. B6r12b is a separate browser research candidate on `research/cubby-study-b6r12b-2026-11-23`; see [Session 2 notes](../research/prototypes/2026-11-20/notes/Astral_Archive_Cubby_Study_B6r12b_Notes.md). Review actual CI and owner interaction feedback before marking the refactor or B7 gate accepted. Do not treat the native desktop as validated.
+The historical Batch 13 snapshot above is unchanged. The merged browser baseline is B6r12a at `c53be32542eccf78a59266265adc43564bb93c93`. GitHub Actions run 45306855919 (historical `actions/runs/45306855919`) reported both offline and Chromium jobs successful. B6r12b is a separate browser research candidate on `research/cubby-study-b6r12b-2026-11-23`; see [Session 2 notes](../../research/prototypes/2026-11-20/notes/Astral_Archive_Cubby_Study_B6r12b_Notes.md). Review actual CI and owner interaction feedback before marking the refactor or B7 gate accepted. Do not treat the native desktop as validated.
 
 ## November 24 continuation — B6-N1 native foundation
 
@@ -53,4 +53,4 @@ N3 initial run 45398055406 passed all jobs. Matched offscreen/native and browser
 
 ## November 24 — B7 parallel visual research (owner authorized)
 
-PRs #7 and #8 are merged into main. Begin a separate B7 research branch for small standalone HTML representation studies, starting with [B7r1 framed artwork](../research/prototypes/2026-11-24/README.md). No inherited scroll physics or native changes. Owner review of appearance, frame geometry and fixture behavior comes before additional implementation. B6 parity gaps and target desktop validation remain open.
+PRs #7 and #8 are merged into main. Begin a separate B7 research branch for small standalone HTML representation studies, starting with [B7r1 framed artwork](../../research/prototypes/2026-11-24/README.md). No inherited scroll physics or native changes. Owner review of appearance, frame geometry and fixture behavior comes before additional implementation. B6 parity gaps and target desktop validation remain open.
