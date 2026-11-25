@@ -1,19 +1,19 @@
-# Current state — B7-N2 verified implementation
+# Current state — verified public B7-N2 baseline
 
 ## Integrated baseline and verification status
 
-The selected original technical main is `4366c5cae25d949ea7d21c8c595de8132893d6b4` (November 24, 2026; original tree `d1bec3d22728f7b841f420b34833feab6660517c`). Historical PRs #10, #11, #13, #14, #15 and #16 integrated B7 assets, native B6 editing, B7-N1 and B7-N2, and fixes AUD-01–15. The B7-N2 Archive is an **isolated synthetic Qt Quick study**, with recursive cubbies, mixed fixtures, universal Scroll Case, identity-preserving arrangement, explicit Save/Load and v1/v2 checkpoint handling. It is not imported by the production shell. Application books remain separate identities; scientific instruments are excluded from B7. See [mixed cubbies](B7_N2_MIXED_CUBBIES.md), [representation assets](../product/REPRESENTATION_ASSETS.md) and [component map](../architecture/COMPONENT_MAP.md).
+The historical source baseline for the integrated public implementation is `4366c5cae25d949ea7d21c8c595de8132893d6b4` (November 24, 2026; original tree `d1bec3d22728f7b841f420b34833feab6660517c`). Historical PRs #10, #11, #13, #14, #15 and #16 integrated B7 assets, native B6 editing, B7-N1 and B7-N2, and fixes AUD-01–15. The B7-N2 Archive is an **isolated synthetic Qt Quick study**, with recursive cubbies, mixed fixtures, universal Scroll Case, identity-preserving arrangement, explicit Save/Load and v1/v2 checkpoint handling. It is not imported by the production shell. Application books remain separate identities; scientific instruments are excluded from B7. See [mixed cubbies](B7_N2_MIXED_CUBBIES.md), [representation assets](../product/REPRESENTATION_ASSETS.md) and [component map](../architecture/COMPONENT_MAP.md).
 
-| Evidence | Exact original revision | Outcome / boundary |
+| Evidence | Exact verified revision | Outcome / boundary |
 |---|---|---|
 | B7-N2 implementation CI 45479039959 | `e04c1e4bbb1b52f32fd91ee22336d23f3f2c1cf7` | offline-js, browser-cubby-studies and native-archive-qt passed; bounded native synthetic study. |
 | Integrated-main CI 45480799164 | `4366c5cae25d949ea7d21c8c595de8132893d6b4` | All three jobs passed, including mixed cubby scene/transaction tests and separate checkpoint restart checks. |
-| Clean migration baseline | This repository's reviewed revision | Historical results do not validate the migrated tree; no fresh runtime verification claimed. |
+| Public baseline — [CI 45533627218, attempt 2](https://github.com/Kaim-h/astral-archive/actions/runs/45533627218/attempts/2) | `38f218a5bae7d2ad0a37315d5fda6ab0a9d9a0bf` | All three jobs passed with executed test steps: offline-js (policy, structure, geometry, asset reproducibility and regression checks); browser-cubby-studies (Chromium interactions and reference assets); native-archive-qt (offscreen Qt scenes, mixed transactions, independent checkpoint writer/reader and generated sculpture derivatives). |
 | Target desktop N4 | Outstanding | Actual Fedora/Hyprland/Quickshell validation remains mandatory before production integration. |
 
 AUD-16–20 corrective work and B8 design remain separate unfinished topics, not integrated in this baseline. See [active work](ACTIVE_WORK.md) for current topics and blockers and [roadmap](../archive-roadmap.md) for dependencies. Real filesystem indexing/actions, production Archive shell wiring, full Map Room/Shelf architecture and derivative packaging remain future work. No automatic production persistence or real file manager functionality is claimed.
 
-Ordinary development remains paused pending baseline integration and explicit authorization. The entries below are historical checkpoints only; original PR, CI, artifact and commit IDs are provenance, not live assignments or current repository links.
+Public baseline integration and the successful validation above are complete. Attempt 1 of the baseline run failed before recorded test execution; attempt 2 supersedes that result for the exact tested revision. No target desktop, full-theme visual acceptance, production Archive integration or performance claim follows from these tests. Render artifacts were not visually inspected in this documentation reconciliation. Verify newer heads separately. Ordinary development remains paused until explicitly authorized. The entries below are historical checkpoints only; original PR, CI, artifact and commit IDs are provenance, not live assignments or current repository links.
 
 ## Historical final acceptance — PR #16 (before integration)
 

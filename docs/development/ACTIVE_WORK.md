@@ -1,19 +1,19 @@
 # Active work and historical checkpoints
 
-## Current topics and blockers — migration checkpoint
+## Current public topics and blockers — November 24, 2026
 
-The [current-state summary](CURRENT_STATE.md) is authoritative for integrated implementation and recorded checks. The [roadmap](../archive-roadmap.md) records dependencies, not new assignments. No ordinary development is authorized while baseline preparation is in progress.
+The [current-state summary](CURRENT_STATE.md) records integrated implementation and exact checks; verify live source, PR heads and results before acting. The [roadmap](../archive-roadmap.md) records dependencies, not new assignments. Public baseline `38f218a5bae7d2ad0a37315d5fda6ab0a9d9a0bf` passed [CI 45533627218, attempt 2](https://github.com/Kaim-h/astral-archive/actions/runs/45533627218/attempts/2). Ordinary development remains paused until explicitly authorized.
 
-| Topic | Status at the selected technical baseline |
-|---|---|
-| B7-N2 mixed cubbies and independent AUD-01–15 fixes | Integrated in original technical main; no continuation of merged branches by default. |
-| Continuing stable-main audit | Separate documentation topic; retain audit IDs and evidence. |
-| AUD-16–20 corrective work | Separate unfinished draft topic. Earlier checks passed; a later native pixel assertion actually failed; the latest correction remains unverified because subsequent jobs were blocked before tests ran. Do not treat earlier checks as acceptance of that correction. |
-| B8 Shelf, Room and Map Room design | Separate unfinished design topic; no native implementation or final visual acceptance implied. |
-| Architecture review | Separate advisory documentation topic; proposals do not establish implementation scope. |
-| Clean baseline and target validation | Baseline review/integration and explicit resumption authorization pending; fresh relevant verification when available, N4 before production integration. |
+| Topic | Public PR / branch / exact head at this snapshot | Status and remaining obligation |
+|---|---|---|
+| B7-N2 and AUD-01–15 | Integrated public main | Isolated synthetic mixed cubbies; no new implementation topic automatically assigned. |
+| Stable-main audit | [#3](https://github.com/Kaim-h/astral-archive/pull/3) · `docs/stable-main-bug-audit-2026-11-24` · `3ddf070c08c8284cc0e8269b45a5c3d59d9e803b` | Open documentation draft; retain audit IDs and evidence. |
+| AUD-16–20 corrective work | [#4](https://github.com/Kaim-h/astral-archive/pull/4) · `development/stable-main-bugfixes-3` · `9597e88a87b3db636053bfd3924f0e47de6dac13` | Open draft; earlier native pixel assertion actually failed, subsequent attempts at the corrected historical head did not execute tests. Verify current head and inspect actual intermediate captures before acceptance. |
+| B8 Shelf, Room and Map Room design | [#5](https://github.com/Kaim-h/astral-archive/pull/5) · `design/archive-b8-architecture` · `ca34192c4899e590d533731db656c68405ba8c09` | Open design draft; B8s1/s2 candidates, no final visual acceptance or native implementation implied. Verify exact study and design-specific checks; finalize support, placement and interaction contracts before dependent implementation. |
+| Architecture review | [#6](https://github.com/Kaim-h/astral-archive/pull/6) · `docs/archive-architecture-stewardship` · `aa353e373f1c5493853bffd01a181435867eb70c` | Open advisory documentation draft; recommendations are not accepted architecture or implementation scope. |
+| Target validation | N4, outstanding | Actual Fedora/Hyprland/Quickshell validation mandatory before production integration. |
 
-Original open topics are not part of the selected integrated source. Verify actual destination branches and PRs before acting; historical PR numbers are not destination identifiers. No new topic or merge authorized here. Historical checkpoints below are retained for evidence only.
+The four continuing drafts target public main and are not integrated. Keep their independent topic boundaries; verify current heads and changed paths before publishing or merging, and reconcile shared documentation changes without overwriting concurrent work. Baseline CI is not exact-head verification of any of these drafts. No new implementation scope or merge is authorized by this status snapshot. Historical checkpoints below are retained as evidence, not current assignments; historical PR numbers do not denote live public PRs.
 
 ## Historical final acceptance — PR #16 (before integration)
 
