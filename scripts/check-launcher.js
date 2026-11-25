@@ -64,3 +64,9 @@ test('empty shelf keeps Index selected',()=>{
     assert.equal(ctx.arrowSelection(-1,'right',0,4),-1);
 });
 console.log(`\n${count} launcher logic checks passed.`);
+
+test('AUD-20 inherited-name IDs are included exactly once in home view',()=>{
+ const a={appId:'constructor',title:'Constructor'},b={appId:'__proto__',title:'Proto'},all=[a,b,...apps,a];
+ assert.deepEqual(Array.from(ctx.homeApplications(all,['constructor','constructor.desktop'],3),x=>x.appId),['constructor','__proto__','org.kde.dolphin']);
+ assert.deepEqual(Array.from(ctx.homeApplications(all,[],20),x=>x.appId),[a.appId,b.appId,...apps.map(x=>x.appId)]);
+});

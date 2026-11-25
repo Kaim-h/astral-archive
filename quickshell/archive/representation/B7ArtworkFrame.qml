@@ -11,6 +11,8 @@ Item {
     required property var colors
     property string profile:"bronze"
     property bool selected:false
+    property bool suppressed:false
+    opacity:suppressed?0:1
     property Item gestureHost:null
     property Item plaqueHost:parent
     readonly property var geometry:Catalog.frameGeometry(width,height,profile)
@@ -51,6 +53,7 @@ Item {
         }
     }
     B7MetadataPlaque {
+        visible:!frame.suppressed
         x:frame.geometry.plaque[0];y:frame.geometry.plaque[1]
         width:frame.geometry.plaque[2];height:frame.geometry.plaque[3]
         record:frame.record;colors:frame.colors;overlayHost:frame.plaqueHost

@@ -435,8 +435,8 @@ export {
 
 // Pure value model. A cubby/rack/cell is a placement, never a disk directory.
 export function rackAt(snapshot,cubbyId,rackId){
- const c=snapshot.cubbies[cubbyId];
- return c ? c.mods.find(m=>m.id===rackId&&m.type==='rack')||null : null;
+ const c=Object.prototype.hasOwnProperty.call(snapshot.cubbies,cubbyId)?snapshot.cubbies[cubbyId]:null;
+ return c&&Array.isArray(c.mods) ? c.mods.find(m=>m.id===rackId&&m.type==='rack')||null : null;
 }
 export function owners(snapshot){
  const entries=[];

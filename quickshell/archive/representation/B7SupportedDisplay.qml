@@ -12,6 +12,7 @@ Item {
     property real artScale:1
     property string mode:"shelf"
     property bool selected:false
+    property bool suppressed:false
     property Item gestureHost:null
     readonly property var geometry:Layout.supportFixture(record.variant,contactX,shelfY,artScale,mode)
     readonly property alias lipItem:lip
@@ -33,6 +34,7 @@ Item {
         record:fixture.record;assetId:record.variant;colors:fixture.colors
         contactX:fixture.width/2;supportY:0;artScale:fixture.artScale
         selected:fixture.selected;gestureHost:fixture.gestureHost
+        suppressed:fixture.suppressed
         onActivated:function(id){fixture.activated(id)}
     }
     Rectangle {
@@ -43,6 +45,7 @@ Item {
         color:fixture.colors.background;border.color:fixture.colors.metal
     }
     B7MetadataPlaque {
+        visible:!fixture.suppressed
         anchors.horizontalCenter:parent.horizontalCenter
         y:fixture.mode==="plinth"?5:fixture.mode==="tray"?3:1
         width:fixture.mode==="shelf"?116:104

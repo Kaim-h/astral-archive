@@ -23,6 +23,19 @@ export function assetEntries(){
     return result;
 }
 
+// Reserve the entire upright face at any permitted scale, even for an
+// empty holder. Preserve the approved normal-scale envelope and include
+// two units of stroke clearance per side. All consumers share this datum.
+const uprightFaceExtent=Math.max(...Object.values(assets).filter(a=>a.edge).map(a=>{
+    const g=a.geometry;return Math.max(g.contact[0]-g.bounds[0],g.bounds[2]-g.contact[0]);
+}));
+const uprightFaceRise=Math.max(...Object.values(assets).filter(a=>a.edge).map(a=>a.geometry.contact[1]-a.geometry.bounds[1]));
+export function holderEnvelope(scale,holderWidth){
+    const gap=16,cradleWidth=Math.max(244,Math.ceil(2*uprightFaceExtent*scale+4));
+    const height=Math.max(87,38+205*scale,38+uprightFaceRise*scale);
+    return {gap,cradleWidth,width:holderWidth+gap+cradleWidth,height};
+}
+
 // U3 slots reserve their full hit width even while presented in the cradle.
 export function uprightGeometry(records,scale,width,floor){
     if(!Array.isArray(records)||!records.length||records.length>48)throw Error("Invalid holder slots");
