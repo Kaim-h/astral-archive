@@ -166,7 +166,7 @@ Both adapters use background FileView preload with a 3-second single-shot
 startup deadline, separate from the 12-second wallpaper backend watchdog.
 Read text only after a loaded callback. Each read resolves once per service
 lifetime; late results cannot replace that decision while another prerequisite
-is pending. The deadline requires a responsive event loop.
+is pending. Each 3-second deadline requires a responsive event loop; neither is an absolute wall-clock bound against a stalled process or blocking I/O.
 
 Veranda preference timeout permits protected **manual-only** selection for
 the session: no initial apply, daily tick, theme-change apply or automatic
@@ -176,14 +176,12 @@ persistence. Confirmed missing preferences still permit first-run defaults
 and writes with a valid catalogue. Corrupt/failed/unsupported reads retain
 the established protected fallback. Theme timeout preserves explicit pending
 selection or Twilight; a valid Veranda read can initialize against this
-resolved theme. Controls indicate pending startup. Save failure prohibits
-subsequent persistence until restart; actual atomic-write behavior and any
-already-submitted asynchronous writes require target verification.
+resolved theme. Controls indicate pending startup. An exception from the save request or a reported `saveFailed` disables subsequent persistence until restart; already-submitted asynchronous writes are not canceled by this latch.
+
+Quickshell v0.3.1 has a conditional atomic-commit false-success limitation: its [FileView writer](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/src/io/fileview.cpp#L287-L290) can log a failed QSaveFile commit without setting the error consumed by its [completion handling](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/src/io/fileview.cpp#L358-L433), allowing a `saved` notification despite failure. The [independent candidate review](https://github.com/Kaim-h/astral-archive/pull/11#issuecomment-7166995712) reproduced an unchanged-disk/no-reported-failure case in mocks, with subsequent write attempts still permitted. Unlike [ThemePreferences](capsule.md#desktop-theme-persistence-wp-01), Veranda does not independently reload and confirm persisted bytes. No actual atomic commit failure or data loss has been reproduced natively; the correction does not establish universal write success. Actual commit behavior, file preservation and persistence verification remain bounded follow-up concerns, not authorization for another runtime repair.
 
 The existing mock checks exercise absent, late, repeated and ordered
 completions, deadlines, user intent, protected manual-only recovery, linked
 theme readiness and failed writes. They do not exercise native FileView/timer/
-binding scheduling. N4 requires disposable state, real lifecycle and first
-wallpaper request counts, byte preservation, restart recovery and daemon
-behavior. Preserve AUD-11/12/15. See also
+binding scheduling. Follow the [N4 checklist](bringup.md#n4-desktop-preference-and-startup-acceptance) for disposable state, real lifecycle, first wallpaper request counts, byte preservation, restart recovery and daemon behavior. Preserve AUD-11/12/15. See also
 [Quickshell FileView 0.3.1](https://quickshell.org/docs/v0.3.1/types/Quickshell.Io/FileView/).
