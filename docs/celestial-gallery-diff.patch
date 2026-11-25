@@ -1,0 +1,46 @@
+--- existing quickshell/shell.qml
++++ Batch 10 quickshell/shell.qml
+@@ -4,6 +4,7 @@
+ import "panels" as Panels
+ import "services" as Services
+ import "widgets" as Widgets
++import "themes" as Themes
+ 
+ // The launcher remains a separate, keyboard-first floating library.
+ // The capsule is an always-visible, compact overlay. Neither reserves a bar.
+@@ -23,6 +24,19 @@
+     Panels.VerandaOfVistas {
+         id: veranda
+         wallpaperService: verandaService
++    }
++
++    // Celestial Gallery: separate illustrated panel and full-viewport viewer.
++    // Intentionally not coupled to Veranda or the desktop wallpaper.
++    Services.GalleryCatalogue { id: galleryCatalogue }
++    Panels.GalleryFullViewer {
++        id: galleryViewer
++        palette: Themes.Theme.current
++    }
++    Panels.CelestialGallery {
++        id: celestialGallery
++        viewer: galleryViewer
++        catalogue: galleryCatalogue
+     }
+ 
+     Panels.ArchiveCapsule {
+@@ -54,6 +68,15 @@
+     }
+ 
+     GlobalShortcut {
++        name: "celestial-gallery"
++        description: "Show or hide the Celestial Gallery observatory"
++        onPressed: {
++            capsule.dismissPopups();
++            celestialGallery.toggleGallery();
++        }
++    }
++
++    GlobalShortcut {
+         name: "astral-archive"
+         description: "Open or close the Astral Archive launcher"
+         onPressed: launcher.toggleLauncher()
