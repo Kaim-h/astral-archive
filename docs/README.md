@@ -12,6 +12,7 @@ Current source establishes implementation, accepted product requirements establi
 ## Technical index
 
 - [Current state](development/CURRENT_STATE.md) and [active work](development/ACTIVE_WORK.md) — integrated implementation and historical checkpoint evidence.
+- [Stable-main bug audit (November 24, 2026)](development/STABLE_MAIN_BUG_AUDIT_2026-11-24.md) — dated defect evidence, reproductions, proposed fixes and native-test risks; not a live milestone or implementation change.
 - [Roadmap](archive-roadmap.md) — milestones and dependencies.
 - [Architecture](architecture.md) and [component map](architecture/COMPONENT_MAP.md).
 - [Design decisions](design-decisions.md) and [product specifications](product/) — intended behavior and design boundaries.
