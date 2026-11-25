@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Astral Archive — File Representation Playground</title>
+<style>
+  :root {
+    --bg: #121e23;
+    --panel: #263c37;
+    --metal: #8c6e5a;
+    --engraving: #91ada1;
+    --text: #e6e1d8;
+    --shadow: rgba(0,0,0,0.25);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: 100vh;
+  }
+  .sidebar {
+    background: color-mix(in srgb, var(--panel) 88%, black 12%);
+    border-right: 1px solid color-mix(in srgb, var(--metal) 55%, black 45%);
+    padding: 24px 20px 28px;
+    overflow-y: auto;
+  }
+  .sidebar h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    letter-spacing: 0.02em;
+  }
+  .sidebar .sub {
+    color: var(--engraving);
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  .group {
+    margin: 0 0 22px;
+    padding: 16px;
+    border: 1px solid color-mix(in srgb, var(--metal) 65%, black 35%);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg) 42%, transparent 58%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--engraving) 18%, transparent 82%);
+  }
+  .group h2 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .control {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 13px;
+  }
+  .control label {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--engraving);
+  }
+  .control select,
+  .control input[type="range"],
+  .control button {
+    width: 100%;
+  }
+  .control select,
+  .control button {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--metal) 72%, black 28%);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .inline {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .inline span {
+    min-width: 44px;
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+  input[type="range"] {
+    accent-color: var(--metal);
+  }
+  .checkbox {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 14px;
+  }
+  .checkbox input {
+    accent-color: var(--metal);
+  }
+  .notes {
+    font-size: 13px;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--text) 88%, var(--engraving) 12%);
+  }
+  .main {
+    padding: 26px;
+    overflow-y: auto;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-end;
+    margin-bottom: 18px;
+  }
+  .header h2 {
+    margin: 0;
+    font-size: 26px;
+    letter-spacing: 0.03em;
+  }
+  .header p {
+    margin: 6px 0 0;
+    color: var(--engraving);
+  }
+  .pill {
+    display: inline-block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--metal) 70%, black 30%);
+    background: color-mix(in srgb, var(--panel) 75%, black 25%);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(360px, 1fr));
+    gap: 18px;
+  }
+  .card {
+    position: relative;
+    background: color-mix(in srgb, var(--panel) 90%, black 10%);
+    border: 1px solid color-mix(in srgb, var(--metal) 68%, black 32%);
+    border-radius: 14px;
+    box-shadow: 0 8px 26px var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--engraving) 14%, transparent 86%);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 16px 8px;
+    border-bottom: 1px solid color-mix(in srgb, var(--metal) 28%, transparent 72%);
+  }
+  .card-header h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .card-header p {
+    margin: 5px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--engraving);
+  }
+  .canvas-wrap {
+    position: relative;
+    padding: 12px;
+  }
+  .canvas {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 70%, black 30%), color-mix(in srgb, var(--panel) 80%, black 20%));
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--engraving) 18%, transparent 82%);
+    overflow: hidden;
+    position: relative;
+  }
+  .canvas.grid-on::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: var(--grid-size, 24px) var(--grid-size, 24px);
+    pointer-events: none;
+  }
+  svg { display: block; width: 100%; height: 100%; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 14px 14px;
+  }
+  .legend-item {
+    font-size: 12px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--metal) 45%, black 55%);
+    color: var(--text);
+    background: color-mix(in srgb, var(--bg) 40%, transparent 60%);
+  }
+  @media (max-width: 1120px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid color-mix(in srgb, var(--metal) 55%, black 45%); }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h1>The Astral Archive</h1>
+    <div class="sub">File Representation Playground · storage workshop</div>
+
+    <div class="group">
+      <h2>Global</h2>
+      <div class="control">
+        <label for="themeSelect">Theme</label>
+        <select id="themeSelect">
+          <option value="evening">Evening</option>
+          <option value="twilight" selected>Twilight</option>
+          <option value="midnight">Midnight</option>
+        </select>
+      </div>
+      <label class="checkbox"><input id="showGrid" type="checkbox" /> Show construction grid</label>
+      <div class="control">
+        <label for="gridSize">Grid spacing</label>
+        <div class="inline">
+          <input id="gridSize" type="range" min="8" max="64" step="4" value="24" />
+          <span id="gridSizeValue">24</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Book shelf</h2>
+      <div class="control">
+        <label for="bookCount">Book count</label>
+        <div class="inline"><input id="bookCount" type="range" min="3" max="12" step="1" value="8" /><span id="bookCountValue">8</span></div>
+      </div>
+      <div class="control">
+        <label for="bookSpacing">Spacing</label>
+        <div class="inline"><input id="bookSpacing" type="range" min="1" max="8" step="1" value="2" /><span id="bookSpacingValue">2</span></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Scroll rack</h2>
+      <div class="control">
+        <label for="scrollPattern">Divider pattern</label>
+        <select id="scrollPattern">
+          <option value="square">Square</option>
+          <option value="diamond" selected>Diamond</option>
+          <option value="hex">Hex</option>
+          <option value="triangle">Triangle</option>
+          <option value="none">Undivided</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="scrollDensity">Scroll density</label>
+        <div class="inline"><input id="scrollDensity" type="range" min="1" max="5" step="1" value="3" /><span id="scrollDensityValue">3</span></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Upright holder</h2>
+      <div class="control">
+        <label for="holderMode">Object family</label>
+        <select id="holderMode">
+          <option value="records" selected>Records</option>
+          <option value="tablets">Typefaces / tablets</option>
+          <option value="ledgers">Ledgers</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="holderCount">Count</label>
+        <div class="inline"><input id="holderCount" type="range" min="3" max="8" step="1" value="6" /><span id="holderCountValue">6</span></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Display surface</h2>
+      <div class="control">
+        <label for="displayMode">Representation</label>
+        <select id="displayMode">
+          <option value="artwork" selected>Artwork / visual media</option>
+          <option value="sculpture">Sculptures</option>
+          <option value="instrument">Instruments</option>
+          <option value="satchel">Parcels / satchels</option>
+          <option value="mixed">Mixed display</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="displayCount">Count</label>
+        <div class="inline"><input id="displayCount" type="range" min="1" max="5" step="1" value="3" /><span id="displayCountValue">3</span></div>
+      </div>
+    </div>
+
+    <div class="group notes">
+      <h2>Placement rules</h2>
+      <p><strong>Books</strong> sit on the board using the Archive's compact shelf logic: upright spines, shared baseline, close spacing.</p>
+      <p><strong>Scrolls</strong> remain inside actual rack compartments. This playground uses tidy packed placements rather than final physical settling.</p>
+      <p><strong>Records, tablets, and ledgers</strong> all share the same upright holder logic, based on the plate-stand reference you provided.</p>
+      <p><strong>Artwork, sculptures, instruments, and satchels</strong> rest on a display surface or against a display backing. Nothing floats freely.</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="header">
+      <div>
+        <h2>Storage Workshop</h2>
+        <p>A focused study of the file-object families and the supports that hold them.</p>
+      </div>
+      <div class="pill">visual prototype only · no filesystem integration</div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-header">
+          <h3>Book shelf</h3>
+          <p>Existing Archive logic translated into HTML: narrow spines, shared baseline, restrained ornament, and a real shelf board.</p>
+        </div>
+        <div class="canvas-wrap"><div id="booksCanvas" class="canvas"></div></div>
+        <div class="legend">
+          <div class="legend-item">42px spine reference</div>
+          <div class="legend-item">90–160px height family</div>
+          <div class="legend-item">~2px default spacing</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h3>Scroll rack</h3>
+          <p>Scrolls remain entirely inside their cells. Divider geometry can change without turning the rack into a free-form canvas.</p>
+        </div>
+        <div class="canvas-wrap"><div id="scrollsCanvas" class="canvas"></div></div>
+        <div class="legend">
+          <div class="legend-item">square / diamond / hex / triangle / undivided</div>
+          <div class="legend-item">contained end-on storage</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h3>Upright holder</h3>
+          <p>The same support logic serves records, stone tablets, and ledgers. Only the stored object changes.</p>
+        </div>
+        <div class="canvas-wrap"><div id="holderCanvas" class="canvas"></div></div>
+        <div class="legend">
+          <div class="legend-item">records</div>
+          <div class="legend-item">typeface tablets</div>
+          <div class="legend-item">ledgers</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h3>Display surface</h3>
+          <p>Supported display for framed visual media, sculptures, instruments, and parcels. All objects sit on or against something.</p>
+        </div>
+        <div class="canvas-wrap"><div id="displayCanvas" class="canvas"></div></div>
+        <div class="legend">
+          <div class="legend-item">visual media</div>
+          <div class="legend-item">sculptures</div>
+          <div class="legend-item">instruments</div>
+          <div class="legend-item">satchels</div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+const themes = {
+  evening: { bg: '#343c43', panel: '#3f524f', metal: '#c2aa78', engraving: '#b7a2c8', text: '#f0f0e8' },
+  twilight: { bg: '#121e23', panel: '#263c37', metal: '#8c6e5a', engraving: '#91ada1', text: '#e6e1d8' },
+  midnight: { bg: '#080f10', panel: '#101c1b', metal: '#869c9c', engraving: '#568f80', text: '#dadfd9' }
+};
+
+const state = {
+  theme: 'twilight',
+  showGrid: false,
+  gridSize: 24,
+  bookCount: 8,
+  bookSpacing: 2,
+  scrollPattern: 'diamond',
+  scrollDensity: 3,
+  holderMode: 'records',
+  holderCount: 6,
+  displayMode: 'artwork',
+  displayCount: 3
+};
+
+const titlePool = ['BROWSER','SCRIPT','ATLAS','DOLPHIN','KONSOLE','NOTES','EDITOR','INDEX','MAPS','ASTRA','MUSIC','ARCHIVE'];
+const bookColors = ['#46584f','#556a61','#4e5f71','#66555a','#40555e','#5c5f48','#4a4762'];
+const scrollTones = ['#d0bf9c','#c4af88','#e0d0ad','#b89a71','#cbb798','#d9c8aa'];
+const records = ['#7c8f99','#89a1ac','#95aab4','#738892','#acb8c1'];
+const tablets = ['#b8b2a2','#9b9588','#8b887d','#c5c0b1'];
+const ledgers = ['#76685b','#8b7560','#5e5660','#6a7c70','#71604f'];
+const artTones = ['#7c6557','#6a7d72','#546c7c','#8c7058','#6f637f'];
+
+function byId(id){ return document.getElementById(id); }
+
+function setTheme(name) {
+  const p = themes[name];
+  document.documentElement.style.setProperty('--bg', p.bg);
+  document.documentElement.style.setProperty('--panel', p.panel);
+  document.documentElement.style.setProperty('--metal', p.metal);
+  document.documentElement.style.setProperty('--engraving', p.engraving);
+  document.documentElement.style.setProperty('--text', p.text);
+}
+
+function canvasClass(el) {
+  el.classList.toggle('grid-on', state.showGrid);
+  el.style.setProperty('--grid-size', state.gridSize + 'px');
+}
+
+function esc(s){ return String(s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function uiInit() {
+  const bindings = [
+    ['themeSelect','theme'], ['showGrid','showGrid'], ['gridSize','gridSize'],
+    ['bookCount','bookCount'], ['bookSpacing','bookSpacing'],
+    ['scrollPattern','scrollPattern'], ['scrollDensity','scrollDensity'],
+    ['holderMode','holderMode'], ['holderCount','holderCount'],
+    ['displayMode','displayMode'], ['displayCount','displayCount']
+  ];
+
+  bindings.forEach(([id,key]) => {
+    const el = byId(id);
+    const isCheckbox = el.type === 'checkbox';
+    el.addEventListener('input', () => {
+      state[key] = isCheckbox ? el.checked : (el.type === 'range' ? Number(el.value) : el.value);
+      updateReadouts();
+      render();
+    });
+  });
+
+  updateReadouts();
+}
+
+function updateReadouts() {
+  byId('gridSizeValue').textContent = state.gridSize;
+  byId('bookCountValue').textContent = state.bookCount;
+  byId('bookSpacingValue').textContent = state.bookSpacing;
+  byId('scrollDensityValue').textContent = state.scrollDensity;
+  byId('holderCountValue').textContent = state.holderCount;
+  byId('displayCountValue').textContent = state.displayCount;
+}
+
+function bookSvg() {
+  const p = themes[state.theme];
+  const width = 800, height = 500;
+  const count = state.bookCount;
+  const spacing = state.bookSpacing;
+  const spine = 42;
+  const heights = [118, 150, 104, 138, 160, 112, 132, 145, 124, 152, 110, 140];
+  const totalWidth = count * spine + (count - 1) * spacing;
+  let x = (width - totalWidth) / 2;
+  const shelfY = 410;
+  const boardY = 430;
+  let books = '';
+
+  for (let i = 0; i < count; i++) {
+    const h = heights[i % heights.length];
+    const y = shelfY - h;
+    const color = bookColors[i % bookColors.length];
+    const border = i === 0 ? 2 : 1;
+    const title = titlePool[i % titlePool.length];
+    const horizontal = i % 3 === 0;
+    books += `
+      <g transform="translate(${x},${y})">
+        <rect x="0" y="0" width="${spine}" height="${h}" rx="4" fill="${color}" stroke="${p.metal}" stroke-width="${border}"/>
+        <rect x="4" y="6" width="1" height="${h-12}" fill="${p.engraving}" opacity="0.16"/>
+        <rect x="${spine-5}" y="6" width="1" height="${h-12}" fill="${p.engraving}" opacity="0.12"/>
+        <rect x="5" y="12" width="${spine-10}" height="2" fill="${p.metal}" opacity="0.85"/>
+        <rect x="5" y="${Math.round(h*0.52)}" width="${spine-10}" height="2" fill="${p.metal}" opacity="0.85"/>
+        <text x="${horizontal ? spine/2 : spine/2}" y="${horizontal ? h*0.34 : h/2}" fill="${p.engraving}" font-size="${horizontal ? 10 : 11}" font-family="Georgia, serif" ${horizontal ? '' : 'transform="rotate(90 '+spine/2+' '+h/2+')"'} text-anchor="middle">${esc(horizontal ? title.slice(0,6) : title)}</text>
+        ${horizontal ? `<text x="${spine/2}" y="${Math.round(h*0.72)}" fill="${p.engraving}" font-size="9" text-anchor="middle">VOL</text>` : ''}
+      </g>`;
+    x += spine + spacing;
+  }
+
+  return `
+  <svg viewBox="0 0 ${width} ${height}" aria-label="Book shelf preview">
+    <defs>
+      <linearGradient id="bgBooks" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${p.bg}" />
+        <stop offset="100%" stop-color="${p.panel}" />
+      </linearGradient>
+    </defs>
+    <rect width="${width}" height="${height}" fill="url(#bgBooks)"/>
+    <rect x="60" y="430" width="680" height="18" rx="4" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/>
+    <rect x="92" y="439" width="250" height="1" fill="${p.engraving}" opacity="0.55"/>
+    <rect x="458" y="439" width="250" height="1" fill="${p.engraving}" opacity="0.55"/>
+    <text x="400" y="444" fill="${p.engraving}" font-size="11" text-anchor="middle">◇ ✧ ◇</text>
+    <rect x="${(width-totalWidth)/2}" y="408" width="${totalWidth}" height="2" fill="#081010" opacity="0.28"/>
+    ${books}
+  </svg>`;
+}
+
+function circle(cx, cy, r, fill, stroke, sw=1) {
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+}
+
+function scrollGlyph(cx, cy, r, fill, stroke) {
+  return `
+    ${circle(cx, cy, r, fill, stroke, 1)}
+    ${circle(cx, cy, r*0.68, 'none', 'rgba(60,40,22,0.32)', 1)}
+    ${circle(cx, cy, r*0.34, 'none', 'rgba(60,40,22,0.32)', 1)}
+  `;
+}
+
+function squareCells() {
+  const cells = [];
+  const startX = 120, startY = 90, w = 170, h = 130;
+  for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++) {
+    const x = startX + col * (w + 12);
+    const y = startY + row * (h + 12);
+    cells.push({ shape:'rect', x, y, w, h });
+  }
+  return cells;
+}
+
+function diamondCells() {
+  const cells = [];
+  const size = 110; const startX = 175; const startY = 110;
+  for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++) {
+    const cx = startX + col * 150 + (row % 2 ? 75 : 0);
+    const cy = startY + row * 150;
+    cells.push({ shape:'diamond', cx, cy, size });
+  }
+  return cells;
+}
+
+function hexCells() {
+  const cells = [];
+  const r = 58;
+  const startX = 180, startY = 130;
+  for (let row=0; row<2; row++) for (let col=0; col<3; col++) {
+    const cx = startX + col*138 + (row ? 69 : 0);
+    const cy = startY + row*120;
+    cells.push({shape:'hex', cx, cy, r});
+  }
+  return cells;
+}
+
+function triangleCells() {
+  const cells = [];
+  const side = 160; const height = Math.sqrt(3)/2 * side;
+  const startX = 140; const startY = 80;
+  for (let row=0; row<2; row++) for (let col=0; col<3; col++) {
+    const x = startX + col*170;
+    const y = startY + row*170;
+    cells.push({shape:'tri', x, y, side, up: (col+row)%2===0});
+  }
+  return cells;
+}
+
+function cellOutline(cell, p) {
+  switch (cell.shape) {
+    case 'rect':
+      return `<rect x="${cell.x}" y="${cell.y}" width="${cell.w}" height="${cell.h}" rx="4" fill="rgba(255,255,255,0.03)" stroke="${p.metal}" stroke-width="2"/>`;
+    case 'diamond': {
+      const s = cell.size, cx = cell.cx, cy = cell.cy;
+      return `<polygon points="${cx},${cy-s/2} ${cx+s/2},${cy} ${cx},${cy+s/2} ${cx-s/2},${cy}" fill="rgba(255,255,255,0.03)" stroke="${p.metal}" stroke-width="2"/>`;
+    }
+    case 'hex': {
+      const r = cell.r, cx = cell.cx, cy = cell.cy;
+      const pts = Array.from({length:6}, (_,i)=>{
+        const a = Math.PI/6 + i * Math.PI/3;
+        return `${(cx + Math.cos(a)*r).toFixed(1)},${(cy + Math.sin(a)*r).toFixed(1)}`;
+      }).join(' ');
+      return `<polygon points="${pts}" fill="rgba(255,255,255,0.03)" stroke="${p.metal}" stroke-width="2"/>`;
+    }
+    case 'tri': {
+      const {x,y,side,up} = cell; const h = Math.sqrt(3)/2*side;
+      const pts = up ? `${x+side/2},${y} ${x+side},${y+h} ${x},${y+h}` : `${x},${y} ${x+side},${y} ${x+side/2},${y+h}`;
+      return `<polygon points="${pts}" fill="rgba(255,255,255,0.03)" stroke="${p.metal}" stroke-width="2"/>`;
+    }
+  }
+}
+
+function cellPositions(cell, density) {
+  const out = [];
+  const count = density * 2 + 1;
+  if (cell.shape === 'rect') {
+    const cols = density + 1;
+    for (let i = 0; i < count; i++) {
+      const c = i % cols, r = Math.floor(i / cols);
+      out.push({ x: cell.x + 35 + c*36, y: cell.y + 38 + r*34, r: 16 - density });
+    }
+  } else if (cell.shape === 'diamond') {
+    const offsets = [[0,0],[-18,18],[18,18],[0,36],[-18,-18],[18,-18],[0,-36],[36,0],[-36,0]];
+    for (let i = 0; i < count && i < offsets.length; i++) out.push({ x: cell.cx + offsets[i][0], y: cell.cy + offsets[i][1], r: 15 - density*0.5 });
+  } else if (cell.shape === 'hex') {
+    const offsets = [[0,0],[-20,-12],[20,-12],[-20,14],[20,14],[0,-26],[0,28],[36,0],[-36,0]];
+    for (let i = 0; i < count && i < offsets.length; i++) out.push({ x: cell.cx + offsets[i][0], y: cell.cy + offsets[i][1], r: 14 - density*0.5 });
+  } else if (cell.shape === 'tri') {
+    const base = cell.up ? cell.y + Math.sqrt(3)/2*cell.side - 24 : cell.y + 26;
+    const startX = cell.x + cell.side/2;
+    const rows = density + 1;
+    for (let r=0, idx=0; r<rows && idx<count; r++) {
+      const items = rows - r;
+      for (let c=0; c<items && idx<count; c++, idx++) {
+        const span = (items-1) * 28;
+        out.push({ x: startX - span/2 + c*28, y: cell.up ? base - r*24 : base + r*24, r: 13 - density*0.4 });
+      }
+    }
+  }
+  return out;
+}
+
+function scrollSvg() {
+  const p = themes[state.theme];
+  const width = 800, height = 500;
+  let cells = [];
+  switch (state.scrollPattern) {
+    case 'square': cells = squareCells(); break;
+    case 'diamond': cells = diamondCells(); break;
+    case 'hex': cells = hexCells(); break;
+    case 'triangle': cells = triangleCells(); break;
+    case 'none': cells = [{ shape:'rect', x:120, y:90, w:560, h:260 }]; break;
+  }
+  let shapes = cells.map(c => cellOutline(c,p)).join('');
+  let scrolls = '';
+  cells.forEach((cell, i) => {
+    const pos = cellPositions(cell, state.scrollDensity);
+    pos.forEach((pt, j) => {
+      scrolls += scrollGlyph(pt.x, pt.y, Math.max(8, pt.r), scrollTones[(i+j)%scrollTones.length], 'rgba(77,58,40,0.65)');
+    });
+  });
+  return `
+  <svg viewBox="0 0 ${width} ${height}" aria-label="Scroll rack preview">
+    <rect width="${width}" height="${height}" fill="${p.bg}"/>
+    <rect x="86" y="56" width="628" height="338" rx="12" fill="${p.panel}" stroke="${p.metal}" stroke-width="3"/>
+    <rect x="102" y="72" width="596" height="306" rx="8" fill="rgba(255,255,255,0.03)" stroke="${p.engraving}" stroke-width="1" opacity="0.45"/>
+    ${shapes}
+    ${scrolls}
+    <text x="400" y="430" fill="${p.engraving}" font-size="14" text-anchor="middle">${state.scrollPattern.toUpperCase()} DIVIDERS · DENSITY ${state.scrollDensity}</text>
+  </svg>`;
+}
+
+function holderItem(mode, x, y, index) {
+  if (mode === 'records') {
+    const fill = records[index % records.length];
+    return `
+      <g transform="translate(${x},${y})">
+        <ellipse cx="0" cy="0" rx="36" ry="44" fill="${fill}" stroke="rgba(80,90,98,0.75)" stroke-width="1.5"/>
+        <ellipse cx="0" cy="0" rx="14" ry="17" fill="none" stroke="rgba(80,90,98,0.32)" stroke-width="1"/>
+        <circle cx="0" cy="0" r="3" fill="rgba(80,90,98,0.75)"/>
+      </g>`;
+  }
+  if (mode === 'tablets') {
+    const fill = tablets[index % tablets.length];
+    const glyphs = ['A','Æ','R','Ω','M','✶','⟡','S'];
+    return `
+      <g transform="translate(${x-26},${y-42})">
+        <rect x="0" y="0" width="52" height="84" rx="6" fill="${fill}" stroke="rgba(82,70,54,0.8)" stroke-width="1.5"/>
+        <rect x="6" y="7" width="40" height="70" rx="3" fill="none" stroke="rgba(82,70,54,0.25)" stroke-width="1"/>
+        <text x="26" y="48" fill="rgba(82,70,54,0.8)" font-size="20" text-anchor="middle">${glyphs[index%glyphs.length]}</text>
+      </g>`;
+  }
+  const fill = ledgers[index % ledgers.length];
+  return `
+    <g transform="translate(${x-20},${y-44})">
+      <rect x="0" y="0" width="40" height="88" rx="4" fill="${fill}" stroke="rgba(60,43,28,0.8)" stroke-width="1.5"/>
+      <rect x="5" y="7" width="2" height="74" fill="rgba(255,255,255,0.16)"/>
+      <rect x="10" y="14" width="20" height="2" fill="rgba(215,206,189,0.62)"/>
+      <rect x="10" y="40" width="20" height="2" fill="rgba(215,206,189,0.4)"/>
+      <rect x="10" y="66" width="20" height="2" fill="rgba(215,206,189,0.4)"/>
+    </g>`;
+}
+
+function holderSvg() {
+  const p = themes[state.theme];
+  const width = 800, height = 500;
+  const count = state.holderCount;
+  const left = 250, right = 550, top = 120, bottom = 350;
+  const usable = 220;
+  const step = usable / Math.max(1, count - 1);
+  let items = '';
+  for (let i=0; i<count; i++) {
+    const x = 290 + i * step;
+    const y = 250 - i * 1.5;
+    items += holderItem(state.holderMode, x, y, i);
+  }
+  return `
+  <svg viewBox="0 0 ${width} ${height}" aria-label="Upright holder preview">
+    <rect width="${width}" height="${height}" fill="${p.bg}"/>
+    <rect x="240" y="337" width="320" height="12" rx="4" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/>
+    <g opacity="0.95">
+      <rect x="254" y="132" width="12" height="215" rx="3" fill="none" stroke="${p.metal}" stroke-width="3"/>
+      <rect x="534" y="132" width="12" height="215" rx="3" fill="none" stroke="${p.metal}" stroke-width="3"/>
+      <line x1="254" y1="338" x2="546" y2="338" stroke="${p.metal}" stroke-width="3"/>
+      <line x1="266" y1="150" x2="534" y2="150" stroke="${p.metal}" stroke-width="2" opacity="0.55"/>
+      <line x1="266" y1="322" x2="534" y2="322" stroke="${p.metal}" stroke-width="2" opacity="0.55"/>
+    </g>
+    ${items}
+    <text x="400" y="414" fill="${p.engraving}" font-size="14" text-anchor="middle">${state.holderMode.toUpperCase()} HOLDER · ${count} ITEMS</text>
+  </svg>`;
+}
+
+function artwork(x, y, w, h, tone, p, tag='✦') {
+  return `
+    <g transform="translate(${x},${y})">
+      <rect x="0" y="0" width="${w}" height="${h}" rx="5" fill="${p.metal}" opacity="0.92"/>
+      <rect x="8" y="8" width="${w-16}" height="${h-16}" rx="3" fill="${tone}" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+      <path d="M 16 ${h-26} Q ${w*0.35} ${h*0.45}, ${w*0.6} ${h-18} T ${w-16} ${h-30}" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+      <circle cx="${w*0.72}" cy="${h*0.35}" r="11" fill="rgba(255,255,255,0.18)"/>
+      <text x="${w/2}" y="${h-12}" fill="${p.text}" opacity="0.82" font-size="10" text-anchor="middle">${tag}</text>
+    </g>`;
+}
+
+function sculpture(x,y,scale,p,index) {
+  const tone = ['#9d9284','#b0a18d','#8f8f96','#a6927d'][index % 4];
+  return `
+    <g transform="translate(${x},${y}) scale(${scale})">
+      <rect x="-30" y="52" width="60" height="16" rx="2" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/>
+      <rect x="-20" y="12" width="40" height="44" rx="10" fill="${tone}" stroke="rgba(68,54,42,0.75)" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="16" fill="${tone}" stroke="rgba(68,54,42,0.75)" stroke-width="1.5"/>
+      <path d="M -7 -2 Q 0 4 7 -2" fill="none" stroke="rgba(68,54,42,0.3)" stroke-width="1"/>
+    </g>`;
+}
+
+function instrument(x,y,scale,p,index) {
+  const tones = ['#7e826f','#7b725d','#6b7b79','#85715c'];
+  const tone = tones[index % tones.length];
+  return `
+    <g transform="translate(${x},${y}) scale(${scale})">
+      <circle cx="0" cy="0" r="32" fill="none" stroke="${p.metal}" stroke-width="4"/>
+      <circle cx="0" cy="0" r="21" fill="none" stroke="${tone}" stroke-width="3"/>
+      <line x1="0" y1="-32" x2="0" y2="32" stroke="${p.engraving}" stroke-width="2" opacity="0.65"/>
+      <line x1="-32" y1="0" x2="32" y2="0" stroke="${p.engraving}" stroke-width="2" opacity="0.65"/>
+      <rect x="-8" y="34" width="16" height="18" rx="3" fill="${tone}"/>
+      <rect x="-18" y="52" width="36" height="9" rx="3" fill="${p.panel}" stroke="${p.metal}" stroke-width="1.5"/>
+    </g>`;
+}
+
+function satchel(x,y,scale,p,index) {
+  const tones = ['#7d6145','#8d6a4f','#6a5847','#796458'];
+  const tone = tones[index % tones.length];
+  return `
+    <g transform="translate(${x},${y}) scale(${scale})">
+      <rect x="-34" y="0" width="68" height="48" rx="7" fill="${tone}" stroke="rgba(75,50,31,0.8)" stroke-width="1.5"/>
+      <path d="M -30 14 Q 0 -10 30 14" fill="none" stroke="rgba(75,50,31,0.75)" stroke-width="3"/>
+      <circle cx="0" cy="25" r="6" fill="${p.metal}"/>
+      <rect x="-12" y="22" width="24" height="6" rx="2" fill="rgba(255,255,255,0.14)"/>
+    </g>`;
+}
+
+function displaySvg() {
+  const p = themes[state.theme];
+  const width = 800, height = 500;
+  const mode = state.displayMode;
+  const count = state.displayCount;
+  let content = '';
+  // wall / backing
+  content += `<rect x="120" y="70" width="560" height="170" rx="8" fill="rgba(255,255,255,0.03)" stroke="${p.engraving}" stroke-width="1" opacity="0.55"/>`;
+  // surface
+  content += `<rect x="140" y="320" width="520" height="16" rx="4" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/>`;
+
+  if (mode === 'artwork') {
+    const w = 110, h = 132, gap = 26;
+    const total = count*w + (count-1)*gap;
+    let x = (width-total)/2;
+    for (let i=0;i<count;i++) {
+      content += artwork(x, 95 + (i%2? 10:0), w, h, artTones[i%artTones.length], p, i===1?'▶':'✦');
+      x += w + gap;
+    }
+  } else if (mode === 'sculpture') {
+    const gap = 120; let start = 400 - ((count-1)*gap)/2;
+    for (let i=0;i<count;i++) content += sculpture(start + i*gap, 240, 1, p, i);
+  } else if (mode === 'instrument') {
+    const gap = 126; let start = 400 - ((count-1)*gap)/2;
+    for (let i=0;i<count;i++) content += instrument(start + i*gap, 255, 1, p, i);
+  } else if (mode === 'satchel') {
+    const gap = 108; let start = 400 - ((count-1)*gap)/2;
+    for (let i=0;i<count;i++) content += satchel(start + i*gap, 250, 1, p, i);
+  } else {
+    // mixed
+    const positions = [240, 360, 480, 590, 690].slice(0,count);
+    positions.forEach((x,i) => {
+      if (i===0) content += artwork(x-48, 100, 96, 118, artTones[0], p, '✦');
+      else if (i===1) content += sculpture(x, 240, 0.95, p, i);
+      else if (i===2) content += instrument(x, 255, 0.95, p, i);
+      else if (i===3) content += satchel(x, 250, 0.95, p, i);
+      else content += artwork(x-48, 112, 90, 108, artTones[3], p, '▶');
+    });
+  }
+
+  return `
+  <svg viewBox="0 0 ${width} ${height}" aria-label="Display surface preview">
+    <rect width="${width}" height="${height}" fill="${p.bg}"/>
+    ${content}
+    <text x="400" y="412" fill="${p.engraving}" font-size="14" text-anchor="middle">${mode.toUpperCase()} DISPLAY · ${count} ITEMS</text>
+  </svg>`;
+}
+
+function render() {
+  setTheme(state.theme);
+  const canvases = ['booksCanvas','scrollsCanvas','holderCanvas','displayCanvas'];
+  canvases.forEach(id => canvasClass(byId(id)));
+  byId('booksCanvas').innerHTML = bookSvg();
+  byId('scrollsCanvas').innerHTML = scrollSvg();
+  byId('holderCanvas').innerHTML = holderSvg();
+  byId('displayCanvas').innerHTML = displaySvg();
+}
+
+uiInit();
+setTheme(state.theme);
+render();
+</script>
+</body>
+</html>
