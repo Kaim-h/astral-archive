@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Astral Archive · Celestial Gallery Tower · Study 11</title>
+<style>
+:root{color-scheme:dark;--back:#101d21;--surface:#20332f;--sur2:#273d37;--gold:#af9276;--ink:#d7d0c2;--soft:#91ada1}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#101d21;color:var(--ink);font:14px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1250px;margin:auto;padding:clamp(14px,2.5vw,28px)}h1{font:normal clamp(27px,3vw,38px)/1.15 Georgia,serif;margin:5px 0 9px}
+h2{font-size:15px;margin:0 0 12px}.eyebrow{color:var(--soft);text-transform:uppercase;letter-spacing:.18em;font-size:11px}.intro{max-width:920px;margin:0 0 17px;color:#a7c0b5;font-size:13px}
+.workarea{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(288px,.8fr);gap:15px;align-items:start}
+.frame,.panel{background:#253b35;border:1px solid #8c6e5a;border-radius:12px;overflow:hidden}.frame-header{display:flex;justify-content:space-between;gap:10px;padding:11px 15px;border-bottom:1px solid #91ada12e;font-size:12px}.frame-header span:last-child{color:var(--soft)}
+.drawing{background:radial-gradient(ellipse at 50% 42%,#16272a,#101d21 75%);padding:0 12px}
+#towerSvg{display:block;width:100%;height:min(770px,80vh);min-height:550px;overflow:visible;touch-action:pan-y}
+.frame-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px;border-top:1px solid #91ada12e;color:var(--soft);font-size:11px}
+.side{display:flex;flex-direction:column;gap:14px}.panel{padding:16px}.panel p{margin:8px 0;color:#a7c0b5;font-size:12px}
+.control{margin:13px 0}.control-label{display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:4px}.control-label output{color:var(--soft);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--soft)}.check{display:flex;align-items:center;gap:9px;margin:11px 0;font-size:12px}.check input{accent-color:var(--soft)}
+button,.upload-label{display:inline-block;border:1px solid #a38b70;background:#132623;color:#e0d6c5;border-radius:7px;padding:8px 10px;font:inherit;font-size:12px;cursor:pointer}button:hover,.upload-label:hover{background:#354d45}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}.facts{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12px}.facts dt{color:var(--soft)}.facts dd{margin:0}.field{display:flex;flex-direction:column;gap:5px;margin-top:10px;font-size:12px;color:#a7c0b5}
+input[type=text],select{width:100%;border:1px solid #7a8574;border-radius:5px;background:#10201f;color:#ede7db;padding:8px;font:12px system-ui}#artFile{display:none}
+
+.drawing{position:relative;overflow:hidden}
+#artHitArea,#localArtwork,#emptyArtwork{cursor:zoom-in}#artHitArea{outline:none}
+#artHitArea:focus-visible{stroke:#e8d7b5;stroke-width:2.1}
+#artOpening,#archSpine{pointer-events:none}
+.focus-overlay{position:absolute;inset:0;z-index:5;background:#0d1b22eb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .72s cubic-bezier(.19,.76,.2,1),visibility 0s linear .72s}
+.focus-overlay.visible{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .72s cubic-bezier(.19,.76,.2,1),visibility 0s}
+.focus-art-wrap{display:flex;align-items:center;justify-content:center;width:92%;height:78%;min-height:0;overflow:hidden}
+.focus-art-wrap img{display:block;max-width:100%;max-height:100%;height:auto;width:auto;object-fit:contain;border:2px solid #ad9478;box-shadow:0 8px 28px #0009}
+.focus-placeholder{color:#a2b8af;border:1px dashed #91ada17c;padding:55px 18px;text-align:center;font:16px Georgia,serif}
+.focus-info{color:#d7d0c2;font-size:11px;text-align:center;letter-spacing:.06em;max-width:95%}
+.focus-close{position:absolute;right:20px;top:18px;font-size:15px}
+.frame-caption{margin-top:2px;color:#91ada1;font-size:11px}
+.note-pending{border-top:1px solid #91ada142;margin-top:12px;padding-top:10px}
+@media(prefers-reduced-motion:reduce){.focus-overlay,.focus-overlay.visible{transition-duration:.01ms}}
+#domeCompare,#guideLayer{transition:opacity .25s ease}.hide-dome #domeCompare{opacity:0}.hide-guides #guideLayer{opacity:0}
+/* The entire cylindrical skin—including engravings, roman markers and seams—turns together. */
+.drum-track{animation:drumOrbit 900s linear infinite}.drum-paused .drum-track{animation-play-state:paused}
+@keyframes drumOrbit{to{transform:translateX(-282px)}}
+@media(max-width:930px){.workarea{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}#towerSvg{height:660px}}
+@media(max-width:600px){.side{grid-template-columns:1fr}#towerSvg{height:570px;min-height:470px}.drawing{padding:0}}
+@media(prefers-reduced-motion:reduce){.drum-track{animation-play-state:paused}}
+
+/* Theme API mirrors the three active roles in quickshell/themes/Theme.qml. */
+:root{--back:#121e23;--surface:#263c37;--sur2:#314b44;--gold:#8c6e5a;--ink:#e6e1d8;--soft:#91ada1}
+body{background:var(--back);color:var(--ink)}
+.intro,.panel p,.field{color:var(--soft)}
+.frame,.panel{background:var(--surface);border-color:var(--gold)}
+.drawing{background:radial-gradient(ellipse at 50% 40%,var(--sur2),var(--back) 78%)}
+.frame-header,.frame-footer{border-color:color-mix(in srgb,var(--soft) 27%,transparent)}
+button,.upload-label{border-color:var(--gold);background:var(--back);color:var(--ink)}
+button:hover,.upload-label:hover{background:var(--sur2)}
+input[type=text],select{background:var(--back);border-color:var(--gold);color:var(--ink)}
+.focus-overlay{background:color-mix(in srgb,var(--back) 79%,transparent)}
+.focus-art-wrap img{border-color:var(--gold)}
+.focus-info,.focus-placeholder{color:var(--ink)}
+#domeCompare{transition:opacity .25s ease}
+.theme-swatches{display:flex;gap:6px;margin:12px 0 4px}
+.theme-swatches i{width:26px;height:19px;display:block;border-radius:4px;border:1px solid #ffffff22}
+
+
+#drumBelt,#staticConstellations{transition:opacity .9s ease}
+#drumBelt.ghosted{opacity:0}#staticConstellations.ghosted{opacity:.18}
+/* Mini player uses the approved v17 770×480 design rectangles exactly. */
+.dome-music{position:absolute;inset:0;pointer-events:none;transition:opacity .65s ease,filter .65s ease;opacity:1}
+.dome-music.focused{opacity:0;filter:blur(4px);pointer-events:none}
+.mini-music{position:absolute;box-sizing:border-box;background:color-mix(in srgb,var(--back) 92%,transparent);color:var(--ink);border:1.2px solid var(--gold);border-radius:7px;box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--soft) 15%,transparent);pointer-events:auto}
+.mini-music.display{left:258.4px;top:252.8px;width:180px;height:51px;display:flex;align-items:center;padding:4px 6px;gap:5px;overflow:hidden}
+.mini-cover{flex:none;width:32px;height:32px;background:linear-gradient(130deg,var(--sur2),var(--soft));border:1px solid var(--gold);border-radius:3px;display:grid;place-items:center;font-size:15px;color:var(--ink)}
+.mini-metadata{min-width:0;flex:1;padding-bottom:2px}
+.mini-heading{font:6px system-ui;letter-spacing:1px;color:var(--soft)}
+.mini-ticker{overflow:hidden;white-space:nowrap;font:9px system-ui;color:var(--ink);max-width:100%;line-height:1.25}
+.mini-ticker.artist{font-size:7.5px;color:var(--soft)}
+.mini-ticker span{display:inline-block;white-space:nowrap;transform:translateX(0)}
+.mini-ticker.scrolling span{padding-right:22px;animation:miniTicker 11s linear infinite alternate}
+@keyframes miniTicker{0%,12%{transform:translateX(0)}88%,100%{transform:translateX(var(--travel))}}
+.mini-progress{position:absolute;bottom:3px;left:7px;right:7px;height:1px;background:color-mix(in srgb,var(--soft) 28%,transparent)}
+.mini-progress span{display:block;height:100%;background:var(--gold);width:22%}
+.mini-music.transport{left:235.8px;top:310.2px;width:225.6px;height:32px;display:flex;align-items:center;justify-content:space-evenly;padding:1px 7px;gap:5px;overflow:visible}
+.mini-btn{border:0;background:transparent;border-radius:3px;cursor:pointer;color:var(--ink);font:11px system-ui;min-width:24px;height:23px;padding:2px 4px;pointer-events:auto}
+.mini-btn:hover{background:color-mix(in srgb,var(--soft) 20%,transparent)}
+#miniSaveNotice{position:absolute;top:33px;right:0;background:var(--back);color:var(--ink);border:1px solid var(--gold);padding:3px 8px;border-radius:4px;font:9px system-ui;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s}
+#miniSaveNotice.visible{opacity:1}
+
+/* Full artwork choreography without changes to the approved dome geometry. */
+#lensTwinkle{opacity:0;transform-box:fill-box;transform-origin:center;}
+#lensTwinkle.bloom{animation:lensFlash 1050ms ease-out both}
+@keyframes lensFlash{0%{opacity:0;scale:.1}24%{opacity:1;scale:1.3}70%{opacity:.78;scale:.86}100%{opacity:0;scale:1.2}}
+#skyCanvas{image-rendering:auto;opacity:1;}
+.focus-overlay{z-index:6}
+.focus-art-wrap img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;box-sizing:border-box;border:3px solid var(--gold);border-radius:2px}
+#domeCanvas{cursor:zoom-in}
+/* Restore v20's lens twinkle: the anchor is fixed at the projected lens center;
+   only its opacity/scale changes. No SVG-group transform drift. */
+.lens-twinkle{position:absolute;width:66px;height:66px;pointer-events:none;opacity:0;z-index:8;transform:translate(-50%,-50%);filter:drop-shadow(0 0 6px #d2fff3aa)}
+.lens-twinkle svg{width:100%;height:100%;overflow:visible;transform-origin:center center;transform-box:view-box}
+.lens-twinkle.bloom{opacity:1}
+#lensTwinkle.bloom{animation:none!important;opacity:1}
+.lens-twinkle.bloom svg{animation:lensBloom 1.7s ease-in-out forwards}
+@keyframes lensBloom{0%{opacity:0;transform:scale(.2) rotate(-15deg)}19%{opacity:.95;transform:scale(.9) rotate(0)}45%{opacity:1;transform:scale(1.06) rotate(12deg)}70%{opacity:.62;transform:scale(.6) rotate(22deg)}100%{opacity:0;transform:scale(.2) rotate(30deg)}}
+/* The long labels are stationary until the user explicitly hovers the text. */
+.mini-ticker.scrolling span{animation:none;padding-right:0}
+.mini-ticker.scrolling:hover span,.mini-ticker.scrolling:focus-within span{padding-right:22px;animation:miniTicker 11s linear infinite alternate}
+/* Full-viewport transition; these are moved to document.body at initialization. */
+#skyCanvas{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:900!important;pointer-events:none;visibility:hidden}
+.focus-overlay{position:fixed;inset:0;z-index:950;background:color-mix(in srgb,var(--back) 26%,transparent)}
+/* Rebalance the frame during fullscreen reveal: a small amount of sky remains
+   visible behind the artwork while the viewer itself respects its aspect ratio. */
+.focus-art-wrap img{box-shadow:0 12px 40px #000a}
+@media(prefers-reduced-motion:reduce){.lens-twinkle.bloom svg{animation:none;opacity:.85}}
+</style></head><body><main>
+<div class="eyebrow">The Astral Archive · Celestial Gallery · Integrated tower study 11</div>
+<h1>Quieter observatory · anchored lens twinkle · full-screen constellations.</h1>
+<p class="intro">The existing <b>282px drum</b>, <b>328px dome</b>, original telescope geometry, Ionic columns, and theme palettes are preserved. This is the approved moving-drum choice: <b>the entire 282px cylinder, including every constellation, seam, and inscription, turns together once per 15 minutes</b>. Its foreground arch remains stationary and hides the lower markings. The slit-adjacent dome engravings are retained. Music text still moves only on hover, artwork drift remains gentle with pauses, and clicking artwork or scope still leads through the full-viewport 1px constellation reveal into the contained viewer.</p>
+<div class="workarea"><section class="frame">
+<div class="frame-header"><strong>Front elevation · dome, tower and base</strong><span id="viewLabel">Integrated dome + tower</span></div>
+<div class="drawing"><svg id="towerSvg" class="hide-guides" viewBox="157 50 456 721" role="img" aria-label="Integrated approved depth-correct observatory dome, telescope, rotating constellation drum, single uniform-width arch, two Ionic columns, cropped artwork, and two inscription bands">
+<defs>
+ <linearGradient id="stone" x1="0" x2="1" y1="0" y2="0"><stop stop-color="#496054"/><stop offset=".21" stop-color="#35493f"/><stop offset=".78" stop-color="#30453d"/><stop offset="1" stop-color="#4d6254"/></linearGradient>
+ <linearGradient id="roundedSetting" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#688174"/>
+  <stop offset=".22" stop-color="#4e675b"/>
+  <stop offset=".63" stop-color="#374e44"/>
+  <stop offset="1" stop-color="#2b4138"/>
+ </linearGradient>
+ <linearGradient id="stoneBase" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#586f60"/><stop offset=".58" stop-color="#354c41"/><stop offset="1" stop-color="#506658"/></linearGradient>
+ <linearGradient id="artField" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#152b31"/><stop offset="1" stop-color="#0d2129"/></linearGradient>
+ <linearGradient id="drumSurface" x1="0" x2="1" y1="0" y2="0"><stop stop-color="#152724"/><stop offset=".08" stop-color="#2a453c"/><stop offset=".28" stop-color="#324a40"/><stop offset=".60" stop-color="#354e43"/><stop offset=".91" stop-color="#2a4037"/><stop offset="1" stop-color="#172725"/></linearGradient>
+ <linearGradient id="drumShine" x1="0" x2="1" y1="0" y2="0"><stop stop-color="#020e0b" stop-opacity=".62"/><stop offset=".16" stop-color="#132923" stop-opacity=".10"/><stop offset=".5" stop-color="#c4c5a0" stop-opacity=".05"/><stop offset=".85" stop-color="#132923" stop-opacity=".10"/><stop offset="1" stop-color="#020e0b" stop-opacity=".66"/></linearGradient>
+ <clipPath id="drumClip"><rect x="244" y="253" width="282" height="167"/></clipPath>
+ <!-- All arch contours are sampled from this single spine using its
+      unit normal, so the masonry is a mathematically uniform 30px band. -->
+ <path id="archSpine" d="M264 421 C264 362 319 321 385 321 C451 321 506 362 506 421"/>
+ <path id="artOpening" d=""/>
+ <clipPath id="artClip"><use href="#artOpening"/></clipPath>
+ <!-- Softening is confined INSIDE the exact same arch boundary: a blurred
+      white silhouette fades the image into the dark aperture at its rim. -->
+ <filter id="artFeatherFilter" filterUnits="userSpaceOnUse" x="180" y="280" width="410" height="480" color-interpolation-filters="sRGB">
+  <feGaussianBlur id="artFeatherBlur" stdDeviation="15" result="softFeather"/>
+  <!-- Gamma reshapes the edge alpha independently of the blur radius. -->
+  <feComponentTransfer in="softFeather">
+   <feFuncA id="artFeatherCurve" type="gamma" amplitude="1" exponent="3.4" offset="0"/>
+  </feComponentTransfer>
+ </filter>
+ <mask id="artFeatherMask" maskUnits="userSpaceOnUse" x="200" y="300" width="370" height="400" style="mask-type:alpha">
+  <use href="#artOpening" fill="#fff" filter="url(#artFeatherFilter)"/>
+ </mask>
+</defs>
+<!-- APPROVED radius-164 hemisphere and telescope projected into tower coordinates.
+     Canvas uses original 770x480 local projection. y=-120 aligns its center
+     from canvas (385,350) to tower (385,230); the architectural socket sits IN FRONT. -->
+<foreignObject id="domeCompare" x="0" y="-120" width="770" height="480" pointer-events="all" style="overflow:visible">
+  <div xmlns="http://www.w3.org/1999/xhtml" class="dome-stage" style="width:770px;height:480px;position:relative;pointer-events:auto">
+    <canvas id="domeCanvas" width="770" height="480" style="display:block;width:770px;height:480px;background:transparent;pointer-events:auto;cursor:zoom-in" aria-label="Click observatory dome or telescope to focus the artwork"></canvas>
+    <div id="domeMusic" class="dome-music" aria-label="Compact demo music player">
+      <div id="musicDisplay" class="mini-music display" title="Now playing">
+        <div class="mini-cover" id="miniCover" aria-hidden="true">✦</div>
+        <div class="mini-metadata"><div class="mini-heading">NOW PLAYING</div>
+          <div class="mini-ticker"><span id="miniTitle">The Lantern Path</span></div>
+          <div class="mini-ticker artist"><span id="miniArtist">The Astral Archive</span></div>
+        </div>
+        <div class="mini-progress"><span id="miniProgress"></span></div>
+      </div>
+      <div id="musicTransport" class="mini-music transport">
+        <button class="mini-btn" id="miniPrev" type="button" aria-label="Previous demo track" title="Previous">◀◀</button>
+        <button class="mini-btn" id="miniPlay" type="button" aria-label="Pause demo playback" title="Play or pause">Ⅱ</button>
+        <button class="mini-btn" id="miniNext" type="button" aria-label="Next demo track" title="Next">▶▶</button>
+        <button class="mini-btn" id="miniSave" type="button" aria-label="Save track to demo collection" title="Add to collection (demo)">＋</button>
+        <div id="miniSaveNotice" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+    <!-- Fixed lens-location overlay. Animate only the glint, never the anchor. -->
+    <div id="lensTwinkle" class="lens-twinkle" aria-hidden="true"><svg viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="33" cy="33" r="14" fill="#aee9da" opacity=".12"/>
+      <path d="M33 3 Q36 30 63 33 Q36 36 33 63 Q30 36 3 33 Q30 30 33 3Z" fill="#edfff6"/>
+      <path d="M33 16 L36 30 L50 33 L36 36 L33 50 L30 36 L16 33 L30 30 Z" fill="#c8efe4"/>
+    </svg></div>
+  </div>
+</foreignObject>
+<g id="towerRoot">
+ <!-- Fixed shallow collar at the dome–drum junction only. Dome: 328px; drum: 282px.
+      This is NOT part of the moving cylinder. The drum retains v6 dimensions. -->
+ <path id="domeSetting" d="M221 230 H549 A23 23 0 0 0 526 253 H244 A23 23 0 0 0 221 230 Z"
+       fill="url(#roundedSetting)" stroke="#b49a7d" stroke-width="1.25" stroke-linejoin="round"/>
+ <path id="domeSeatLine" d="M223 231 H547" stroke="#dfc7a5" stroke-width="1.3" opacity=".8" fill="none"/>
+ <path id="collarInlay" d="M235 243 Q239 248 244 251 H526 Q531 248 535 243" fill="none" stroke="#9db7a9" stroke-width=".95" opacity=".6"/>
+ <path id="collarBand" d="M244 252 H526" stroke="#d9c39b" stroke-width="2.0" opacity=".9"/>
+ <!-- Full-height cylinder retains the ORIGINAL 282px body, with no broad stone block. -->
+ <rect x="244" y="253" width="282" height="167" fill="url(#drumSurface)"/>
+ <g clip-path="url(#drumClip)">
+  <g transform="translate(244,0)">
+   <g id="drumBelt" class="drum-track"><path d="M 3.0,275.0 L 12.0,282.0 L 23.0,294.0 L 33.0,320.0 L 43.0,355.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="3.0" cy="275" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="12.0" cy="282" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="23.0" cy="294" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="33.0" cy="320" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M29 320 H37 M33 316 V324" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="43.0" cy="355" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M47 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="23.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">I</text>
+<path d="M7 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 49.0,361.0 L 60.0,343.0 L 69.0,319.0 L 79.0,287.0 L 90.0,276.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="49.0" cy="361" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="60.0" cy="343" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="69.0" cy="319" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="79.0" cy="287" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M75 287 H83 M79 283 V291" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="90.0" cy="276" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M94 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="70.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">II</text>
+<path d="M54 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 97.0,275.0 L 106.0,304.0 L 117.0,347.0 L 127.0,362.0 L 137.0,377.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="97.0" cy="275" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="106.0" cy="304" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="117.0" cy="347" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="127.0" cy="362" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M123 362 H131 M127 358 V366" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="137.0" cy="377" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M141 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="117.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">III</text>
+<path d="M101 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 144.0,377.0 L 154.0,362.0 L 164.0,343.0 L 174.0,301.0 L 184.0,277.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="144.0" cy="377" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="154.0" cy="362" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="164.0" cy="343" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="174.0" cy="301" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M170 301 H178 M174 297 V305" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="184.0" cy="277" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M188 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="164.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">IV</text>
+<path d="M148 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 191.0,269.0 L 201.0,280.0 L 211.0,302.0 L 221.0,351.0 L 231.0,367.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="191.0" cy="269" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="201.0" cy="280" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="211.0" cy="302" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="221.0" cy="351" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M217 351 H225 M221 347 V355" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="231.0" cy="367" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M235 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="211.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">V</text>
+<path d="M195 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 238.0,372.0 L 248.0,354.0 L 258.0,313.0 L 268.0,295.0 L 278.0,275.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="238.0" cy="372" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="248.0" cy="354" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="258.0" cy="313" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="268.0" cy="295" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M264 295 H272 M268 291 V299" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="278.0" cy="275" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M282 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="258.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">VI</text>
+<path d="M242 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 285.0,275.0 L 294.0,282.0 L 305.0,294.0 L 315.0,320.0 L 325.0,355.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="285.0" cy="275" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="294.0" cy="282" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="305.0" cy="294" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="315.0" cy="320" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M311 320 H319 M315 316 V324" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="325.0" cy="355" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M329 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="305.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">I</text>
+<path d="M289 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 331.0,361.0 L 342.0,343.0 L 351.0,319.0 L 361.0,287.0 L 372.0,276.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="331.0" cy="361" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="342.0" cy="343" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="351.0" cy="319" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="361.0" cy="287" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M357 287 H365 M361 283 V291" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="372.0" cy="276" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M376 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="352.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">II</text>
+<path d="M336 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 379.0,275.0 L 388.0,304.0 L 399.0,347.0 L 409.0,362.0 L 419.0,377.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="379.0" cy="275" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="388.0" cy="304" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="399.0" cy="347" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="409.0" cy="362" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M405 362 H413 M409 358 V366" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="419.0" cy="377" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M423 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="399.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">III</text>
+<path d="M383 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 426.0,377.0 L 436.0,362.0 L 446.0,343.0 L 456.0,301.0 L 466.0,277.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="426.0" cy="377" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="436.0" cy="362" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="446.0" cy="343" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="456.0" cy="301" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M452 301 H460 M456 297 V305" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="466.0" cy="277" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M470 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="446.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">IV</text>
+<path d="M430 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 473.0,269.0 L 483.0,280.0 L 493.0,302.0 L 503.0,351.0 L 513.0,367.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="473.0" cy="269" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="483.0" cy="280" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="493.0" cy="302" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="503.0" cy="351" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M499 351 H507 M503 347 V355" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="513.0" cy="367" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M517 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="493.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">V</text>
+<path d="M477 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/>
+<path d="M 520.0,372.0 L 530.0,354.0 L 540.0,313.0 L 550.0,295.0 L 560.0,275.0" fill="none" stroke="#b5d0be" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<circle cx="520.0" cy="372" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<circle cx="530.0" cy="354" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="540.0" cy="313" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<circle cx="550.0" cy="295" r="2.1" fill="#e9dcc5" opacity=".93"/>
+<path d="M546 295 H554 M550 291 V299" stroke="#e5cba2" opacity=".65" stroke-width=".55"/>
+<circle cx="560.0" cy="275" r="1.5" fill="#e9dcc5" opacity=".93"/>
+<path d="M564 258 V420" stroke="#92aa9c" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<text x="540.5" y="311" fill="#dbc09f" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">VI</text>
+<path d="M524 401 h33" stroke="#a9ad90" stroke-width=".7" opacity=".34"/></g>
+  </g>
+  <!-- Comparison only: two stationary illustrative constellations, one on each
+       side, still naturally hidden by the foreground arch. Not source-verified. -->
+  <g id="staticConstellations" clip-path="url(#drumClip)" style="display:none">
+   <g id="staticBackdrop" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="297" cy="322" rx="61" ry="53" fill="#7ea39312" stroke="#96baa74d" stroke-width="1.1"/>
+    <ellipse cx="473" cy="320" rx="66" ry="55" fill="#799b8d10" stroke="#93b6a44a" stroke-width="1.1"/>
+    <path d="M247 289 C276 268 318 266 346 289" stroke="#9ab7ab5d" stroke-width="1.1"/>
+    <path d="M251 351 C281 333 316 333 346 351" stroke="#89a89a42" stroke-width="1"/>
+    <path d="M423 286 C452 267 495 266 521 291" stroke="#9ab7ab5d" stroke-width="1.1"/>
+    <path d="M419 351 C448 334 491 334 520 351" stroke="#89a89a42" stroke-width="1"/>
+    <path d="M358 277 C376 304 377 367 357 395" stroke="#8fb1a04d" stroke-width=".95" stroke-dasharray="2.2 6.5"/>
+    <path d="M409 273 C391 302 390 367 409 397" stroke="#8fb1a04d" stroke-width=".95" stroke-dasharray="2.2 6.5"/>
+    <path d="M272 270 L276 280 M322 272 L318 282 M451 273 L454 282 M502 272 L497 281" stroke="#dbcba85a" stroke-width="1.2"/>
+    <circle cx="266" cy="278" r="1.7" fill="#e7dfcd88"/><circle cx="311" cy="280" r="1.4" fill="#e7dfcd70"/>
+    <circle cx="332" cy="301" r="1.8" fill="#e7dfcd80"/><circle cx="282" cy="346" r="1.3" fill="#e7dfcd72"/>
+    <circle cx="439" cy="279" r="1.5" fill="#e7dfcd78"/><circle cx="486" cy="281" r="1.8" fill="#e7dfcd86"/>
+    <circle cx="514" cy="331" r="1.3" fill="#e7dfcd72"/><circle cx="446" cy="343" r="1.7" fill="#e7dfcd7d"/>
+    <path d="M371 267 H395" stroke="#a0bcb04b" stroke-width=".9"/>
+    <path d="M369 372 H399" stroke="#a0bcb04b" stroke-width=".9"/>
+   </g>
+   <g fill="none" stroke="#b5d0be" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+    <g><path d="M255 316 L272 298 L284 320 L304 297 L324 318"/>
+     <circle cx="255" cy="316" r="2.1" fill="#d6e3cd"/><circle cx="272" cy="298" r="2.6" fill="#d6e3cd"/><circle cx="284" cy="320" r="2" fill="#d6e3cd"/><circle cx="304" cy="297" r="2.5" fill="#d6e3cd"/><circle cx="324" cy="318" r="2" fill="#d6e3cd"/>
+     <text x="290" y="334" text-anchor="middle" fill="#b5d0be" stroke="none" font-size="8" font-family="ui-monospace,monospace" letter-spacing="1">FIGURE I</text></g>
+    <g><path d="M439 292 L457 311 L479 298 L499 316 L513 292 M479 298 L480 275"/>
+     <circle cx="439" cy="292" r="2.4" fill="#d6e3cd"/><circle cx="457" cy="311" r="2" fill="#d6e3cd"/><circle cx="479" cy="298" r="2.7" fill="#d6e3cd"/><circle cx="499" cy="316" r="2" fill="#d6e3cd"/><circle cx="513" cy="292" r="2.3" fill="#d6e3cd"/><circle cx="480" cy="275" r="2" fill="#d6e3cd"/>
+     <text x="475" y="334" text-anchor="middle" fill="#b5d0be" stroke="none" font-size="8" font-family="ui-monospace,monospace" letter-spacing="1">FIGURE II</text></g>
+   </g>
+  </g>
+  <rect x="244" y="253" width="282" height="167" fill="url(#drumShine)" pointer-events="none"/>
+ </g>
+ <!-- Fixed bearing lines: they do not turn with the engraved drum surface. -->
+ <path d="M244 252 V420 M526 252 V420" stroke="#c6a787" stroke-width="3"/>
+ <path d="M244 255 H526 M244 419 H526" stroke="#d2b394" stroke-width="2.5"/>
+ <path d="M248 259 H522" stroke="#8eaa99" stroke-width=".8" opacity=".65"/>
+ <!-- The opening and the arch have an EXACTLY shared inner profile. The
+      artwork field is a little wider underneath the masonry, preventing an
+      antialiased sliver even when the composition is displayed at 80% scale. -->
+ <use href="#artOpening" fill="url(#artField)"/>
+ <!-- The fade resolves to this adjustable theme-grounded stone color, not black. -->
+ <use id="crystalEdgeField" href="#artOpening" fill="#76827d"/>
+ <g clip-path="url(#artClip)">
+  <!-- Two synchronized image layers make fade STRENGTH independent of WIDTH.
+       The unmasked layer is fully visible at 0%; at 100% only the deeply
+       shaped feather mask remains, so the rim truly dissolves to stone. -->
+  <g id="artSolidLayer" opacity="0.18">
+   <image id="localArtwork" preserveAspectRatio="none" style="display:none"/>
+  </g>
+  <g id="artMaskedLayer" mask="url(#artFeatherMask)">
+   <image id="crystalArtwork" preserveAspectRatio="none" style="display:none"/>
+  </g>
+  <g id="emptyArtwork" opacity=".79">
+   <path d="M385 362 V655 M303 521 H467" stroke="#68847f" stroke-width=".7" stroke-dasharray="3 7"/>
+   <text x="385" y="510" fill="#afc9b9" font-family="Georgia,serif" letter-spacing="1.5" font-size="10" text-anchor="middle">LOAD ARTWORK</text>
+   <text x="385" y="526" fill="#afc9b9" font-family="Georgia,serif" letter-spacing="1" font-size="8" text-anchor="middle">FOR AUTOMATIC PAN</text>
+  </g>
+ </g>
+ <!-- Arch band, outer and inner trims share one sampled centerline.
+      Its 30px width stays fixed even around the crown. -->
+ <path id="archBand" fill="url(#stone)" stroke="#bda487" stroke-width="1.9"/>
+ <path id="archOuterTrim" stroke="#e2c6a5" stroke-width="1.2" fill="none" opacity=".85"/>
+ <path id="archInnerTrim" stroke="#9db5a1" stroke-width="1.1" fill="none" opacity=".8"/>
+ <!-- A balanced, centered ASCII-style inscription follows the exact band
+      centerline, which preserves character spacing along the entire arc. -->
+ <text id="archAscii" fill="#e1d0ae" font-size="9.8" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" letter-spacing=".95" pointer-events="none"><textPath href="#archSpine" startOffset="50%" text-anchor="middle">. : + : .   /\   [ * ]   \/   . : + : .</textPath></text>
+ <g id="archStamps" pointer-events="none"></g>
+ <!-- Exactly ONE architectural column on either side; no duplicate vertical support. -->
+ <g fill="url(#stone)" stroke="#c1a488" stroke-width="1.9">
+  <rect x="249" y="418" width="30" height="267" rx="1.4"/>
+  <rect x="491" y="418" width="30" height="267" rx="1.4"/>
+ </g>
+ <!-- Shallow fluting, centered on each single shaft. No extra columns. -->
+ <g fill="none" stroke-linecap="round">
+  <path d="M254 443 V664 M274 443 V664 M496 443 V664 M516 443 V664" stroke="#9cb5a5" stroke-width=".9" opacity=".58"/>
+  <path d="M259 447 V664 M264 447 V664 M269 447 V664 M501 447 V664 M506 447 V664 M511 447 V664" stroke="#101f1d" stroke-width="1.4" opacity=".36"/>
+  <path d="M260 447 V664 M265 447 V664 M270 447 V664 M502 447 V664 M507 447 V664 M512 447 V664" stroke="#a6baa7" stroke-width=".72" opacity=".55"/>
+ </g>
+ <!-- Quiet Ionic capitals: small, matching inward volutes and straight abaci. -->
+ <g id="ionicCapitals">
+  <g fill="#8d7d68" stroke="#d6bb9a" stroke-width="1.05">
+   <rect x="245" y="414" width="38" height="5" rx=".7"/>
+   <rect x="245" y="428" width="38" height="5" rx=".7"/>
+   <rect x="487" y="414" width="38" height="5" rx=".7"/>
+   <rect x="487" y="428" width="38" height="5" rx=".7"/>
+   <rect x="245" y="674" width="38" height="9"/><rect x="487" y="674" width="38" height="9"/>
+  </g>
+  <path d="M258 422 H270 M500 422 H512" stroke="#d9c4a1" stroke-width="1.3"/>
+  <g fill="none" stroke="#dac2a0" stroke-width="1.3" stroke-linecap="round">
+   <!-- Each scroll is a short inset spiral; neither creates a second support. -->
+   <path d="M258 424 C254 417 249 418 249 422 C249 426 256 426 255 422 C254 420 252 422 253 423"/>
+   <path d="M270 424 C274 417 279 418 279 422 C279 426 272 426 273 422 C274 420 276 422 275 423"/>
+   <path d="M500 424 C496 417 491 418 491 422 C491 426 498 426 497 422 C496 420 494 422 495 423"/>
+   <path d="M512 424 C516 417 521 418 521 422 C521 426 514 426 515 422 C516 420 518 422 517 423"/>
+  </g>
+  <path d="M254 434 H274 M496 434 H516" stroke="#c1b396" stroke-width=".85" opacity=".68"/>
+ </g>
+ <!-- Compact TWO-STEP pedestal: no third spacer band. Each ledge is
+      approximately as tall as the original lowest base layer. -->
+ <path d="M241 683 H529 L534 708 H236 Z" fill="url(#stoneBase)" stroke="#c6ab89" stroke-width="1.8"/>
+ <path d="M236 708 H534 L543 736 H227 Z" fill="#52695b" stroke="#c6ad8c" stroke-width="1.9"/>
+ <path d="M241 685 H529 M236 709 H534 M228 734 H542" fill="none" stroke="#dbc19d" stroke-width="1" opacity=".85"/>
+ <path d="M244 704 H526 M235 731 H535" fill="none" stroke="#91aa94" stroke-width=".65" opacity=".45"/>
+ <text id="artistLabel" x="385" y="701" text-anchor="middle" font-family="Georgia,serif" font-size="12.1" fill="#ead9c1" letter-spacing=".55">ARTIST NAME</text>
+ <text id="pieceLabel" x="385" y="728" text-anchor="middle" font-family="Georgia,serif" font-size="12.4" fill="#e9d9c6" letter-spacing=".45">ARTWORK / PIECE TITLE</text>
+ <!-- The art window, rather than the arch or columns, is clickable. -->
+ <use id="artHitArea" href="#artOpening" fill="transparent" pointer-events="all" tabindex="0" role="button" aria-label="Open the artwork in full-view preview"/>
+</g>
+<g id="guideLayer" opacity=".85" pointer-events="none">
+ <path d="M385 62 V744" stroke="#95b5ad" stroke-dasharray="4 6" stroke-width=".8"/>
+ <path d="M221 230 H549 M244 252 H526 M227 736 H543" stroke="#cbad82" stroke-dasharray="4 5" stroke-width="1"/>
+ <text x="385" y="214" fill="#91ada1" font-size="10" text-anchor="middle">328 px · approved dome seating</text>
+ <text x="385" y="754" fill="#91ada1" font-size="10" text-anchor="middle">Single arch · one column per side</text>
+</g>
+</svg>
+<canvas id="skyCanvas" width="456" height="721" aria-hidden="true" style="position:absolute;pointer-events:none;z-index:4;visibility:hidden"></canvas>
+<div id="focusOverlay" class="focus-overlay" role="dialog" aria-modal="true" aria-label="Full artwork viewer after constellation reveal" aria-hidden="true">
+ <button id="focusClose" class="focus-close" type="button" aria-label="Close artwork preview">× Close</button>
+ <div class="focus-art-wrap" id="focusArtWrap"><img id="fullArtwork" alt="Full selected artwork" style="display:none"><div id="focusPlaceholder" class="focus-placeholder">Load an artwork to preview it at full aspect ratio.</div></div>
+ <div class="focus-info">FULL ARTWORK · ORIGINAL ASPECT RATIO · CLOSE TO REVERSE CONSTELLATIONS</div>
+</div></div>
+<div class="frame-footer"><span>282px original drum · fixed collar · three themes · 80% FHD scale</span><span id="panState">Select a local artwork to begin</span></div>
+</section><aside class="side">
+<section class="panel" id="themePanel"><h2>Archive themes</h2>
+<p>The same theme roles used by the desktop shell recolor the entire observatory—not just its surrounding background.</p>
+<label class="field" for="archiveTheme">Active theme
+<select id="archiveTheme">
+<option value="evening">☀ Evening · slate & wisteria</option>
+<option value="twilight" selected>✦ Twilight · moss & bronze</option>
+<option value="midnight">☾ Midnight · dark glass & silver</option>
+</select></label>
+<div class="theme-swatches" aria-hidden="true"><i id="swatchBackground"></i><i id="swatchPanel"></i><i id="swatchMetal"></i><i id="swatchEngraving"></i><i id="swatchText"></i></div>
+<div class="note-pending">Preview only: these match the Archive theme roles. No system theme or Quickshell setting is changed.</div>
+</section>
+<section class="panel"><h2>Whole-drum rotation</h2>
+<label class="check"><input id="showDome" type="checkbox" checked> Show approved dome & telescope</label>
+<label class="check"><input id="showGuides" type="checkbox"> Show construction guides</label>
+<label class="check"><input id="drumSpin" type="checkbox" checked> Rotate the complete upper drum</label>
+<div class="control"><div class="control-label"><label for="drumPeriod">One revolution</label><output id="drumPeriodValue">15 min</output></div><input id="drumPeriod" type="range" min="90" max="1800" step="30" value="900"></div>
+<label class="field" for="drumMode">Constellation movement study
+<select id="drumMode"><option value="slow" selected>One rotating drum · every marking travels together</option></select></label>
+<div class="controls"><button type="button" id="pause">Pause rotation</button><button type="button" id="resume">Resume rotation</button></div>
+<div class="control"><div class="control-label"><label for="scopeYaw">Telescope yaw</label><output id="scopeYawValue">+20°</output></div><input id="scopeYaw" type="range" min="-20" max="80" step=".5" value="20"></div>
+<div class="control"><div class="control-label"><label for="scopePitch">Telescope pitch</label><output id="scopePitchValue">33°</output></div><input id="scopePitch" type="range" min="20" max="51" step=".5" value="33"></div>
+<label class="check"><input id="scopeIdle" type="checkbox" checked> Slow idle search · 10 FPS + pauses</label>
+<div class="controls"><button id="scopeRest" type="button">Rest · 20° / 33°</button><button id="scopeFocus" type="button">Focus · 60° / 30°</button></div>
+<div class="facts"><dt>Columns</dt><dd>One left · one right</dd><dt>Arch</dt><dd>30px constant perpendicular width · shared inner cutout</dd><dt>Drum</dt><dd>Entire straight upper section</dd><dt>Visibility</dt><dd>Vanishing behind forward arch and artwork opening</dd><dt>Setting</dt><dd>Original 282px drum; short fixed collar below the 328px dome</dd><dt>Scale</dt><dd>80% on FHD · 262px dome</dd></div>
+</section>
+<section class="panel"><h2>Artwork and inscriptions</h2><p>The proven source-relative crop stays unchanged; panning now moves more gently and rests between views. At the opening, the image now dissolves toward a selectable theme color. Feather width controls how far the gradient reaches; strength controls how completely the image vanishes along the rim. Clicking the artwork or telescope initiates the full telescope and constellation sequence. Your files stay local.</p>
+<div class="control"><div class="control-label"><label for="panPeriod">Artwork drift · tempo</label><output id="panPeriodValue">45 s</output></div><input id="panPeriod" type="range" min="20" max="120" step="5" value="45"></div>
+<div class="control"><div class="control-label"><label for="cropFraction">Maximum source fraction visible</label><output id="cropFractionValue">60%</output></div><input id="cropFraction" type="range" min="40" max="80" step="1" value="60"></div>
+<div class="control"><div class="control-label"><label for="edgeSoftness">Crystal feather · width</label><output id="edgeSoftnessValue">15 px</output></div><input id="edgeSoftness" type="range" min="0" max="30" step="1" value="15"></div>
+<div class="control"><div class="control-label"><label for="edgeStrength">Crystal feather · strength</label><output id="edgeStrengthValue">82%</output></div><input id="edgeStrength" type="range" min="0" max="100" step="1" value="82"></div>
+<label class="field" for="edgeTheme">Crystal edge · destination color
+<select id="edgeTheme" aria-label="Color the artwork dissolves into">
+<option value="fog" selected>Light mist grey</option>
+<option value="stone">Theme stone green</option>
+<option value="background">Theme background</option>
+</select></label>
+<div class="controls"><button id="panPause" type="button">Pause artwork pan</button><button id="panResume" type="button">Resume artwork pan</button><button id="focusDemo" type="button">Open full artwork sequence</button></div>
+<label class="upload-label" for="artFile">Choose local artwork</label><input id="artFile" type="file" accept="image/*"/>
+<div class="controls"><button type="button" id="clearArt">Clear artwork</button><button type="button" id="copyNotes">Copy geometry notes</button></div>
+<label class="field">Artist inscription<input type="text" id="artistText" value="ARTIST NAME" maxlength="55"/></label>
+<label class="field">Artwork title<input type="text" id="pieceText" value="ARTWORK / PIECE TITLE" maxlength="55"/></label>
+</section>
+<section class="panel"><h2>Arch & column detailing</h2><p>The continuous 30px arch carries a centered, mirrored ASCII pattern with fine calibration marks. The two single columns use restrained Ionic scrolls at their capitals, with subtle vertical shaft flutes. The drum continues rotating behind the foreground arch.</p><div class="facts"><dt>Style</dt><dd>Restrained Ionic</dd><dt>Engraving</dt><dd>Monospaced ASCII · centered on the arch spine</dd><dt>Arch thickness</dt><dd>30px · unchanged</dd><dt>Columns</dt><dd>Exactly one per side</dd></div></section>
+<section class="panel"><h2>Base proportions</h2><div class="facts"><dt>Inscriptions</dt><dd>Artist · artwork title</dd><dt>Band heights</dt><dd>25 px · 28 px</dd><dt>Total height</dt><dd>53 px (was 107 px)</dd><dt>Base width</dt><dd>316 px (was 366 px)</dd></div><p>The third transitional block has been removed; both bands now sit directly beneath the columns. The inscription fields remain editable.</p></section>
+<section class="panel"><h2>Artwork opening and closing</h2><p>Click the artwork, dome, or telescope to interrupt the idle search. The scope moves to <b>60° yaw / 30° pitch</b>, its lens twinkles, and 1px star colonies spread into a constellation sky before the full artwork appears. Close the artwork to retract the star field, return the telescope to <b>20° / 33°</b>, and resume its search and artwork pan.</p><p class="note-pending">The night-sky colonies expand over the entire browser viewport, not just the Gallery frame, and the final artwork remains contained inside an aspect-ratio-aware border. Built-in constellations are illustrative only; source-accurate mapping remains deferred.</p><div class="control"><div class="control-label"><label for="skyDuration">Constellation reveal duration</label><output id="skyDurationValue">2500 ms</output></div><input id="skyDuration" type="range" min="1000" max="6500" step="250" value="2500"></div><p id="sequenceStatus" role="status">Ready · click artwork or scope</p></section>
+<section class="panel"><h2>The music-box mechanism</h2><p>Compare two approaches: a 12-minute revolution of the constellation-bearing upper drum, or a still upper drum with two illustrative constellation patterns placed left and right. The architectural trim and bearings remain fixed.</p><p>The broad arch is drawn <em>in front</em> of the cylinder and obscures some of the stars, so the disappearing constellations are a real layer-order effect rather than an artificial fade.</p><p>The arch uses a mathematically constant-width centerline offset, and the artwork aperture uses that same inner contour; there is no independently drawn curve to create a sliver. The original 282px drum is unchanged; only the short non-rotating collar meets the 328px dome.</p><p>Star arrangements are illustrative placeholders; verified astronomical mappings can replace them later.</p></section>
+</aside></div></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id),svg=$('towerSvg');
+
+// APPROVED 3-D DOME MODEL, embedded at its original 770×480 projection.
+// Tower coordinate offset is handled by foreignObject y=-120, not by editing geometry.
+function createDomeEngine(){
+ const canvas=$('domeCanvas');
+ const gl=canvas.getContext('webgl',{antialias:true,depth:true,alpha:true,premultipliedAlpha:false})||canvas.getContext('experimental-webgl',{alpha:true});
+ const ctx2d=!gl?canvas.getContext('2d',{alpha:true}):null;
+const DEG=Math.PI/180, R=164, HALF_CUT=20, HLOW=350-315.6, HHIGH=350-194.2;
+const PIVOT=[0,20,0];
+let colors={};
+const add3=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const mul3=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
+const dot3=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const norm3=a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l)};
+const lerp3=(a,b,t)=>a.map((v,i)=>v*(1-t)+b[i]*t);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const signed=n=>(n>=0?'+':'')+n.toFixed(1);
+function angleAwareFade(yaw,pitch,baseFade){
+ const a=yaw*DEG,p=pitch*DEG;
+ const screenProjection=Math.hypot(Math.cos(p)*Math.cos(a),Math.sin(p));
+ const boost=clamp((screenProjection-0.56)/0.44,0,1);
+ // Slider determines maximum darkness at the root. Angle awareness changes how
+ // far toward the first collar that darkness extends, rather than silently
+ // reducing a user-selected 100% fade at the clicked pose.
+ const effective=baseFade;
+ const falloffExponent=1.2+3.0*boost;
+ return {boost,effective,falloffExponent};
+}
+function makeMesh(){return []}
+function vert(out,p,n,c){out.push(p[0],p[1],p[2],n[0],n[1],n[2],c[0],c[1],c[2]);}
+function tri(out,a,b,c,na,nb,nc,color){vert(out,a,na,color);vert(out,b,nb,color);vert(out,c,nc,color)}
+function quad(out,a,b,c,d,na,nb,nc,nd,color){tri(out,a,b,c,na,nb,nc,color);tri(out,a,c,d,na,nc,nd,color)}
+function quadColors(out,a,b,c,d,na,nb,nc,nd,ca,cb,cc,cd){vert(out,a,na,ca);vert(out,b,nb,cb);vert(out,c,nc,cc);vert(out,a,na,ca);vert(out,c,nc,cc);vert(out,d,nd,cd)}
+function flatQuad(out,a,b,c,d,color,normal=[0,0,1]){quad(out,a,b,c,d,normal,normal,normal,normal,color)}
+function spherePoint(y,theta){const r=Math.sqrt(Math.max(0,R*R-y*y));return [r*Math.cos(theta),y,r*Math.sin(theta)]}
+function sphereNormal(p){return [p[0]/R,p[1]/R,p[2]/R]}
+function subdivisions(a,b,step=3){const n=Math.max(1,Math.ceil((b-a)/step));return Array.from({length:n+1},(_,i)=>a+(b-a)*i/n)}
+function valuesWithBoundaries(start,end,step,bounds){return [...new Set([...subdivisions(start,end,step),...bounds.filter(x=>x>start&&x<end)])].sort((a,b)=>a-b)}
+function domeMesh(yaw){
+ const out=makeMesh();
+ const low=(yaw-HALF_CUT)*DEG,high=(yaw+HALF_CUT)*DEG;
+ const yy=valuesWithBoundaries(0,R,3.4,[HLOW,HHIGH]);
+ const aa=valuesWithBoundaries(0,Math.PI,2*DEG,[low,high]);
+ for(let yi=0;yi<yy.length-1;yi++){
+  const y0=yy[yi],y1=yy[yi+1],inBand=(y0+y1)/2>HLOW && (y0+y1)/2<HHIGH;
+  for(let i=0;i<aa.length-1;i++){
+   const a0=aa[i],a1=aa[i+1],mid=(a0+a1)/2;
+   if(inBand&&mid>low&&mid<high)continue;
+   const v0=spherePoint(y0,a0),v1=spherePoint(y0,a1),v2=spherePoint(y1,a1),v3=spherePoint(y1,a0);
+   quad(out,v0,v1,v2,v3,...[v0,v1,v2,v3].map(sphereNormal),colors.dome);
+  }
+ }
+ return out;
+}
+function lineSegment(out,a,b,width,color){
+ // Screen-facing thin 3D ribbon. Camera looks down the +Z axis.
+ const dx=b[0]-a[0],dy=b[1]-a[1],ll=Math.hypot(dx,dy);
+ if(ll<.0001)return;
+ const wx=-dy/ll*width/2,wy=dx/ll*width/2;
+ const za=a[2]+1.25,zb=b[2]+1.25;
+ flatQuad(out,[a[0]+wx,a[1]+wy,za],[b[0]+wx,b[1]+wy,zb],[b[0]-wx,b[1]-wy,zb],[a[0]-wx,a[1]-wy,za],color);
+}
+function strokedPath(out,points,width,color){for(let i=0;i<points.length-1;i++)lineSegment(out,points[i],points[i+1],width,color)}
+function outlineMesh(yaw){
+ const out=makeMesh(),lo=(yaw-HALF_CUT)*DEG,hi=(yaw+HALF_CUT)*DEG;
+ // Exterior silhouette: the right limb is absent only where the visible slit actually occupies the front edge.
+ for(const yvals of [subdivisions(0,R,2)]){
+  for(let i=0;i<yvals.length-1;i++){
+   const y0=yvals[i],y1=yvals[i+1],m=(y0+y1)/2;
+   lineSegment(out,spherePoint(y0,Math.PI),spherePoint(y1,Math.PI),1.75,colors.collar);
+   // A side silhouette is interrupted only if the cut actually crosses the near-side horizon.
+   const intersectsHorizon = lo < 0 && hi > 0;
+   if(!(m>HLOW&&m<HHIGH&&intersectsHorizon))
+    lineSegment(out,spherePoint(y0,0),spherePoint(y1,0),1.75,colors.collar);
+  }
+ }
+ // Keep both meridian traces visible through the 0°–20° crossover.
+ for(const a of [lo,hi])if(a>-HALF_CUT*DEG&&a<Math.PI){
+   strokedPath(out,subdivisions(HLOW,HHIGH,1.6).map(y=>spherePoint(y,a)),2,colors.light);
+ }
+ const a0=Math.max(lo,-HALF_CUT*DEG),a1=Math.min(hi,Math.PI);
+ if(a1>a0){
+  for(const h of [HLOW,HHIGH])strokedPath(out,subdivisions(a0,a1,1.25*DEG).map(a=>spherePoint(h,a)),2,colors.light);
+ }
+ return out;
+}
+function domeDetailMesh(yaw){
+ const out=makeMesh(),rot=yaw*DEG,slitLo=rot-HALF_CUT*DEG,slitHi=rot+HALF_CUT*DEG;
+ // Relink engravings to the active theme rather than hard-coded green.
+ const seam=lerp3(colors.dome,colors.light,.40),cross=lerp3(colors.dome,colors.light,.24);
+ const visible=(theta,height)=>theta>.045&&theta<Math.PI-.045&&
+   !(height>=HLOW&&height<=HHIGH&&theta>=slitLo&&theta<=slitHi);
+ // One pair is fixed on the shell; another pair rides close to the slit so the
+ // engravings still feel present beside the opening instead of disappearing.
+ const guideAngles=[1.80,2.43,slitLo-.20,slitHi+.20];
+ for(const theta of guideAngles){
+  if(theta<=.055||theta>=Math.PI-.055)continue;
+  const yy=subdivisions(7,151,2.4);
+  for(let i=0;i<yy.length-1;i++){
+   const a=yy[i],b=yy[i+1];if(!visible(theta,(a+b)/2))continue;
+   lineSegment(out,spherePoint(a,theta),spherePoint(b,theta),.9,seam);
+  }
+ }
+ // Shallow circumferential marks follow the hemisphere rather than an overlay.
+ for(const height of [47,111]){
+  const tt=subdivisions(.08,Math.PI-.08,1.7*DEG);
+  for(let i=0;i<tt.length-1;i++){
+   const a=tt[i],b=tt[i+1];if(!visible((a+b)/2,height))continue;
+   lineSegment(out,spherePoint(height,a),spherePoint(height,b),.78,cross);
+  }
+ }
+ return out;
+}
+function scopeBasis(yaw,pitch){
+ const a=yaw*DEG,p=pitch*DEG,ca=Math.cos(a),sa=Math.sin(a),cp=Math.cos(p),sp=Math.sin(p);
+ const d=[cp*ca,sp,cp*sa],b1=[-sa,0,ca],b2=[-sp*ca,cp,-sp*sa];
+ return {d,b1,b2};
+}
+function tubePoint(b,t,r,phi){return add3(add3(PIVOT,mul3(b.d,t)),add3(mul3(b.b1,Math.cos(phi)*r),mul3(b.b2,Math.sin(phi)*r)))}
+function tubeNormal(b,phi){return norm3(add3(mul3(b.b1,Math.cos(phi)),mul3(b.b2,Math.sin(phi))))}
+function tubeSurface(out,b,t0,t1,r0,r1,color,steps=72){
+ for(let i=0;i<steps;i++){
+  const a=i*2*Math.PI/steps,z=(i+1)*2*Math.PI/steps;
+  const p0=tubePoint(b,t0,r0,a),p1=tubePoint(b,t0,r0,z),p2=tubePoint(b,t1,r1,z),p3=tubePoint(b,t1,r1,a);
+  quad(out,p0,p1,p2,p3,tubeNormal(b,a),tubeNormal(b,z),tubeNormal(b,z),tubeNormal(b,a),color);
+ }
+}
+function tubeSurfaceGradient(out,b,t0,t1,r0,r1,colorAt,longSteps=18,radialSteps=72){
+ for(let s=0;s<longSteps;s++){
+  const u0=s/longSteps,u1=(s+1)/longSteps;
+  const ta=t0+(t1-t0)*u0,tb=t0+(t1-t0)*u1;
+  const ra=r0+(r1-r0)*u0,rb=r0+(r1-r0)*u1;
+  const c0=colorAt(u0),c1=colorAt(u1);
+  for(let i=0;i<radialSteps;i++){
+   const a=i*2*Math.PI/radialSteps,z=(i+1)*2*Math.PI/radialSteps;
+   const p0=tubePoint(b,ta,ra,a),p1=tubePoint(b,ta,ra,z),p2=tubePoint(b,tb,rb,z),p3=tubePoint(b,tb,rb,a);
+   quadColors(out,p0,p1,p2,p3,tubeNormal(b,a),tubeNormal(b,z),tubeNormal(b,z),tubeNormal(b,a),c0,c0,c1,c1);
+  }
+ }
+}
+function torusLine(out,b,t0,rMajor,rMinor,color){
+ const N=72,M=8;
+ const point=(phi,psi)=>tubePoint(b,t0+rMinor*Math.sin(psi),rMajor+rMinor*Math.cos(psi),phi);
+ const normal=(phi,psi)=>norm3(add3(mul3(tubeNormal(b,phi),Math.cos(psi)),mul3(b.d,Math.sin(psi))));
+ for(let i=0;i<N;i++)for(let j=0;j<M;j++){
+  const a=i*2*Math.PI/N,z=(i+1)*2*Math.PI/N,p=j*2*Math.PI/M,q=(j+1)*2*Math.PI/M;
+  quad(out,point(a,p),point(z,p),point(z,q),point(a,q),normal(a,p),normal(z,p),normal(z,q),normal(a,q),color);
+ }
+}
+function lensDisk(out,b,t,r,color,centerColor){
+ // Opaque disk perpendicular to the tube; no alpha blending.
+ const c=add3(PIVOT,mul3(b.d,t)),n=b.d,N=96;
+ for(let i=0;i<N;i++){
+  const p=tubePoint(b,t,r,i*2*Math.PI/N),q=tubePoint(b,t,r,(i+1)*2*Math.PI/N);
+  vert(out,c,n,centerColor);vert(out,p,n,color);vert(out,q,n,color);
+ }
+}
+function scopeMesh(yaw,pitch,fadeAmount){
+ const out=makeMesh(),b=scopeBasis(yaw,pitch);
+ const fadeInfo=angleAwareFade(yaw,pitch,fadeAmount);
+ const rearColorAt=u=>{
+  const shaped=fadeInfo.effective*(1-Math.pow(u,fadeInfo.falloffExponent));
+  return lerp3(colors.dark,colors.rear,1-shaped);
+ };
+ tubeSurfaceGradient(out,b,0,169,13,15.3,rearColorAt,24,72);
+ tubeSurface(out,b,162,203,16.5,18.7,colors.middle);
+ tubeSurface(out,b,196,246,20,23,colors.front);
+ // Narrow raised rings are real cylindrical bands. No transverse filled ellipses.
+ const collars=[[162,167,18.3],[197,202,21.3],[243.5,247,24.7]];
+ for(const [t0,t1,r] of collars){
+  tubeSurface(out,b,t0,t1,r,r,colors.collar);
+  torusLine(out,b,t0+.35,r+.05,.75,colors.light);
+  torusLine(out,b,t1-.35,r+.05,.65,colors.light);
+ }
+ // The front-facing lens is a separate, opaque surface. No rear face is drawn.
+ if(b.d[2]>0.001){
+  lensDisk(out,b,248.1,24.5,colors.collar,colors.collar);
+  lensDisk(out,b,248.4,20.2,colors.glass,colors.glassCenter);
+  torusLine(out,b,248.45,20.8,.58,colors.light);
+ }
+ return out;
+}
+
+ let program=null,buffer=null,ready=false;
+ function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
+ function setup(){
+  if(!gl){ready=true;return;}
+  const vs=`attribute vec3 aPosition;attribute vec3 aNormal;attribute vec3 aColor;varying vec3 vNormal;varying vec3 vColor;void main(){gl_Position=vec4((aPosition.x)/385.0,(aPosition.y-110.0)/240.0,-aPosition.z/350.0,1.0);vNormal=aNormal;vColor=aColor;}`;
+  const fs=`precision mediump float;varying vec3 vNormal;varying vec3 vColor;void main(){vec3 n=normalize(vNormal);float light=0.87+0.13*max(dot(n,normalize(vec3(-.25,.65,1.0))),0.0);gl_FragColor=vec4(vColor*light,1.0);}`;
+  program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);
+  if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
+  gl.useProgram(program);buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+  for(const [name,off] of [['aPosition',0],['aNormal',12],['aColor',24]]){
+   const at=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(at);gl.vertexAttribPointer(at,3,gl.FLOAT,false,36,off);
+  }
+  gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.disable(gl.CULL_FACE);
+  gl.clearColor(0,0,0,0);ready=true;
+ }
+ function drawMesh(mesh){if(!mesh.length)return;gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(mesh),gl.DYNAMIC_DRAW);gl.drawArrays(gl.TRIANGLES,0,mesh.length/9)}
+ let depthBuffer=null;
+ function softwareDraw(mesh,image){
+  const arr=image.data,dep=depthBuffer,W=canvas.width,H=canvas.height;
+  for(let k=0;k<mesh.length;k+=27){
+   const ax=mesh[k]+385,ay=350-mesh[k+1],az=mesh[k+2];
+   const bx=mesh[k+9]+385,by=350-mesh[k+10],bz=mesh[k+11];
+   const cx=mesh[k+18]+385,cy=350-mesh[k+19],cz=mesh[k+20];
+   const denom=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+   if(Math.abs(denom)<.00002)continue;
+   const xmin=Math.max(0,Math.floor(Math.min(ax,bx,cx))),xmax=Math.min(W-1,Math.ceil(Math.max(ax,bx,cx)));
+   const ymin=Math.max(0,Math.floor(Math.min(ay,by,cy))),ymax=Math.min(H-1,Math.ceil(Math.max(ay,by,cy)));
+   const inv=1/denom;
+   const nx=(mesh[k+3]+mesh[k+12]+mesh[k+21])/3,ny=(mesh[k+4]+mesh[k+13]+mesh[k+22])/3,nz=(mesh[k+5]+mesh[k+14]+mesh[k+23])/3;
+   const light=.87+.13*Math.max(0,(-.25*nx+.65*ny+nz)/Math.max(1e-6,Math.hypot(nx,ny,nz)*1.221));
+   for(let y=ymin;y<=ymax;y++)for(let x=xmin;x<=xmax;x++){
+    const px=x+.5,py=y+.5;
+    const a=((by-cy)*(px-cx)+(cx-bx)*(py-cy))*inv;if(a<-.0003)continue;
+    const b=((cy-ay)*(px-cx)+(ax-cx)*(py-cy))*inv;if(b<-.0003)continue;
+    const c=1-a-b;if(c<-.0003)continue;
+    const z=a*az+b*bz+c*cz,idx=y*W+x;
+    if(z<=dep[idx])continue;dep[idx]=z;
+    const off=idx*4;for(let q=0;q<3;q++)arr[off+q]=Math.min(255,Math.round(255*light*(a*mesh[k+6+q]+b*mesh[k+15+q]+c*mesh[k+24+q])));
+    arr[off+3]=255;
+   }
+  }
+ }
+ function drawSoftware(parts){
+  depthBuffer=new Float32Array(canvas.width*canvas.height);depthBuffer.fill(-99999);
+  const img=ctx2d.createImageData(canvas.width,canvas.height);
+  for(const part of parts)softwareDraw(part,img);
+  ctx2d.putImageData(img,0,0);
+ }
+ let yaw=20,pitch=33;
+ function setColors(p){
+  const rgb=s=>[0,2,4].map(i=>parseInt(s.slice(i+1,i+3),16)/255);
+  const mix=(a,b,t)=>a.map((v,i)=>v*(1-t)+b[i]*t);
+  const back=rgb(p.background),panel=rgb(p.panel),metal=rgb(p.metal),ink=rgb(p.text),soft=rgb(p.engraving);
+  colors={dome:mix(panel,soft,.24),rear:mix(metal,back,.45),middle:mix(metal,panel,.23),front:mix(metal,ink,.26),collar:mix(metal,ink,.36),light:mix(ink,metal,.15),glass:mix(soft,ink,.15),glassCenter:mix(soft,ink,.60),dark:mix(panel,back,.70)};
+  draw();
+ }
+ function draw(){
+  if(!ready)return;
+  const parts=[domeMesh(yaw),domeDetailMesh(yaw),scopeMesh(yaw,pitch,1),outlineMesh(yaw)];
+  if(gl){gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);for(const part of parts)drawMesh(part);}
+  else drawSoftware(parts);
+ }
+ let currentAnimation=null,last=0,holdTimer=null,searchEnabled=false;
+ function cancel(){if(currentAnimation)cancelAnimationFrame(currentAnimation);currentAnimation=null;if(holdTimer)clearTimeout(holdTimer);holdTimer=null;}
+ function updatePose(a,b,render=true){yaw=a;pitch=b;$('scopeYaw').value=a;$('scopePitch').value=b;$('scopeYawValue').textContent=(a>=0?'+':'')+a.toFixed(1)+'°';$('scopePitchValue').textContent=b.toFixed(1)+'°';if(render)draw();}
+ function moveTo(y,p,duration=1450,done=()=>{}){
+  cancel();const fromY=yaw,fromP=pitch,begin=performance.now();
+  function step(t){const u=Math.min(1,(t-begin)/duration),e=u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+   updatePose(fromY+(y-fromY)*e,fromP+(p-fromP)*e);if(u<1)currentAnimation=requestAnimationFrame(step);else{currentAnimation=null;done();}}
+  currentAnimation=requestAnimationFrame(step);
+ }
+ const stops=[[-12,30],[29,44],[-18,38],[19,26],[30,35],[20,33]];let index=0;
+ function searchNext(){
+  if(!searchEnabled||document.hidden)return;
+  const target=stops[index++%stops.length],fromY=yaw,fromP=pitch,duration=21000;
+  const begin=performance.now();last=-Infinity;
+  function step(t){if(!searchEnabled)return;
+   if(t-last>=98){const u=Math.min(1,(t-begin)/duration),e=u<.5?2*u*u:1-2*(1-u)*(1-u);
+    updatePose(fromY+(target[0]-fromY)*e,fromP+(target[1]-fromP)*e);last=t;
+    if(u>=1){currentAnimation=null;holdTimer=setTimeout(searchNext,5000);return;}}
+   currentAnimation=requestAnimationFrame(step);
+  }
+  currentAnimation=requestAnimationFrame(step);
+ }
+ function setSearch(active){searchEnabled=active;cancel();if(active)searchNext();}
+ setup();
+ return {setColors,draw,moveTo,updatePose,setSearch,cancel,getPose:()=>({yaw,pitch})};
+}
+
+
+// The band is an exact NORMAL OFFSET of one SVG curve. The same inner offset
+// generates the clickable artwork aperture, guaranteeing the contours agree.
+const SPINE=$('archSpine'),HALF_BAND=15,SAMPLES=140,BOTTOM=679;
+let imageViewport={left:279,top:336,right:491,bottom:BOTTOM};
+function samplesAtOffset(amount){
+ const total=SPINE.getTotalLength(),list=[];
+ for(let i=0;i<=SAMPLES;i++){
+  const dist=total*i/SAMPLES,p=SPINE.getPointAtLength(dist);
+  const a=SPINE.getPointAtLength(Math.max(0,dist-.12));
+  const b=SPINE.getPointAtLength(Math.min(total,dist+.12));
+  let dx=b.x-a.x,dy=b.y-a.y;
+  const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
+  // Inward = clockwise normal for this left-to-right arc.
+  list.push({x:p.x-dy*amount,y:p.y+dx*amount});
+ }
+ return list;
+}
+const round=x=>Number(x.toFixed(3));
+function trace(points){return 'M '+points.map(p=>round(p.x)+' '+round(p.y)).join(' L ')}
+function buildArch(){
+ const outer=samplesAtOffset(-HALF_BAND),inner=samplesAtOffset(HALF_BAND);
+ const band=trace(outer)+' L '+inner.slice().reverse().map(p=>round(p.x)+' '+round(p.y)).join(' L ')+' Z';
+ $('archBand').setAttribute('d',band);
+ $('archOuterTrim').setAttribute('d',trace(samplesAtOffset(-HALF_BAND+5)));
+ $('archInnerTrim').setAttribute('d',trace(samplesAtOffset(HALF_BAND-5)));
+ const L=inner[0],R=inner[inner.length-1];
+ const aperture=`M ${round(L.x)} ${BOTTOM} L ${round(L.x)} ${round(L.y)} L `+inner.slice(1).map(p=>round(p.x)+' '+round(p.y)).join(' L ')+` L ${round(R.x)} ${BOTTOM} Z`;
+ $('artOpening').setAttribute('d',aperture);
+ imageViewport={left:Math.min(L.x,R.x),top:Math.min(...inner.map(p=>p.y)),right:Math.max(L.x,R.x),bottom:BOTTOM};
+}
+buildArch();
+// The tiny radial stamps are sampled at equal DISTANCES along the arch,
+// rather than placed in XY space, preserving rhythm over the crown.
+function buildArchStamps(){
+ const ns='http://www.w3.org/2000/svg',root=$('archStamps');
+ const total=SPINE.getTotalLength();
+ for(const portion of [.08,.22,.78,.92]){
+  const p=SPINE.getPointAtLength(total*portion);
+  const a=SPINE.getPointAtLength(Math.max(0,total*portion-.8));
+  const b=SPINE.getPointAtLength(Math.min(total,total*portion+.8));
+  const rotation=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+  const mark=document.createElementNS(ns,'path');
+  mark.setAttribute('d','M -3 0 H3 M0 -3 V3');
+  mark.setAttribute('transform',`translate(${round(p.x)} ${round(p.y)}) rotate(${round(rotation)})`);
+  mark.setAttribute('stroke','#d9c29b');mark.setAttribute('stroke-width','.65');
+  mark.setAttribute('opacity','.55');mark.setAttribute('fill','none');
+  root.appendChild(mark);
+ }
+}
+buildArchStamps();
+// Preserve the original approved telescope geometry; its neutral shadow is
+// recolored by the same role palette that recolors the SVG tower.
+const domeEngine=createDomeEngine();
+function manualScope(){domeEngine.setSearch(false);$('scopeIdle').checked=false;domeEngine.updatePose(Number($('scopeYaw').value),Number($('scopePitch').value));}
+for(const id of ['scopeYaw','scopePitch'])$(id).addEventListener('input',manualScope);
+$('scopeIdle').addEventListener('change',e=>domeEngine.setSearch(e.target.checked));
+$('scopeRest').addEventListener('click',()=>{domeEngine.setSearch(false);$('scopeIdle').checked=false;$('domeMusic').classList.remove('focused');domeEngine.moveTo(20,33);});
+$('scopeFocus').addEventListener('click',()=>openFocus());
+
+
+$('showDome').addEventListener('change',e=>{
+ svg.classList.toggle('hide-dome',!e.target.checked);
+ svg.setAttribute('viewBox',e.target.checked?'157 50 456 721':'157 211 456 560');
+ $('viewLabel').textContent=e.target.checked?'Integrated dome + tower':'Tower only · dome hidden';
+});
+$('showGuides').addEventListener('change',e=>svg.classList.toggle('hide-guides',!e.target.checked));
+let ritualIntroTimer=0,ritualTurnTimer=0,ritualReturnTimer=0;
+function clearRitualTimers(){clearTimeout(ritualIntroTimer);clearTimeout(ritualTurnTimer);clearTimeout(ritualReturnTimer);ritualIntroTimer=ritualTurnTimer=ritualReturnTimer=0;}
+function setRunning(on){
+ $('drumSpin').checked=on;
+ const mode=$('drumMode').value;
+ svg.classList.toggle('drum-paused',!on || mode==='pair' || (mode==='ritual' && !$('drumBelt').classList.contains('ritual-active')));
+}
+function startRitualCycle(){
+ clearRitualTimers();
+ const belt=$('drumBelt'),stat=$('staticConstellations');
+ if($('drumMode').value!=='ritual')return;
+ belt.style.display=''; stat.style.display='';
+ belt.classList.add('ghosted'); stat.classList.remove('ghosted'); belt.classList.remove('ritual-active');
+ svg.classList.add('drum-paused');
+ ritualIntroTimer=setTimeout(()=>{
+   if($('drumMode').value!=='ritual')return;
+   belt.classList.remove('ghosted'); stat.classList.add('ghosted'); belt.classList.add('ritual-active');
+   belt.style.animationDuration='150s';
+   svg.classList.remove('drum-paused');
+   ritualTurnTimer=setTimeout(()=>{
+     if($('drumMode').value!=='ritual')return;
+     belt.classList.add('ghosted'); stat.classList.remove('ghosted'); belt.classList.remove('ritual-active');
+     svg.classList.add('drum-paused');
+     belt.style.animationDuration=$('drumPeriod').value+'s';
+     ritualReturnTimer=setTimeout(startRitualCycle,52000);
+   },8000);
+ },18000);
+}
+function setDrumMode(mode){
+ clearRitualTimers();
+ const belt=$('drumBelt'),stat=$('staticConstellations');
+ belt.classList.remove('ritual-active','ghosted');
+ stat.classList.remove('ghosted');
+ const stationary=mode==='pair';
+ const ritual=mode==='ritual';
+ belt.style.display=(stationary?'none':'');
+ stat.style.display=((stationary||ritual)?'':'none');
+ $('drumSpin').disabled=stationary||ritual;
+ $('pause').disabled=stationary||ritual;$('resume').disabled=stationary||ritual;
+ if(ritual){startRitualCycle();return;}
+ belt.style.animationDuration=$('drumPeriod').value+'s';
+ setRunning($('drumSpin').checked);
+}
+$('drumMode').addEventListener('change',e=>setDrumMode(e.target.value));
+$('drumSpin').addEventListener('change',e=>setRunning(e.target.checked));
+$('pause').addEventListener('click',()=>setRunning(false));
+$('resume').addEventListener('click',()=>setRunning(true));
+$('drumPeriod').addEventListener('input',e=>{
+ $('drumBelt').style.animationDuration=e.target.value+'s';
+ $('drumPeriodValue').textContent=(Number(e.target.value)/60).toFixed(Number(e.target.value)%60===0?0:1)+' min';
+});
+
+// Each source image is scaled so that AT MOST cropFraction% of its intrinsic
+// width AND height can appear inside the window at once. This is stronger than
+// a fixed 1.26x zoom; portrait art has travel space in both axes.
+let artworkURL=null,artworkName='',imgNatural=null,panBox=null;
+let panActive=true,focusOpen=false,panRaf=0,panHoldTimer=0,panLastTime=null,panPhase=0,panClock=0;
+let panAt={u:.5,v:.5};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const roundTo=(x,n=3)=>Number(x.toFixed(n));
+function driftAt(phase){
+ // Preserve the approved continuous Lissajous-like trajectory. A separate
+ // smooth time mapping introduces unobtrusive rests at selected details.
+ const k=Math.PI*phase;
+ return {
+  u:clamp(.5+.34*Math.sin(k+.25)+.08*Math.sin(.57*k+1.2),.04,.96),
+  v:clamp(.5+.35*Math.sin(.78*k+1.47)+.07*Math.sin(1.31*k-.6),.04,.96)
+ };
+}
+function panTimeToPhase(clock){
+ // Advance .60 of the established spatial trajectory over the first 80% of
+ // each cycle; the remaining 20% is a true pause. Smoothstep derivatives
+ // approach zero at both ends, so pausing never causes a sudden stop.
+ const leg=Math.floor(clock),u=Math.min(1,Math.max(0,(clock-leg)/.80));
+ const eased=u*u*u*(u*(u*6-15)+10);
+ return (leg+eased)*.60;
+}
+function applyPan(){
+ if(!panBox)return;
+ const {left,top,right,bottom}=imageViewport;
+ const winW=right-left,winH=bottom-top;
+ const {width,height}=panBox;
+ const x=round(left-(width-winW)*panAt.u), y=round(top-(height-winH)*panAt.v);
+ for(const id of ['localArtwork','crystalArtwork']){
+  $(id).setAttribute('x',x);
+  $(id).setAttribute('y',y);
+ }
+}
+function setupArtSize(){
+ if(!imgNatural)return;
+ const winW=imageViewport.right-imageViewport.left;
+ const winH=imageViewport.bottom-imageViewport.top;
+ const fraction=Number($('cropFraction').value)/100;
+ const scale=Math.max(winW/(imgNatural.width*fraction),winH/(imgNatural.height*fraction));
+ panBox={width:imgNatural.width*scale,height:imgNatural.height*scale};
+ for(const id of ['localArtwork','crystalArtwork']){
+  $(id).setAttribute('width',round(panBox.width));
+  $(id).setAttribute('height',round(panBox.height));
+ }
+ panAt=driftAt(panPhase);
+ applyPan();
+ $('cropFractionValue').textContent=Math.round(100*fraction)+'%';
+}
+function updatePanStatus(){
+ $('panState').textContent=focusOpen?'Artwork focus / constellation sequence':!imgNatural?'Select a local artwork to begin':!panActive?'Artwork drift paused':'Artwork drifting slowly · with pauses';
+}
+function tickPan(t){
+ panRaf=0;
+ if(!imgNatural||!panActive||focusOpen||document.hidden){panLastTime=null;return;}
+ if(panLastTime===null)panLastTime=t;
+ const dt=Math.max(0,Math.min(150,t-panLastTime));panLastTime=t;
+ // Integrate phase, not elapsed/period, so moving the tempo slider does NOT
+ // teleport the image to a new place along the orbit.
+ panClock+=dt/(Number($('panPeriod').value)*1000);
+ panPhase=panTimeToPhase(panClock);
+ panAt=driftAt(panPhase);
+ // Light SVG attribute updates; full monitor/geometry rendering is untouched.
+ // requestAnimationFrame stays independent of the telescope's 10 FPS idle cap.
+ applyPan();
+ if((panClock%1)>=.80){
+  // During the artwork's contemplative pause there are no animation frames,
+  // and no scene geometry or DOM attributes are updated.
+  const remaining=(1-(panClock%1))*Number($('panPeriod').value)*1000;
+  panHoldTimer=setTimeout(()=>{
+   panHoldTimer=0;
+   panClock=Math.ceil(panClock-1e-9);panPhase=panTimeToPhase(panClock);
+   panAt=driftAt(panPhase);panLastTime=null;startPan();
+  },Math.max(10,remaining));
+  return;
+ }
+ panRaf=requestAnimationFrame(tickPan);
+}
+function startPan(){if(panRaf||!imgNatural||!panActive||focusOpen||document.hidden)return;panLastTime=null;panRaf=requestAnimationFrame(tickPan);updatePanStatus()}
+function stopPan(){if(panRaf)cancelAnimationFrame(panRaf);panRaf=0;panLastTime=null;updatePanStatus()}
+$('panPause').addEventListener('click',()=>{panActive=false;stopPan()});
+$('panResume').addEventListener('click',()=>{panActive=true;startPan()});
+$('panPeriod').addEventListener('input',()=>{$('panPeriodValue').textContent=$('panPeriod').value+' s'});
+$('cropFraction').addEventListener('input',setupArtSize);
+function updateCrystal(){
+ const width=Number($('edgeSoftness').value);
+ const strength=Number($('edgeStrength').value)/100;
+ // Higher exponent decreases alpha sharply at the rim while keeping the
+ // image fully opaque further inside. Width adjusts Gaussian spread ONLY.
+ $('artFeatherBlur').setAttribute('stdDeviation',Math.max(.01,width));
+ $('artFeatherCurve').setAttribute('exponent',(1+2.95*strength).toFixed(2));
+ $('artSolidLayer').setAttribute('opacity',(1-strength).toFixed(3));
+ $('artMaskedLayer').setAttribute('opacity',width===0?'0':'1');
+ if(width===0)$('artSolidLayer').setAttribute('opacity','1');
+ const p=ARCHIVE_THEMES[$('archiveTheme').value]||ARCHIVE_THEMES.twilight;
+ const dest={fog:toHex(hx(p.text).map((x,i)=>x*.47+hx(p.panel)[i]*.53)),stone:p.panel,background:p.background};
+ $('crystalEdgeField').setAttribute('fill',dest[$('edgeTheme').value] || dest.fog);
+ $('edgeSoftnessValue').textContent=width+' px';
+ $('edgeStrengthValue').textContent=Math.round(strength*100)+'%';
+}
+for(const id of ['edgeSoftness','edgeStrength','edgeTheme'])$(id).addEventListener('input',updateCrystal);
+document.addEventListener('visibilitychange',()=>document.hidden?stopPan():startPan());
+
+// Full focus choreography restored in v8; every stage is interruptible and
+// runs independently of the 10fps idle search. Art crop is never stretched.
+const skyCanvas=$('skyCanvas'),skyCtx=skyCanvas.getContext('2d',{alpha:true});
+// Move both elements out of the Gallery's clipped drawing into viewport layers.
+// At DPR=1, each colony is exactly one CSS pixel on FHD and smaller screens.
+document.body.appendChild(skyCanvas);
+document.body.appendChild($('focusOverlay'));
+let SKY_W=0,SKY_H=0;const SKY_BUCKETS=2048;
+const skyBase=document.createElement('canvas');const skyBaseCtx=skyBase.getContext('2d',{alpha:true});
+let skySrc=null,skyImage=null,skyOrder=null,skyStarts=null,skyPainted=0,skyProgress=0,skyReady=false;
+let scenePhase='ready',skyToken=0,skyRaf=0,skyTimer=0,focusRestoreDrum=true,focusRestoreIdle=true,focusLastTick=0;
+function phaseLabel(msg){scenePhase=msg;$('sequenceStatus').textContent=msg;}
+function layoutSky(){
+ const w=Math.max(320,Math.floor(window.innerWidth)),h=Math.max(240,Math.floor(window.innerHeight));
+ if(w===SKY_W&&h===SKY_H)return;
+ SKY_W=w;SKY_H=h;
+ skyCanvas.width=w;skyCanvas.height=h;skyBase.width=w;skyBase.height=h;
+ skyReady=false;
+}
+let skyResizeDelay=0;
+addEventListener('resize',()=>{clearTimeout(skyResizeDelay);skyResizeDelay=setTimeout(()=>{
+ const prevProgress=skyProgress;layoutSky();if(focusOpen){buildConstellationSky();paintSky(prevProgress);}
+},180)});
+function seeded(seed){let n=seed>>>0;return()=>{n=(n+0x6d2b79f5)|0;let z=Math.imul(n^(n>>>15),1|n);z^=z+Math.imul(z^(z>>>7),61|z);return((z^(z>>>14))>>>0)/4294967296;}}
+function buildConstellationSky(){
+ // Full viewport, not a stretched 456×721 rendering over just the tower.
+ // Allocation is deferred until opening so the idle desktop incurs no cost.
+ layoutSky();const W=SKY_W,H=SKY_H,c=skyBaseCtx,rand=seeded(20261117);
+ c.clearRect(0,0,W,H);
+ const grad=c.createLinearGradient(0,0,W,H);
+ grad.addColorStop(0,'#091c25');grad.addColorStop(.53,'#111b2e');grad.addColorStop(1,'#0a2429');
+ c.fillStyle=grad;c.fillRect(0,0,W,H);
+ for(const cloud of [
+  {x:.17,y:.28,r:.34,c:'95,82,140'},
+  {x:.81,y:.65,r:.33,c:'59,139,120'},
+  {x:.47,y:.79,r:.26,c:'123,96,120'},
+  {x:.64,y:.18,r:.23,c:'64,88,142'}
+ ]){
+  const cx=cloud.x*W,cy=cloud.y*H,rr=cloud.r*Math.max(W,H);
+  const f=c.createRadialGradient(cx,cy,0,cx,cy,rr);
+  f.addColorStop(0,`rgba(${cloud.c},.15)`);f.addColorStop(1,`rgba(${cloud.c},0)`);
+  c.fillStyle=f;c.fillRect(0,0,W,H);
+ }
+ const count=Math.min(3700,Math.round(W*H/650));
+ for(let i=0;i<count;i++){
+  const x=rand()*W,y=rand()*H;
+  c.fillStyle=`rgba(${rand()>.72?'236,213,187':'205,231,227'},${(.12+rand()*.5).toFixed(3)})`;
+  c.fillRect(x,y,rand()*1.3+.4,rand()*1.3+.4);
+ }
+ // Illustrative reference paths; source-accurate constellation mapping is later.
+ const factor=Math.min(W/456,H/721),figures=[
+  {name:'CASSIOPEIA',ox:.17*W,oy:.23*H,pts:[[0,0],[28,-20],[46,12],[73,-13],[99,7]]},
+  {name:'LYRA',ox:.69*W,oy:.21*H,pts:[[0,-25],[12,0],[35,2],[40,26],[15,23],[12,0]]},
+  {name:'CYGNUS',ox:.49*W,oy:.49*H,pts:[[-35,0],[0,1],[39,0],[11,-43],[0,1],[3,34]]},
+  {name:'ORION',ox:.19*W,oy:.76*H,pts:[[-27,-33],[26,-36],[0,-7],[14,7],[25,20],[33,49],[-32,37],[-5,8]]},
+  {name:'URSA MAJOR',ox:.76*W,oy:.77*H,pts:[[-55,-5],[-34,-15],[-16,-18],[4,-7],[22,-31],[46,-17],[39,14],[14,14],[4,-7]]}
+ ];
+ figures.forEach(g=>{
+  c.beginPath();g.pts.forEach((p,i)=>{const x=g.ox+p[0]*factor,y=g.oy+p[1]*factor;if(!i)c.moveTo(x,y);else c.lineTo(x,y)});
+  c.lineWidth=1;c.strokeStyle='#adcec5a9';c.stroke();
+  for(const p of g.pts){const x=g.ox+p[0]*factor,y=g.oy+p[1]*factor;c.fillStyle='#d6dfc5';c.beginPath();c.arc(x,y,2.2,0,Math.PI*2);c.fill()}
+  c.fillStyle='#afc9bd';c.textAlign='center';c.font='11px Georgia,serif';c.fillText(g.name,g.ox,g.oy+64*factor);
+ });
+ c.textAlign='center';c.fillStyle='#96a8b0';c.font='10px ui-monospace,monospace';
+ c.fillText('ILLUSTRATIVE SKY · SOURCE MAPPING DEFERRED',W/2,H-17);
+ const source=c.getImageData(0,0,W,H),pixelCount=W*H;
+ const counts=new Uint32Array(SKY_BUCKETS),bins=new Uint16Array(pixelCount);
+ const starts=figures.map(g=>({x:g.ox,y:g.oy,delay:.02+Math.hypot(g.ox-W*.73,g.oy-H*.18)/Math.hypot(W,H)*.20}));
+ const spread=Math.hypot(W,H)*.51;
+ for(let i=0;i<pixelCount;i++){
+  const x=i%W,y=(i/W)|0;let min=Infinity,closest=0;
+  for(let q=0;q<starts.length;q++){
+   const a=starts[q],dx=x-a.x,dy=y-a.y,dd=dx*dx+dy*dy;
+   if(dd<min){min=dd;closest=q}
+  }
+  const threshold=Math.max(0,Math.min(.999,starts[closest].delay+Math.sqrt(min)/spread*.73+(rand()-.5)*.055));
+  const bin=Math.min(SKY_BUCKETS-1,Math.floor(threshold*(SKY_BUCKETS-1)));
+  bins[i]=bin;counts[bin]++;
+ }
+ skyStarts=new Uint32Array(SKY_BUCKETS+1);
+ for(let i=0;i<SKY_BUCKETS;i++)skyStarts[i+1]=skyStarts[i]+counts[i];
+ const positions=skyStarts.slice(0,SKY_BUCKETS);skyOrder=new Uint32Array(pixelCount);
+ for(let i=0;i<pixelCount;i++){const bin=bins[i];skyOrder[positions[bin]++]=i;}
+ skySrc=source.data;skyImage=skyCtx.createImageData(W,H);
+ skyPainted=0;skyProgress=0;skyReady=true;
+}
+function paintSky(progress){
+ if(!skyImage)return;skyProgress=Math.max(0,Math.min(1,progress));
+ const bin=Math.min(SKY_BUCKETS-1,Math.floor(skyProgress*(SKY_BUCKETS-1)));
+ const target=skyProgress<=0?0:skyProgress>=1?skyOrder.length:skyStarts[bin+1],dst=skyImage.data;
+ if(target>skyPainted){for(let j=skyPainted;j<target;j++){const idx=skyOrder[j]*4;dst[idx]=skySrc[idx];dst[idx+1]=skySrc[idx+1];dst[idx+2]=skySrc[idx+2];dst[idx+3]=255;}}
+ else if(target<skyPainted){for(let j=target;j<skyPainted;j++){const idx=skyOrder[j]*4;dst[idx]=0;dst[idx+1]=0;dst[idx+2]=0;dst[idx+3]=0;}}
+ skyPainted=target;skyCtx.putImageData(skyImage,0,0);
+}
+function stopSky(){skyToken++;if(skyRaf)cancelAnimationFrame(skyRaf);if(skyTimer)clearTimeout(skyTimer);skyRaf=0;skyTimer=0;}
+function skyTween(dest,ms,done){
+ stopSky();const tkn=skyToken,from=skyProgress,begin=performance.now();skyCanvas.style.visibility='visible';layoutSky();
+ let lastPaint=-Infinity;
+ function frame(t){
+  if(tkn!==skyToken)return;
+  const u=Math.min(1,(t-begin)/ms);
+  if(t-lastPaint>=32||u>=1){const e=u*u*(3-2*u);paintSky(from+(dest-from)*e);lastPaint=t;}
+  if(u<1)skyRaf=requestAnimationFrame(frame);else{skyRaf=0;done?.();}
+ }
+ skyRaf=requestAnimationFrame(frame);
+}
+function flashLens(){
+ const glint=$('lensTwinkle'),pose=domeEngine.getPose(),DEG=Math.PI/180;
+ const x=385+248*Math.cos(pose.pitch*DEG)*Math.cos(pose.yaw*DEG);
+ const y=350-(20+248*Math.sin(pose.pitch*DEG));
+ glint.style.left=(x/770*100)+'%';glint.style.top=(y/480*100)+'%';
+ glint.classList.remove('bloom');void glint.offsetWidth;glint.classList.add('bloom');
+}
+function showFullArtwork(){if(!focusOpen)return;phaseLabel('Full artwork · click Close to return');$('focusOverlay').classList.add('visible');$('focusOverlay').setAttribute('aria-hidden','false');$('focusClose').focus()}
+function openFocus(){
+ if(focusOpen||scenePhase==='focusing'||scenePhase==='twinkling'||scenePhase==='revealing')return;
+ focusOpen=true;stopPan();stopSky();layoutSky();
+ if(!skyReady)buildConstellationSky();
+ paintSky(0);skyCanvas.style.visibility='hidden';
+ focusRestoreDrum=$('drumSpin').checked;focusRestoreIdle=$('scopeIdle').checked;
+ setRunning(false);domeEngine.setSearch(false);$('scopeIdle').checked=false;$('domeMusic').classList.add('focused');
+ if(artworkURL){$('fullArtwork').src=artworkURL;$('fullArtwork').style.display='';$('focusPlaceholder').style.display='none'}
+ else{$('fullArtwork').style.display='none';$('focusPlaceholder').style.display=''}
+ phaseLabel('Focusing telescope…');
+ domeEngine.moveTo(60,30,1450,()=>{
+  if(!focusOpen)return;phaseLabel('Lens twinkle…');flashLens();
+  const myToken=skyToken;skyTimer=setTimeout(()=>{if(!focusOpen||myToken!==skyToken)return;phaseLabel('Revealing constellations…');skyTween(1,Number($('skyDuration').value),showFullArtwork);},750);
+ });
+ updatePanStatus();
+}
+function closeFocus(){
+ if(!focusOpen)return;focusOpen=false;stopSky();
+ $('focusOverlay').classList.remove('visible');$('focusOverlay').setAttribute('aria-hidden','true');
+ $('lensTwinkle').classList.remove('bloom');
+ phaseLabel('Constellations receding…');const cur=skyProgress;
+ skyTimer=setTimeout(()=>{skyTimer=0;skyTween(0,Math.max(650,Number($('skyDuration').value)*(.45+.55*cur)),()=>{
+  skyCanvas.style.visibility='hidden';phaseLabel('Returning telescope…');
+  domeEngine.moveTo(20,33,1450,()=>{
+   $('domeMusic').classList.remove('focused');setRunning(focusRestoreDrum);
+   if(focusRestoreIdle){$('scopeIdle').checked=true;domeEngine.setSearch(true)}
+   phaseLabel('Ready · click artwork or scope');startPan();$('artHitArea').focus();updatePanStatus();
+  });
+ });},450);
+}
+$('artHitArea').addEventListener('click',openFocus);
+$('localArtwork').addEventListener('click',openFocus);
+$('emptyArtwork').addEventListener('click',openFocus);
+$('artHitArea').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openFocus()}});
+$('focusDemo').addEventListener('click',openFocus);
+$('focusClose').addEventListener('click',closeFocus);
+$('focusOverlay').addEventListener('click',e=>{if(e.target===$('focusOverlay'))closeFocus()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&focusOpen)closeFocus()});
+$('domeCanvas').addEventListener('click',e=>{
+ if(focusOpen || !$('showDome').checked)return;
+ const b=e.currentTarget.getBoundingClientRect(),x=(e.clientX-b.left)*770/b.width,y=(e.clientY-b.top)*480/b.height;
+ // Limit clicks to visible dome OR the projected three-stage telescope barrel.
+ // The barrel extends beyond the 164px dome and needs its own hit test.
+ const pose=domeEngine.getPose(),rad=Math.PI/180;
+ const endX=385+248*Math.cos(pose.pitch*rad)*Math.cos(pose.yaw*rad);
+ const endY=330-248*Math.sin(pose.pitch*rad);
+ const vx=endX-385,vy=endY-330;
+ const u=Math.max(0,Math.min(1,((x-385)*vx+(y-330)*vy)/Math.max(1,vx*vx+vy*vy)));
+ const barrelDist=Math.hypot(x-(385+u*vx),y-(330+u*vy));
+ if(((x-385)**2+(y-350)**2<=164*164 && y<=350)|| (u>.25&&barrelDist<27)){openFocus();}
+});
+$('skyDuration').addEventListener('input',e=>$('skyDurationValue').textContent=e.target.value+' ms');
+layoutSky();
+
+$('artFile').addEventListener('change',e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ const url=URL.createObjectURL(file),probe=new Image();
+ probe.onload=()=>{
+  stopPan();if(artworkURL)URL.revokeObjectURL(artworkURL);
+  artworkURL=url;artworkName=file.name;imgNatural={width:probe.naturalWidth,height:probe.naturalHeight};
+  for(const id of ['localArtwork','crystalArtwork']){
+   $(id).setAttribute('href',url);$(id).style.display='';
+  }
+  $('emptyArtwork').style.display='none';
+  $('fullArtwork').src=url;
+  panClock=0;panPhase=0;panAt=driftAt(panPhase);
+  setupArtSize();startPan();updatePanStatus();
+ };
+ probe.onerror=()=>{URL.revokeObjectURL(url);alert('This artwork could not be opened. Please choose a supported image file.')};
+ probe.src=url;
+});
+$('clearArt').addEventListener('click',()=>{
+ stopPan();if(artworkURL)URL.revokeObjectURL(artworkURL);
+ artworkURL=null;artworkName='';imgNatural=null;panBox=null;
+ $('artFile').value='';for(const id of ['localArtwork','crystalArtwork']){
+  $(id).removeAttribute('href');$(id).style.display='none';
+ }$('emptyArtwork').style.display='';
+ $('fullArtwork').removeAttribute('src');$('fullArtwork').style.display='none';$('focusPlaceholder').style.display='';updatePanStatus();
+});
+for(const [ctrl,target] of [['artistText','artistLabel'],['pieceText','pieceLabel']]){
+ $(ctrl).addEventListener('input',e=>$(target).textContent=e.target.value||' ');
+}
+$('copyNotes').addEventListener('click',()=>{
+ const notes={revision:'tower-integrated-11',geometry:{columns:2,arch:'uniform normal-offset width 30px, same shared inner artwork contour',domeDiameter:328,drum:'original 282px-wide full-height cylinder, rotating skin',setting:'short stationary 23px curved trim spanning original dome width, no widened drum',galleryScale:0.8,base:{sections:2,upperBandHeight:25,lowerBandHeight:28,width:316}},motion:{periodSeconds:Number($('drumPeriod').value),running:$('drumSpin').checked,mode:$('drumMode').value},artwork:{name:artworkName||null,autoPan:true,panTempoSeconds:Number($('panPeriod').value),autoPauses:true,paused:!panActive,maxVisibleSourceFraction:Number($('cropFraction').value)/100,edgeFeatherPx:Number($('edgeSoftness').value),edgeFeatherStrength:Number($('edgeStrength').value)/100,edgeDestination:$('edgeTheme').value,window:'clipped arch; intrinsic-ratio-preserving crop with guaranteed travel; continuous RAF drift; no user drag',click:'scope focus, lens-anchored twinkle, full-viewport 1px constellation reveal, contained artwork viewer, reverse on close'},viewer:'actual contained original-aspect image has a tight border; portrait, landscape and square all supported',theme:$('archiveTheme').value,dome:{visible:$('showDome').checked,pose:domeEngine.getPose(),idle:$('scopeIdle').checked,rendering:'approved depth-correct hemisphere/telescope, alpha-composited behind tower'},columns:'single shafts with restrained Ionic scroll capitals and three fine flutes per shaft',archEngraving:'centered symmetric ASCII plus measured radial stamps',musicBox:'all cylinder surface engravings rotate; foreground arch occludes them',starData:'illustrative placeholders',artist:$('artistText').value,artworkTitle:$('pieceText').value};
+ const value=JSON.stringify(notes,null,2);
+ if(navigator.clipboard?.writeText)navigator.clipboard.writeText(value).then(()=>{$('copyNotes').textContent='Copied';setTimeout(()=>$('copyNotes').textContent='Copy geometry notes',1300)}).catch(()=>prompt('Copy these notes',value));
+ else prompt('Copy these notes',value);
+});
+
+
+// Simulated MPRIS layout only. The generic MPRIS protocol provides transport
+// and metadata, but playlist '+' needs a music-app-specific integration.
+const demoTracks=[
+ {title:'The Lantern Path',artist:'The Astral Archive',duration:242},
+ {title:'Past the Quiet Constellations of the Eastern Sky',artist:'A Wandering Cartographer',duration:303},
+ {title:'Where the Stone Libraries Sleep',artist:'The Observatory Ensemble',duration:217}
+];
+let demoTrack=0,demoPlaying=true,demoPosition=52,miniNoticeTimer=0;
+function renderMini(){
+ const t=demoTracks[demoTrack];
+ $('miniTitle').textContent=t.title;$('miniArtist').textContent=t.artist;
+ $('miniPlay').textContent=demoPlaying?'Ⅱ':'▶';
+ $('miniPlay').setAttribute('aria-label',demoPlaying?'Pause demo playback':'Resume demo playback');
+ $('miniProgress').style.width=(100*demoPosition/t.duration).toFixed(1)+'%';
+ for(const wrap of document.querySelectorAll('.mini-ticker')){
+  const span=wrap.firstElementChild;
+  wrap.classList.remove('scrolling');span.style.removeProperty('--travel');
+  requestAnimationFrame(()=>{if(span.scrollWidth>wrap.clientWidth+2){span.style.setProperty('--travel',-(span.scrollWidth-wrap.clientWidth+10)+'px');wrap.classList.add('scrolling');}});
+ }
+}
+$('miniPlay').addEventListener('click',()=>{demoPlaying=!demoPlaying;renderMini()});
+function changeMiniTrack(delta){demoTrack=(demoTrack+delta+demoTracks.length)%demoTracks.length;demoPosition=0;renderMini();}
+$('miniPrev').addEventListener('click',()=>changeMiniTrack(-1));
+$('miniNext').addEventListener('click',()=>changeMiniTrack(1));
+$('miniSave').addEventListener('click',()=>{
+ clearTimeout(miniNoticeTimer);
+ $('miniSaveNotice').textContent='Collection action: demo only';
+ $('miniSaveNotice').classList.add('visible');
+ miniNoticeTimer=setTimeout(()=>$('miniSaveNotice').classList.remove('visible'),2200);
+});
+setInterval(()=>{if(demoPlaying){demoPosition++;if(demoPosition>=demoTracks[demoTrack].duration)changeMiniTrack(1);else $('miniProgress').style.width=(100*demoPosition/demoTracks[demoTrack].duration).toFixed(1)+'%';}},1000);
+renderMini();
+
+// Explicit Archive theme roles copied from the existing theme design.
+// Original SVG colors are classified once; subsequent recoloring always uses
+// their *original* value so toggling palettes never accumulates color drift.
+const ARCHIVE_THEMES={
+ evening:{background:'#343c43',panel:'#3f524f',metal:'#c2aa78',engraving:'#b7a2c8',text:'#f0f0e8'},
+ twilight:{background:'#121e23',panel:'#263c37',metal:'#8c6e5a',engraving:'#91ada1',text:'#e6e1d8'},
+ midnight:{background:'#080f10',panel:'#101c1b',metal:'#869c9c',engraving:'#568f80',text:'#dadfd9'}
+};
+const themeAttrs=[];
+for(const el of svg.querySelectorAll('[fill],[stroke],[stop-color]')){
+ for(const attr of ['fill','stroke','stop-color']){
+  const original=el.getAttribute(attr);
+  if(/^#[\da-fA-F]{6}$/.test(original||''))themeAttrs.push({el,attr,original:original.toLowerCase()});
+ }
+}
+function hx(s){return [1,3,5].map(i=>parseInt(s.slice(i,i+2),16));}
+function toHex(a){return '#'+a.map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');}
+function resolveTint(original,p){
+ const [r,g,b]=hx(original),mean=(r+g+b)/3;
+ let role='engraving',ref='#91ada1';
+ if(mean<43){role='background';ref='#101d21';}
+ else if(r>g*1.055 && g>=b*.95){role='metal';ref='#af9276';}
+ else if(mean>195 && Math.abs(r-g)<35 && g>b*.99){role='text';ref='#d7d0c2';}
+ else if(mean>135){role='engraving';ref='#91ada1';}
+ else {role='panel';ref='#35493f';}
+ const desired=hx(p[role]),reference=hx(ref);
+ const lum=(r*.25+g*.55+b*.20),sourceLum=reference[0]*.25+reference[1]*.55+reference[2]*.20;
+ const factor=Math.pow(Math.max(.35,lum/sourceLum),.62);
+ return toHex(desired.map(x=>x*factor));
+}
+function applyTheme(name){
+ const p=ARCHIVE_THEMES[name]||ARCHIVE_THEMES.twilight;
+ const root=document.documentElement;
+ for(const [css,k] of [['--back','background'],['--surface','panel'],['--gold','metal'],['--soft','engraving'],['--ink','text']])root.style.setProperty(css,p[k]);
+ root.style.setProperty('--sur2',toHex(hx(p.panel).map((x,i)=>x*.72+hx(p.engraving)[i]*.28)));
+ for(const {el,attr,original} of themeAttrs)el.setAttribute(attr,resolveTint(original,p));
+ for(const [id,k] of [['swatchBackground','background'],['swatchPanel','panel'],['swatchMetal','metal'],['swatchEngraving','engraving'],['swatchText','text']])$(id).style.background=p[k];
+ domeEngine.setColors(p);updateCrystal();
+ $('archiveTheme').value=name;
+}
+$('archiveTheme').addEventListener('change',e=>applyTheme(e.target.value));
+applyTheme('twilight');
+setDrumMode($('drumMode').value);
+domeEngine.setSearch(true);
+updatePanStatus();
+</script></body></html>

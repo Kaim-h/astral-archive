@@ -1,0 +1,50 @@
+{
+    "schemaVersion": 1,
+    "skies": [
+        {
+            "id": "theme",
+            "name": "Archive Theme",
+            "description": "Sky inherits the active Archive palette",
+            "mode": 0,
+            "background": "#121e23",
+            "accent": "#91ada1",
+            "secondary": "#586b70"
+        },
+        {
+            "id": "midnight",
+            "name": "Midnight Ink",
+            "description": "Deep blue-black, restrained silver stars",
+            "mode": 1,
+            "background": "#090f1d",
+            "accent": "#9cbed5",
+            "secondary": "#203b52"
+        },
+        {
+            "id": "parchment",
+            "name": "Parchment Atlas",
+            "description": "Aged celestial chart with fine orbital lines",
+            "mode": 2,
+            "background": "#534b3e",
+            "accent": "#e4d0a1",
+            "secondary": "#8e7a59"
+        },
+        {
+            "id": "aurora",
+            "name": "Aurora Mist",
+            "description": "Dark jade with drifting-look luminous bands",
+            "mode": 3,
+            "background": "#142c2b",
+            "accent": "#a1d3b6",
+            "secondary": "#40635b"
+        },
+        {
+            "id": "atlas",
+            "name": "Celestial Orrery",
+            "description": "Dark plum, measured arcs and star paths",
+            "mode": 4,
+            "background": "#222331",
+            "accent": "#c7b4cb",
+            "secondary": "#626073"
+        }
+    ]
+}

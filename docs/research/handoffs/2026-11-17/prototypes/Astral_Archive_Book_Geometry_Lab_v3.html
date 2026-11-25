@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Astral Archive — Book Geometry Lab v3</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1518;--panel:#142327;--edge:#405550;--ink:#e4e6dc;--muted:#9baea9;--gold:#bfa37b;--accent:#92b5aa}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 25% 0%,#233837 0%,#0b1518 55%);color:var(--ink);font:13px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}.app{max-width:1490px;margin:auto;padding:22px}.header{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:17px}.eyebrow{font-size:10px;letter-spacing:.24em;color:var(--gold);text-transform:uppercase}h1{font-size:24px;letter-spacing:.04em;font-weight:520;margin:5px 0 3px}.sub{color:var(--muted);font-size:12px}.pill{border:1px solid #52645c;border-radius:100px;padding:7px 13px;color:#d0c3a1;white-space:nowrap;font-size:11px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 324px;gap:15px;align-items:start}.main{min-width:0;display:grid;gap:13px}.panel{border:1px solid #364b49;border-radius:14px;background:linear-gradient(150deg,#182a2c,#101e23);overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid #354944}.panel-head strong{letter-spacing:.04em;font-weight:540;font-size:12px}.note{color:var(--muted);font-size:11px}.scene{display:block;width:100%;height:auto;min-height:260px;user-select:none;touch-action:manipulation}.scene text{pointer-events:none}.lower{display:grid;grid-template-columns:1fr 1fr;gap:13px}.smallSvg{display:block;width:100%;height:auto;min-height:140px}.annotation{padding:9px 14px;border-top:1px solid #344844;color:#aabdb4;font-size:11px}.controls{padding:15px;max-height:calc(100vh - 90px);overflow:auto;position:sticky;top:15px}.controls h2{font-size:13px;font-weight:600;letter-spacing:.09em;margin:0 0 12px}.group{padding:12px 0;border-top:1px solid #344844}.group h3{font-size:11px;margin:0 0 10px;text-transform:uppercase;color:#c4aa83;letter-spacing:.15em;font-weight:600}.control{margin-bottom:12px}.control:last-child{margin-bottom:0}.controlTop{display:flex;justify-content:space-between;margin-bottom:4px;color:#cbd8d0;font-size:11px}.num{font-variant-numeric:tabular-nums;color:#bbd0c5}input[type=range]{width:100%;accent-color:#9cbbaa;height:14px;cursor:pointer}select{background:#20322f;color:#ecede6;border:1px solid #4c6760;border-radius:7px;padding:8px 9px;width:100%;font:inherit}.buttons{display:flex;flex-wrap:wrap;gap:6px}.btn{font:inherit;color:#e9e7db;background:#253934;border:1px solid #607067;border-radius:7px;padding:8px 10px;cursor:pointer}.btn:hover{background:#36534b}.btn.active{border-color:#c5af7e;background:#394c42}.switch{display:flex;align-items:center;gap:9px;padding:5px 0;color:#c8d8cf;font-size:11px}.switch input{accent-color:#a8c6b7}.tiny{font-size:10px;color:#a9b9ad;line-height:1.55}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:#b6c6b9}.swatch{display:inline-block;height:9px;width:9px;margin-right:5px;vertical-align:middle;border-radius:2px}.footer{margin-top:12px;color:#9db4ac;font-size:11px}.kbd{border:1px solid #60766e;padding:1px 5px;border-radius:4px;font-size:10px}.toast{font-size:10px;color:#b5d0bb;min-height:17px;margin-top:6px}@media(max-width:1050px){.layout{grid-template-columns:1fr}.controls{max-height:none;position:static}.lower{grid-template-columns:1fr 1fr}}@media(max-width:600px){.app{padding:10px}.header{display:block}.pill{display:inline-block;margin-top:10px}.lower{grid-template-columns:1fr}.panel-head{display:block}}
+
+.book-motion {transition:transform 265ms cubic-bezier(.24,.75,.2,1)}
+.book-motion.selected{transform:translate(5px,-12px)}
+.book-front:focus-visible{outline:none;filter:drop-shadow(0 0 3px #c2aa78)}
+.book-front .ribbon{pointer-events:none}
+#bookSelector{margin-top:2px}
+</style></head><body><div class="app"><div class="header"><div><div class="eyebrow">The Astral Archive / geometry studies</div><h1>Constructed Books — Perspective Restored (v3)</h1><div class="sub">The original shelf projection, restored. Hover bookmarks to bend them; click a spine to pull it forward. Customize per-book curvature in the controls.</div></div><span class="pill">Interactive SVG · No libraries · Offline</span></div>
+<div class="layout"><main class="main"><section class="panel"><div class="panel-head"><strong>THE WORKING SHELF</strong><span id="readout" class="note">21° downward · eggshell · 86px depth</span></div><svg class="scene" id="scene" viewBox="0 0 960 445" role="img" aria-label="Interactive bookshelf with physically constructed tops, adjustable perspective, page blocks and spine bands"></svg><div class="annotation">The v1 shelf projection is preserved. Books default to <b>2px apart</b>. Page blocks, covers, and both edges of the spine cap use the same perspective; the far fore edge remains open.</div></section><div class="lower"><section class="panel"><div class="panel-head"><strong>FLAT REFERENCE</strong><span class="note">Minimal original style</span></div><svg id="flat" class="smallSvg" viewBox="0 0 480 240" role="img" aria-label="Flat bookshelf comparison"></svg><div class="annotation">A baseline, not a realism setting.</div></section><section class="panel"><div class="panel-head"><strong>TOP-DOWN CONSTRUCTION</strong><span class="note">Looking straight down · labels optional</span></div><svg id="top" class="smallSvg" viewBox="0 0 480 240" role="img" aria-label="Open-ended book construction from above"></svg><div class="annotation">Three-sided hardcover construction: spine plus two cover boards; paper is exposed at the far fore edge.</div></section></div><section class="panel"><div class="panel-head"><strong>READING THE CONSTRUCTION</strong></div><div style="padding:12px 16px" class="legend"><span><i class="swatch" style="background:#d9c9a5"></i>Recessed paper</span><span><i class="swatch" style="background:#647e71"></i>Two cover boards</span><span><i class="swatch" style="background:#a48c67"></i>Rounded spine cap</span><span><i class="swatch" style="background:#071513"></i>Contact/raised-band shadows</span></div></section></main>
+<aside class="panel controls"><h2>Geometry &amp; material controls</h2><div class="buttons" id="presets"><button type="button" class="btn" data-preset="quiet">Quiet</button><button type="button" class="btn active" data-preset="eggshell">Constructed eggshell</button><button type="button" class="btn" data-preset="detailed">More dimensional</button><button type="button" class="btn" data-preset="flat">Flat geometry</button></div>
+<div class="group"><h3>Viewing geometry</h3><div id="geometryControls"></div><label class="switch"><input id="pageLines" type="checkbox" checked>Show faint page lines</label><label class="switch"><input id="labels" type="checkbox" checked>Label top-down construction</label></div>
+<div class="group"><h3>Structural shadows</h3><div id="shadowControls"></div></div>
+<div class="group"><h3>Finish &amp; atmosphere</h3><div id="finishControls"></div><div class="control"><div class="controlTop"><span>Surface finish</span></div><select id="finish"><option value="matte">Matte</option><option value="eggshell" selected>Eggshell</option><option value="satin">Satin</option></select></div><div class="control"><div class="controlTop"><span>Theme palette</span></div><select id="theme"><option value="twilight" selected>Twilight</option><option value="evening">Evening</option><option value="midnight">Midnight</option></select></div></div>
+<div class="group"><h3>Interaction</h3><label class="switch"><input type="checkbox" id="ribbons" checked>Show fabric bookmarks</label><label class="switch"><input type="checkbox" id="engraving" checked>Show delicate ASCII markings</label><label class="switch"><input type="checkbox" id="sideArt" checked>Decorate exposed side covers</label><div class="buttons"><button class="btn" id="reset" type="button">Reset</button><button class="btn" id="copy" type="button">Copy settings</button></div><div class="toast" id="toast"></div></div><div class="tiny">The shelf and books share the original v1 projection (740 / [740 + depth]). The global curvature control scales each book’s individually adjustable spine roundness. Ribbon piping is clipped to its moving silhouette.</div></aside></div><div class="footer">Standalone, stylized SVG geometry study—not yet QML or a complete 3D simulation. Perspective model preserved from the earlier successful prototype; construction remains adjustable.</div></div>
+<script>
+(() => {
+  'use strict';
+  // The v1 projection is intentionally retained verbatim. All new book faces use pt().
+  const $ = id => document.getElementById(id);
+  const books = [
+    {name:'WEB',color:'#526f63',w:49,h:150,bands:2,ribbon:false,mat:'cloth',round:0.34,depth:0.98},
+    {name:'EDITOR',color:'#615976',w:55,h:181,bands:3,ribbon:true,mat:'leather',round:0.78,depth:1.00},
+    {name:'FILES',color:'#806751',w:46,h:129,bands:2,ribbon:false,mat:'leather',round:0.55,depth:0.90},
+    {name:'MUSIC',color:'#52757b',w:56,h:191,bands:3,ribbon:false,mat:'cloth',round:0.68,depth:0.95},
+    {name:'NOTES',color:'#71634f',w:46,h:164,bands:2,ribbon:true,mat:'leather',round:0.70,depth:1.00},
+    {name:'TERMINAL',color:'#576e65',w:57,h:145,bands:3,ribbon:false,mat:'cloth',round:0.24,depth:0.97},
+    {name:'SYSTEM',color:'#765d68',w:48,h:171,bands:2,ribbon:false,mat:'leather',round:0.82,depth:0.92},
+    {name:'GALLERY',color:'#626d83',w:54,h:156,bands:3,ribbon:false,mat:'cloth',round:0.45,depth:0.98}
+  ];
+  const originalRound = books.map(b => b.round);
+  const palettes={
+    twilight:{bg:'#101e23',back:'#0b1619',shelf:'#2e4540',metal:'#a38b6d',engraving:'#a9beb1',paper:'#ded1ad'},
+    evening:{bg:'#28333b',back:'#1d272c',shelf:'#455952',metal:'#c5a979',engraving:'#d3bfcb',paper:'#e4d7ba'},
+    midnight:{bg:'#080f12',back:'#071011',shelf:'#182826',metal:'#8b9fa0',engraving:'#91aca2',paper:'#c4c8bd'}
+  };
+  const specs=[
+    ['angle','Viewing pitch',-18,34,1,'°','geometryControls'],
+    ['shelfDepth','Shelf depth',42,150,1,'px','geometryControls'],
+    ['bookDepth','Book depth',35,145,1,'px','geometryControls'],
+    ['spacing','Book spacing',0,7,1,'px','geometryControls'],
+    ['curve','Global spine curve',0,100,1,'%','geometryControls'],
+    ['recess','Page inset',0,9,0.5,'px','geometryControls'],
+    ['lip','Cover thickness',1,7,0.5,'px','geometryControls'],
+    ['band','Raised band depth',0,8,0.5,'px','geometryControls'],
+    ['contact','Contact shadow',0,100,1,'%','shadowControls'],
+    ['cast','Cast shadow',0,100,1,'%','shadowControls'],
+    ['bandShadow','Band underside shadow',0,100,1,'%','shadowControls'],
+    ['sheen','Sheen strength',0,100,1,'%','finishControls'],
+    ['chroma','Chromatic shading',0,100,1,'%','finishControls'],
+    ['grain','Microtexture',0,100,1,'%','finishControls'],
+    ['warmth','Warmth of light',-100,100,1,'%','finishControls'],
+    ['lightX','Light from left/right',-100,100,1,'%','finishControls']
+  ];
+  const defaults={
+    angle:21,shelfDepth:100,bookDepth:86,spacing:2,curve:75,recess:3.5,lip:3.5,band:3.4,
+    contact:70,cast:24,bandShadow:65,sheen:10,chroma:24,grain:8,warmth:19,lightX:-30,
+    finish:'eggshell',theme:'twilight',pageLines:true,labels:true,ribbons:true,engraving:true,sideArt:true
+  };
+  const state={...defaults};
+  let hovered=-1,active=-1, selectedRoundBook=1, lastAnimationTime=0, rafId=0;
+  let positions=[];
+  const bends=new Array(books.length).fill(0);
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const f=n=>Number(n).toFixed(2);
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function hexToRgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+  function rgb(a){return 'rgb('+a.map(x=>Math.round(clamp(x,0,255))).join(',')+')';}
+  function shade(h,amt,warm=0){let c=hexToRgb(h);return rgb(c.map((v,i)=>v+amt+(i===0?warm:i===2?-warm:0)));}
+
+  // Verbatim v1 perspective, including depth convergence toward (480, y) and sine pitch.
+  function pt(x,y,z,ang,mid=480){const k=740/(740+z),s=Math.sin(ang*Math.PI/180);return {x:mid+(x-mid)*k,y:y-z*s*k};}
+  const pp=q=>`${f(q.x)} ${f(q.y)}`;
+  const poly=points=>points.map((q,i)=>(i?'L':'M')+pp(q)).join(' ')+' Z';
+
+  function projectionBookDepth(b){return Math.min(state.shelfDepth-5, state.bookDepth*b.depth);}
+  function curvature(b){
+    // SVG Y increases downward. Positive angle (from above) => ∪ (midpoint lower).
+    const view=Math.sin(state.angle*Math.PI/180);
+    return view * (state.curve/100) * b.round * 12.0;
+  }
+  function quadratic(a,mid,b,bow){
+    const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2+2*bow;
+    return `M ${pp(a)} Q ${f(cx)} ${f(cy)} ${pp(b)}`;
+  }
+  function surfPath(frontL,frontR,rearR,rearL,frontBow,rearBow){
+    const front=quadratic(frontL,null,frontR,frontBow);
+    const cr=(rearR.x+rearL.x)/2, yr=(rearR.y+rearL.y)/2+2*rearBow;
+    return `${front} L ${pp(rearR)} Q ${f(cr)} ${f(yr)} ${pp(rearL)} Z`;
+  }
+
+  function defs(p){return `<defs>
+    <filter id="shadowBlur" x="-60%" y="-160%" width="220%" height="460%"><feGaussianBlur stdDeviation="2.4"/></filter>
+    <filter id="bandBlur" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="0.70"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="2" seed="9" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".3"/></feComponentTransfer></filter>
+    <linearGradient id="spineShade"><stop offset="0" stop-color="#051116" stop-opacity="${f(.10+state.chroma/310)}"/><stop offset=".12" stop-color="#051116" stop-opacity="0"/><stop offset=".42" stop-color="#fff0cb" stop-opacity="${f(state.chroma/700)}"/><stop offset=".84" stop-color="#fff4d0" stop-opacity="${f(state.sheen/400)}"/><stop offset="1" stop-color="#07171a" stop-opacity="${f(.10+state.chroma/290)}"/></linearGradient>
+    <linearGradient id="topPaper" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${p.paper}"/><stop offset="1" stop-color="${shade(p.paper,-24)}"/></linearGradient>
+    <linearGradient id="shelfFront" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${shade(p.shelf,20)}"/><stop offset=".32" stop-color="${p.shelf}"/><stop offset="1" stop-color="${shade(p.shelf,-23)}"/></linearGradient>
+  </defs>`;}
+
+  function spineBodyGeometry(x,y,w,h,b){
+    const top=y-h,mid=x+w/2,bow=curvature(b),side=.8*b.round;
+    // Outer front and top-cap edge are precisely the same curve; no cap extends above it.
+    const topPath=`M ${f(x)} ${f(top)} Q ${f(mid)} ${f(top+2*bow)} ${f(x+w)} ${f(top)}`;
+    const body=`${topPath} Q ${f(x+w+side)} ${f(top+h*.50)} ${f(x+w)} ${f(y)} L ${f(x)} ${f(y)} Q ${f(x-side)} ${f(top+h*.50)} ${f(x)} ${f(top)} Z`;
+    return {body,topPath,top,bow,mid};
+  }
+
+  function buildSpine(x,y,w,h,b,p){
+    const {body,top,bow,mid}=spineBodyGeometry(x,y,w,h,b);
+    let out=`<path d="${body}" fill="${b.color}" stroke="${shade(b.color,-35)}" stroke-width="1.05"/>
+      <path d="${body}" fill="url(#spineShade)"/>`;
+    if(state.grain>0) out+=`<path d="${body}" fill="#d2b98b" opacity="${f(state.grain/1600)}" filter="url(#grain)"/>`;
+    for(let i=0;i<b.bands;i++){
+      const yy=top+(i+1)*h/(b.bands+1);
+      const sw=state.band;
+      const l={x:x+3.2,y:yy},r={x:x+w-3.2,y:yy};
+      const sh=state.bandShadow/100;
+      if(sw>0){
+        // All band layers use the SAME quadratic; offsets are constant across the curve.
+        out+=`<path d="${quadratic({x:l.x,y:yy+sw*.57+0.50},null,{x:r.x,y:yy+sw*.57+0.50},bow)}" fill="none" stroke="#081311" stroke-opacity="${f(.65*sh)}" stroke-width="${f(sw+1.65)}" stroke-linecap="round" filter="url(#bandBlur)"/>`;
+        out+=`<path d="${quadratic(l,null,r,bow)}" fill="none" stroke="${shade(b.color,18+sw*1.5)}" stroke-width="${f(sw+1.0)}" stroke-linecap="round"/>`;
+        out+=`<path d="${quadratic({x:l.x,y:yy-sw*.32},null,{x:r.x,y:yy-sw*.32},bow)}" fill="none" stroke="${shade(b.color,26+state.warmth/18)}" stroke-opacity=".72" stroke-width=".75" stroke-linecap="round"/>`;
+      }
+    }
+    const tone=p.engraving;
+    if(state.engraving){
+      out+=`<g fill="${tone}" opacity=".81" font-family="monospace" text-anchor="middle" pointer-events="none">
+        <text x="${f(mid)}" y="${f(top+25)}" font-size="6.0">. * .</text>
+        <text transform="rotate(90 ${f(mid)} ${f(top+h*.55)})" x="${f(mid)}" y="${f(top+h*.55)}" font-size="8.7" letter-spacing=".75">${esc(b.name)}</text>
+        <text x="${f(mid)}" y="${f(y-14)}" font-size="6.0">&lt;+&gt;</text>
+      </g>`;
+    } else {
+      out+=`<text transform="rotate(90 ${f(mid)} ${f(top+h*.53)})" x="${f(mid)}" y="${f(top+h*.53)}" font-size="9.5" font-family="monospace" text-anchor="middle" fill="${tone}" pointer-events="none">${esc(b.name)}</text>`;
+    }
+    return out;
+  }
+
+  function sideVolume(x,y,w,h,b,i,p){
+    // Exposed COVER BOARDS are vertical physical faces, not merely top slivers.
+    // The neighboring book occludes the lower part, hence restrict each wall to
+    // the height interval above its neighbor. All four corners use v1 pt().
+    const depth=projectionBookDepth(b),top=y-h;
+    let s='';
+    for(const side of ['left','right']){
+      const neighbor=books[i+(side==='left'?-1:1)];
+      const neighborTop=neighbor?y-neighbor.h:y;
+      const showHeight=clamp(neighborTop-top-2,0,h);
+      if(showHeight<9) continue;
+      const xx=side==='left'?x:x+w;
+      const p0=pt(xx,top,0,state.angle),p1=pt(xx,top,depth,state.angle);
+      const p2=pt(xx,top+showHeight,depth,state.angle),p3=pt(xx,top+showHeight,0,state.angle);
+      const col=side==='left'?shade(b.color,-8):shade(b.color,-18);
+      s+=`<path d="${poly([p0,p1,p2,p3])}" fill="${col}" stroke="${shade(b.color,-35)}" stroke-width=".65"/>`;
+      const upper=pt(xx,top+6,depth*.12,state.angle),lower=pt(xx,top+6,depth*.86,state.angle);
+      s+=`<path d="M ${pp(upper)} L ${pp(lower)}" fill="none" stroke="${shade(b.color,26)}" stroke-opacity=".40" stroke-width=".7"/>`;
+      if(state.sideArt&&showHeight>23){
+        const star=pt(xx,top+showHeight*.35,depth*.54,state.angle);
+        const foot=pt(xx,top+showHeight*.69,depth*.54,state.angle);
+        s+=`<text x="${f(star.x)}" y="${f(star.y)}" text-anchor="middle" fill="${p.metal}" font-size="7" opacity=".83" font-family="monospace">✦</text>`;
+        if(showHeight>38)s+=`<text x="${f(foot.x)}" y="${f(foot.y)}" text-anchor="middle" fill="${p.metal}" font-size="5" opacity=".68" font-family="monospace">·:·</text>`;
+      }
+    }
+    return s;
+  }
+
+  function bookTop(x,y,w,h,b,i,p){
+    if(state.angle<=0)return '';
+    const top=y-h,depth=projectionBookDepth(b),a=state.angle;
+    const bow=curvature(b),paperBow=bow*.64;
+    const lip=Math.min(state.lip,w/6),recess=state.recess;
+    const spineLen=7.5,innerZ=spineLen+2.5;
+    const P=(X,z,down=0)=>pt(X,top+down,z,a);
+    const L=x,R=x+w,frontL=P(L,0),frontR=P(R,0);
+    const innerL=P(L,spineLen),innerR=P(R,spineLen);
+    const pageFrontL=P(L+lip,innerZ,recess),pageFrontR=P(R-lip,innerZ,recess);
+    const pageRearL=P(L+lip,depth,recess),pageRearR=P(R-lip,depth,recess);
+    let s='';
+    // Recessed paper has an inner round and a fore-edge curve; no fourth cover.
+    const paperD=surfPath(pageFrontL,pageFrontR,pageRearR,pageRearL,paperBow,paperBow*.68);
+    s+=`<path d="${paperD}" fill="url(#topPaper)" stroke="${shade(p.paper,-26)}" stroke-width=".55"/>`;
+    // Page lines MUST live on this polygon, never extend into the spine or rear void.
+    if(state.pageLines){
+      s+=`<clipPath id="pageClip${i}"><path d="${paperD}"/></clipPath><g clip-path="url(#pageClip${i})">`;
+      for(let j=1;j<=10;j++){
+        const X=L+lip+(w-2*lip)*j/11;
+        const near=P(X,innerZ,recess),far=P(X,depth,recess);
+        s+=`<path d="M ${pp(near)} L ${pp(far)}" stroke="${shade(p.paper,-39)}" stroke-width=".43" stroke-opacity=".48" fill="none"/>`;
+      }
+      s+='</g>';
+    }
+    // Top strips of two cover boards (their VERTICAL walls are in sideVolume).
+    const ltop=[P(L,0),P(L+lip,0),P(L+lip,depth),P(L,depth)];
+    const rtop=[P(R-lip,0),P(R,0),P(R,depth),P(R-lip,depth)];
+    s+=`<path d="${poly(ltop)}" fill="${shade(b.color,18)}" stroke="${shade(b.color,-25)}" stroke-width=".7"/>`;
+    s+=`<path d="${poly(rtop)}" fill="${shade(b.color,11)}" stroke="${shade(b.color,-25)}" stroke-width=".7"/>`;
+    // Double-curved cap: OUTER edge and INNER edge share the perspective-driven bend.
+    // The front edge is EXACTLY the spine's own outer contour; it cannot protrude.
+    s+=`<path d="${surfPath(frontL,frontR,innerR,innerL,bow,bow*.86)}" fill="${shade(b.color,13)}" stroke="${shade(b.color,-30)}" stroke-width=".85"/>`;
+    // Curve at paper's spine-facing end: coupled to the same world-view angle.
+    s+=`<path d="${quadratic(pageFrontL,null,pageFrontR,paperBow)}" stroke="${shade(p.paper,-43)}" stroke-width="1.25" stroke-opacity=".48" fill="none"/>`;
+    return s;
+  }
+
+  // Bookmarks are made from ONE parametric profile. Their fill, piping, and
+  // top stitching get exactly the same x displacement; piping is clipped inside.
+  function ribbonD(x,y,w,h,bend,inset=0){
+    const ww=14,cx=x+w/2,top=y-h+1.8,L=h*.70;
+    const profile=t=>bend*(t*t*(3-2*t));
+    const segments=22;
+    const left=[],right=[];
+    for(let j=0;j<=segments;j++){
+      const t=j/segments;
+      const xx=cx-ww/2+inset+profile(t);
+      left.push(`${f(xx)} ${f(top+L*t)}`);
+    }
+    for(let j=segments;j>=0;j--){
+      const t=j/segments;
+      const xx=cx+ww/2-inset+profile(t);
+      right.push(`${f(xx)} ${f(top+L*t)}`);
+    }
+    const v=`${f(cx+profile(1))} ${f(top+L-8+inset*0.5)}`;
+    if(inset===0){
+      return `M ${left.join(' L ')} L ${v} L ${right.join(' L ')} Z`;
+    }
+    return `M ${left.join(' L ')} L ${v} L ${right.join(' L ')}`;
+  }
+  function ribbonSvg(x,y,w,h,b,i){
+    if(!state.ribbons||!b.ribbon)return '';
+    const d=ribbonD(x,y,w,h,bends[i]);
+    const trim=ribbonD(x,y,w,h,bends[i],2.1);
+    return `<g class="ribbon" style="pointer-events:none">
+      <clipPath id="ribbonClip${i}"><path id="ribbonClipPath${i}" d="${d}"/></clipPath>
+      <path id="ribbonBody${i}" d="${d}" fill="#91828a" stroke="#594d58" stroke-width=".85" stroke-linejoin="round"/>
+      <g clip-path="url(#ribbonClip${i})">
+        <path id="ribbonTrim${i}" d="${trim}" fill="none" stroke="#d3bcc6" stroke-width=".9" stroke-opacity=".50"/>
+      </g></g>`;
+  }
+  function updateRibbon(i){
+    const b=books[i];if(!state.ribbons||!b.ribbon)return;
+    const x=positions[i],y=354;
+    const body=$('ribbonBody'+i),seam=$('ribbonTrim'+i),clip=$('ribbonClipPath'+i);
+    if(!body||!seam||!clip)return;
+    const d=ribbonD(x,y,b.w,b.h,bends[i]);
+    body.setAttribute('d',d);clip.setAttribute('d',d);
+    seam.setAttribute('d',ribbonD(x,y,b.w,b.h,bends[i],2.1));
+  }
+  function animateRibbons(t){
+    const delta=clamp(t-lastAnimationTime,1,48),fac=1-Math.exp(-delta/58);
+    lastAnimationTime=t;
+    let moving=false;
+    for(let i=0;i<books.length;i++){
+      if(!books[i].ribbon)continue;
+      const target=i===hovered?18:0;
+      const next=bends[i]+(target-bends[i])*fac;
+      bends[i]=Math.abs(next-target)<.07?target:next;
+      updateRibbon(i);
+      if(bends[i]!==target)moving=true;
+    }
+    if(moving)rafId=requestAnimationFrame(animateRibbons);
+    else rafId=0;
+  }
+  function startAnimation(){if(!rafId){lastAnimationTime=performance.now();rafId=requestAnimationFrame(animateRibbons);}}
+
+  function render(){
+    const p=palettes[state.theme],scene=$('scene'),angle=state.angle, floor=354,shelfL=105,shelfR=858;
+    let out=defs(p);
+    out+=`<rect width="960" height="445" fill="${p.bg}"/><rect x="76" y="48" width="805" height="332" rx="12" fill="${p.back}" stroke="${shade(p.shelf,8)}" stroke-width="2"/>
+      <text x="480" y="78" fill="${p.metal}" text-anchor="middle" font-size="12" letter-spacing="4" font-family="Georgia,serif">✧   THE ASTRAL ARCHIVE   ✧</text>`;
+
+    // Unmodified v1 shelf projection: keep the visible top / underside behavior.
+    const backL=pt(shelfL,floor,state.shelfDepth,angle),backR=pt(shelfR,floor,state.shelfDepth,angle);
+    if(angle>=0){out+=`<path d="${poly([{x:shelfL,y:floor},{x:shelfR,y:floor},backR,backL])}" fill="${shade(p.shelf,-4)}" stroke="${shade(p.shelf,27)}" stroke-width="1.2"/>`;}
+    else{const d=Math.abs(Math.sin(angle*Math.PI/180))*state.shelfDepth;
+      out+=`<path d="M ${shelfL} ${floor+13} L ${shelfR} ${floor+13} L ${pp({x:backR.x,y:backR.y+13})} L ${pp({x:backL.x,y:backL.y+13})} Z" fill="${shade(p.shelf,-29)}" stroke="${p.metal}" stroke-width=".8"/>`;}
+
+    positions=[];let x=157;
+    for(let i=0;i<books.length;i++){
+      positions.push(x);x+=books[i].w+state.spacing;
+    }
+
+    // Ground contact shadow behind every volume, with a sharp near-contact seam.
+    for(let i=0;i<books.length;i++){
+      const b=books[i],bx=positions[i],alpha=state.contact/100,cast=state.cast/100;
+      out+=`<g class="book-contact book-motion" data-book="${i}" style="pointer-events:none">
+        <ellipse cx="${f(bx+b.w/2)}" cy="${floor-.7}" rx="${f(b.w*.57)}" ry="${f(2.3+state.contact*.044)}" fill="#020a0a" opacity="${f(.72*alpha)}" filter="url(#shadowBlur)"/>
+        <ellipse cx="${f(bx+b.w/2+state.lightX*cast*.10)}" cy="${f(floor-3-cast*4)}" rx="${f(b.w*.52+cast*6)}" ry="${f(2.5+cast*4)}" fill="#041013" opacity="${f(cast*.32)}" filter="url(#shadowBlur)"/>
+      </g>`;
+    }
+
+    // All rear physical surfaces FIRST; all spine faces later, so the rear cannot
+    // paint itself on top of a neighboring front (a major v2 regression).
+    for(let i=0;i<books.length;i++){
+      const b=books[i],bx=positions[i];
+      out+=`<g class="book-volume book-motion" data-book="${i}" style="pointer-events:none">
+        ${sideVolume(bx,floor,b.w,b.h,b,i,p)}
+        ${bookTop(bx,floor,b.w,b.h,b,i,p)}
+      </g>`;
+    }
+    for(let i=0;i<books.length;i++){
+      const b=books[i],bx=positions[i],top=floor-b.h;
+      const {body}=spineBodyGeometry(bx,floor,b.w,b.h,b);
+      out+=`<g class="book-front book-motion" data-book="${i}" style="cursor:pointer" role="button" tabindex="0" aria-label="Select ${esc(b.name)}">
+        <path d="${body}" fill="#05120f" opacity=".21" transform="translate(1.0,1.8)" pointer-events="none"/>
+        ${buildSpine(bx,floor,b.w,b.h,b,p)}
+        ${ribbonSvg(bx,floor,b.w,b.h,b,i)}
+        <rect x="${bx}" y="${f(floor-1.8)}" width="${b.w}" height="2.8" fill="#040b0c" opacity="${f(state.contact/100*.49)}" pointer-events="none"/>
+        <rect x="${bx}" y="${top}" width="${b.w}" height="${b.h}" fill="transparent"/>
+      </g>`;
+    }
+
+    // Unmodified v1 front lip geometry and shelf-board heights.
+    out+=`<rect x="${shelfL}" y="${floor+1}" width="${shelfR-shelfL}" height="18" rx="3" fill="url(#shelfFront)" stroke="${p.metal}" stroke-width="1.1"/>
+      <path d="M ${shelfL+6} ${floor+4} L ${shelfR-6} ${floor+4}" stroke="${shade(p.shelf,41)}" opacity=".5" stroke-width="1"/>
+      <rect x="${shelfL+10}" y="${floor+19}" width="${shelfR-shelfL-20}" height="9" fill="#050c0d" opacity=".33" filter="url(#shadowBlur)"/>
+      <text x="480" y="410" text-anchor="middle" fill="${p.engraving}" font-size="10" letter-spacing="2" opacity=".75">${angle>0?'ABOVE · ∪ SPINE BANDS · OPEN FORE EDGES':angle<0?'BELOW · ∩ SPINE BANDS · SHELF UNDERSIDE':'EYE LEVEL · FLAT BANDS'}</text>`;
+    scene.innerHTML=out;
+    setSelectedClasses();
+    renderFlat(p);
+    renderTop(p);
+    updateReadout();
+  }
+
+  function renderFlat(p){
+    let out=`<rect width="480" height="240" fill="${p.back}"/>`;let x=44;
+    for(let i=0;i<6;i++){
+      const b=books[i],w=b.w*.79,h=b.h*.86,y=196-h;
+      out+=`<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" rx="3" fill="${b.color}" stroke="${p.metal}" stroke-width=".7"/>
+      <text x="${f(x+w/2)}" y="${f(y+h*.5)}" transform="rotate(90 ${f(x+w/2)} ${f(y+h*.5)})" fill="${p.engraving}" font-size="7" text-anchor="middle" font-family="monospace">${esc(b.name)}</text>`;
+      x+=w+2;
+    }
+    out+=`<rect x="26" y="196" width="430" height="13" rx="2" fill="${p.shelf}" stroke="${p.metal}" stroke-width=".8"/>`;
+    $('flat').innerHTML=out;
+  }
+  function renderTop(p){
+    const W=150,D=145,cx=240,x=cx-W/2,top=43,lip=state.lip*2.4,spine=13;
+    const b=books[selectedRoundBook],bow=b.round*state.curve/100*6;
+    let out=`<rect width="480" height="240" fill="${p.back}"/>`;
+    out+=`<rect x="${x+lip}" y="${top+spine+6}" width="${W-2*lip}" height="${D-spine-6}" fill="${shade(p.paper,-state.recess*2)}" stroke="${shade(p.paper,-38)}" stroke-width=".8"/>`;
+    if(state.pageLines){for(let i=1;i<=19;i++){
+      const xx=x+lip+(W-2*lip)*i/20;
+      out+=`<line x1="${xx}" y1="${top+spine+8}" x2="${xx}" y2="${top+D-1}" stroke="${shade(p.paper,-40)}" stroke-width=".5" opacity=".45"/>`;
+    }}
+    out+=`<rect x="${x}" y="${top+spine}" width="${lip}" height="${D-spine}" fill="${shade(b.color,19)}"/>
+      <rect x="${x+W-lip}" y="${top+spine}" width="${lip}" height="${D-spine}" fill="${shade(b.color,9)}"/>
+      <path d="M ${x} ${top+spine} Q ${x+W/2} ${f(top+spine-2*bow)} ${x+W} ${top+spine} L ${x+W} ${top+spine+10} Q ${x+W/2} ${f(top+spine+10-bow)} ${x} ${top+spine+10} Z" fill="${b.color}" stroke="${shade(b.color,-35)}" stroke-width="1"/>
+      <path d="M ${x+lip} ${top+spine+6} Q ${x+W/2} ${f(top+spine+6-bow*.7)} ${x+W-lip} ${top+spine+6}" stroke="#342e2d" stroke-opacity=".55" stroke-width="1.5" fill="none"/>`;
+    if(state.labels){out+=`<g font-size="10" fill="${p.engraving}" font-family="system-ui">
+      <text x="${x-10}" y="${top+spine+4}" text-anchor="end">Spine</text>
+      <path d="M ${x-8} ${top+spine+9} L ${x+7} ${top+spine+6}" stroke="${p.engraving}"/>
+      <text x="${cx}" y="${top+86}" text-anchor="middle" fill="#554838">RECESSED PAGES</text>
+      <text x="${cx}" y="${top+D+20}" text-anchor="middle">OPEN FORE EDGE ↓</text>
+      <text x="${x+W+15}" y="${top+85}">Cover</text>
+      <text x="${x+W+15}" y="${top+97}">board</text>
+      <path d="M ${x+W+14} ${top+83} L ${x+W-3} ${top+83}" stroke="${p.engraving}"/>
+    </g>`;}
+    $('top').innerHTML=out;
+  }
+
+  function updateReadout(){
+    const a=state.angle,actual=Math.min(state.bookDepth,state.shelfDepth-5);
+    $('readout').textContent=`${a>0?a+'° downward':a<0?Math.abs(a)+'° upward':'eye level'} · ${state.finish} · spacing ${state.spacing}px · books ${f(actual)} / shelf ${state.shelfDepth}px`;
+  }
+  function sync(){
+    for(const spec of specs){
+      const id=spec[0], unit=spec[5];
+      $(id).value=state[id];
+      $('out_'+id).textContent=String(state[id])+(unit||'');
+    }
+    for(const id of ['finish','theme','pageLines','labels','ribbons','engraving','sideArt']){
+      if($(id).type==='checkbox')$(id).checked=state[id];else $(id).value=state[id];
+    }
+    $('bookSelector').value=selectedRoundBook;
+    $('selectedRound').value=Math.round(books[selectedRoundBook].round*100);
+    $('out_selectedRound').textContent=Math.round(books[selectedRoundBook].round*100)+'%';
+    updateReadout();
+  }
+  function setPreset(name){
+    const options={
+      quiet:{curve:65,recess:2.5,band:2.4,contact:52,cast:12,bandShadow:40,sheen:0,chroma:9,grain:0,finish:'matte'},
+      eggshell:{},
+      detailed:{curve:94,recess:4.5,band:4.5,contact:85,cast:50,bandShadow:88,sheen:19,chroma:43,grain:20,finish:'eggshell'},
+      flat:{curve:0,recess:0,lip:2,band:0,contact:20,cast:0,bandShadow:0,sheen:0,chroma:0,grain:0,finish:'matte',angle:0}
+    };
+    Object.assign(state,defaults,options[name]||{});
+    books.forEach((b,i)=>{b.round=originalRound[i];});
+    hovered=-1;active=-1;bends.fill(0);
+    selectedRoundBook=1;
+    sync();render();
+    document.querySelectorAll('[data-preset]').forEach(btn=>btn.classList.toggle('active',btn.dataset.preset===name));
+  }
+  function setSelectedClasses(){
+    $('scene').querySelectorAll('.book-motion').forEach(el=>el.classList.toggle('selected',Number(el.dataset.book)===active));
+    $('scene').querySelectorAll('.book-front').forEach(el=>el.setAttribute('aria-pressed',String(Number(el.dataset.book)===active)));
+  }
+  function selectBook(i){
+    active=active===i?-1:i;
+    selectedRoundBook=i;
+    sync();setSelectedClasses();renderTop(palettes[state.theme]);
+  }
+
+  // Construct controls with specific <output> elements, updated on every input.
+  for(const [id,label,min,max,step,unit,group] of specs){
+    const el=document.createElement('div');el.className='control';
+    el.innerHTML=`<div class="controlTop"><span>${esc(label)}</span><output class="num" id="out_${id}" for="${id}"></output></div><input type="range" id="${id}" min="${min}" max="${max}" step="${step}">`;
+    $(group).appendChild(el);
+    $(id).addEventListener('input',()=>{
+      state[id]=Number($(id).value);
+      $('out_'+id).textContent=state[id]+unit;
+      render();
+    });
+  }
+  const customization=document.createElement('div');customization.className='control';
+  customization.innerHTML=`<div class="controlTop"><span>Customize spine of</span></div>
+    <select id="bookSelector" aria-label="Choose book to customize">${books.map((b,i)=>`<option value="${i}">${esc(b.name)}</option>`).join('')}</select>
+    <div class="controlTop" style="margin-top:9px"><span>Selected spine roundness</span><output id="out_selectedRound" class="num" for="selectedRound">78%</output></div>
+    <input type="range" id="selectedRound" min="0" max="100" step="1" value="78">`;
+  $('geometryControls').appendChild(customization);
+  $('bookSelector').addEventListener('change',()=>{
+    selectedRoundBook=Number($('bookSelector').value);
+    sync();renderTop(palettes[state.theme]);
+  });
+  $('selectedRound').addEventListener('input',()=>{
+    books[selectedRoundBook].round=Number($('selectedRound').value)/100;
+    $('out_selectedRound').textContent=$('selectedRound').value+'%';
+    render();
+  });
+  ['finish','theme','pageLines','labels','ribbons','engraving','sideArt'].forEach(key=>{
+    $(key).addEventListener('change',()=>{
+      state[key]=$(key).type==='checkbox'?$(key).checked:$(key).value;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-preset]').forEach(btn=>btn.addEventListener('click',()=>setPreset(btn.dataset.preset)));
+  $('reset').addEventListener('click',()=>setPreset('eggshell'));
+  $('copy').addEventListener('click',async()=>{
+    const txt=JSON.stringify({view:state,books:books.map(b=>({title:b.name,round:b.round,depth:b.depth}))},null,2);
+    try{await navigator.clipboard.writeText(txt);$('toast').textContent='Settings copied.';}
+    catch(e){$('toast').textContent='Clipboard unavailable in this browser context.';}
+  });
+  $('scene').addEventListener('pointermove',e=>{
+    const el=e.target.closest('.book-front');
+    const next=el?Number(el.dataset.book):-1;
+    if(next!==hovered){hovered=next;startAnimation();}
+  });
+  $('scene').addEventListener('pointerleave',()=>{
+    if(hovered!==-1){hovered=-1;startAnimation();}
+  });
+  $('scene').addEventListener('click',e=>{
+    const el=e.target.closest('.book-front');if(el)selectBook(Number(el.dataset.book));
+  });
+  $('scene').addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ')return;
+    const el=e.target.closest('.book-front');if(!el)return;
+    e.preventDefault();selectBook(Number(el.dataset.book));
+  });
+  sync();render();
+})();
+
+</script></body></html>

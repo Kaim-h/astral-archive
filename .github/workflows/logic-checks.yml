@@ -1,0 +1,275 @@
+name: Astral Archive - offline logic checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-js:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Launcher logic
+        run: node scripts/check-launcher.js
+      - name: Multi-window logic
+        run: node scripts/check-windows.js
+      - name: Retractable shelves and workspaces
+        run: node scripts/check-shelves.js
+      - name: Utility shelf logic
+        run: node scripts/check-utilities.js
+      - name: Veranda wallpaper logic and transition toggle
+        run: node scripts/check-veranda.js
+      - name: Vista FX boundaries
+        run: node scripts/check-vista-fx.js
+      - name: Gallery structure
+        run: node scripts/check-gallery.js
+      - name: Gallery v20 dome geometry
+        run: node scripts/check-gallery-dome-p5.js
+      - name: Gallery per-artwork celestial customizations
+        run: node scripts/check-gallery-customization.js
+      - name: Project structure
+        run: node scripts/check-structure.js
+      - name: QML local component resolution
+        run: node scripts/check-qml-resolve.js
+      - name: B7-C pinned asset reproducibility
+        run: node scripts/build-b7-assets.mjs
+      - name: B7-C representation contracts
+        run: node scripts/check-b7-assets.mjs
+      - name: B7-N1 native asset and support geometry
+        run: node scripts/check-b7-native.mjs
+      - name: B7-N2 generalized ownership and occupied geometry
+        run: node scripts/check-b7-n2.mjs
+      - name: Native Archive B6-N1 pure logic
+        run: node scripts/check-archive-n1.mjs
+      - name: Native Archive B6-N2 visual adapter and fixture
+        run: node scripts/check-archive-n2.mjs
+      - name: Native Archive B6-N3 active motion invariants
+        run: node scripts/check-archive-n3.mjs
+      - name: Native Archive B6-N3r1 structural and checkpoint invariants
+        run: node scripts/check-archive-n3r1.mjs
+      - name: Browser/native reference numerical parity
+        run: node scripts/check-archive-browser-parity.mjs
+      - name: B6r4 browser research syntax and bridge
+        run: node scripts/check-b6r4.js
+      - name: B6r5 two-shelf browser research syntax and bridge
+        run: node scripts/check-b6r5.js
+      - name: B6r6 original cradle, collapse and shelf syntax
+        run: node scripts/check-b6r6.js
+      - name: B6r7 single Scroll Case clipboard, manifests and multiselect
+        run: node scripts/check-b6r7.js
+      - name: B6r8 Scroll Register, case approach and rack drag source checks
+        run: node scripts/check-b6r8.js
+      - name: B6r9 no-op, cell position reviews and topmost carried scroll checks
+        run: node scripts/check-b6r9.js
+      - name: B6r10 identity-preserving matches, destinations and restored insertion
+        run: node scripts/check-b6r10.js
+      - name: B6r11 anchored splitting, case paste durability and shape-ready data
+        run: node scripts/check-b6r11.js
+      - name: B6r12a one-scene rack transaction and direct drag source checks
+        run: node scripts/check-b6r12a.js
+      - name: B6r12b live rack and in-place transaction source checks
+        run: node scripts/check-b6r12b.js
+      - name: Attach B6r12b standalone HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r12b
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r12b.html
+          retention-days: 21
+      - name: B6r12b1 unified preview and compact resolver checks
+        run: node scripts/check-b6r12b1.js
+      - name: Attach B6r12b1 standalone HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r12b1
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r12b1.html
+          retention-days: 21
+      - name: B6r12b2 direct overflow and grouped drag checks
+        run: node scripts/check-b6r12b2.js
+      - name: Attach B6r12b2 standalone HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r12b2
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r12b2.html
+          retention-days: 21
+      - name: B6r12b3 immediate resize geometry checks
+        run: node scripts/check-b6r12b3.js
+      - name: Attach B6r12b3 standalone HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r12b3
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r12b3.html
+          retention-days: 21
+      - name: Attach standalone B6r5 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r5
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r5.html
+          retention-days: 21
+      - name: Attach standalone B6r6 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r6
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r6.html
+          retention-days: 21
+      - name: Attach standalone B6r7 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r7
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r7.html
+          retention-days: 21
+      - name: Attach standalone B6r8 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r8
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r8.html
+          retention-days: 21
+      - name: Attach standalone B6r9 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r9
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r9.html
+          retention-days: 21
+      - name: Attach standalone B6r10 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r10
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r10.html
+          retention-days: 21
+      - name: Attach standalone B6r11 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r11
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r11.html
+          retention-days: 21
+      - name: Attach B6r12a foundation standalone HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral_Archive_Cubby_Study_B6r12a
+          path: docs/research/prototypes/2026-11-20/cubby-studies/Astral_Archive_Cubby_Study_B6r12a.html
+          retention-days: 21
+  browser-cubby-studies:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install temporary Playwright browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: B7-C reference SVG structure and image decode
+        run: node scripts/check-b7-assets-browser.mjs
+      - name: Chromium cell-to-case pointer smoke
+        run: node scripts/smoke-b6r5.js
+      - name: Chromium B6r6 cradle-art and collapsible case smoke
+        run: node scripts/smoke-b6r6.js
+      - name: Chromium B6r7 grouped cut, Save, manifest and identity smoke
+        run: node scripts/smoke-b6r7.js
+      - name: Chromium B6r8 case approach, close buttons, drag z-order and rack transfers
+        run: node scripts/smoke-b6r8.js
+      - name: Chromium B6r9 reflow approvals and top-layer rack drag
+        run: node scripts/smoke-b6r9.js
+      - name: Chromium B6r10 reflow stability, case drag-out and P2R insertion
+        run: node scripts/smoke-b6r10.js
+      - name: Chromium B6r11 true split and persisted case-to-rack Save
+        run: node scripts/smoke-b6r11.js
+      - name: Chromium B6r12a direct rack/case transactions without focused editor
+        run: node scripts/smoke-b6r12a.js
+      - name: Chromium B6r12b live rack, void/top entry and explicit split transactions
+        run: node scripts/smoke-b6r12b.js
+      # B6r12b1 is archived with its known rack-to-case failure (run 45311059988).
+      # Run its inherited contracts on B6r12b2 rather than fail every future run on archived code.
+      # B6r12b2 inherited and preview contracts passed; group test hit a
+      # hover-to-expand dock/pill click timeout. Preserve its historical source.
+      - name: Chromium B6r12b3 continuous resize preview
+        run: node scripts/smoke-b6r12b3-resize.js
+      - name: Chromium B6r12b3 inherited live-rack contract
+        run: node scripts/smoke-b6r12b3-inherited.js
+      - name: Chromium B6r12b3 case split preview and fast-drag regression
+        run: node scripts/smoke-b6r12b3-preview.js
+      - name: Chromium B6r12b3 group drag and icon resolver
+        run: node scripts/smoke-b6r12b3.js
+      - name: Capture matched browser reference
+        run: node scripts/capture-archive-browser-reference.mjs
+      - name: Attach actual browser reference image
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-browser-reference
+          path: archive-browser-reference*.png
+          retention-days: 21
+  native-archive-qt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_QUICK_BACKEND: software
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install distribution Qt Quick test runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml qml6-module-qtqml-models qml6-module-qtqml-workerscript qml6-module-qttest qml6-module-qtquick-localstorage libqt6sql6-sqlite libqt6svg6
+      - name: Execute actual Qt Quick synthetic Archive tests
+        run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN1.qml
+      - name: Execute native illustrated Archive scene tests
+        run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN2.qml
+      - name: Execute native live Archive interaction tests
+        run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN3.qml
+      - name: Execute native structural and checkpoint controller tests
+        run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN3r1.qml
+      - name: Execute durable checkpoint restart test (two isolated Qt processes)
+        run: |
+          export XDG_DATA_HOME="$(mktemp -d)"
+          trap 'rm -rf -- "$XDG_DATA_HOME"' EXIT
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveCheckpointWrite.qml
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveCheckpointRead.qml
+      - name: Build clipped sculpture derivatives from pinned SVGs
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node scripts/build-b7-native-raster.mjs
+      - name: Execute isolated B7 native SVG and support tests
+        run: |
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB7Native.qml
+          test -s archive-b7-native-first.png
+          test -s archive-b7-native-upright.png
+          test -s archive-b7-native-supports.png
+      - name: Execute mixed cubby scene and transaction tests
+        run: |
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB7Mixed.qml
+          test -s archive-b7-native-mixed.png
+          test -s archive-b7-native-mixed-presented.png
+          test -s archive-b7-native-mixed-compacted.png
+      - name: Attach derived sculpture assets and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-b7-sculpture-derivatives
+          path: quickshell/archive/representation-raster/
+          retention-days: 21
+      - name: Attach first B7 native render
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-b7-native-first
+          path: archive-b7-native-*.png
+          retention-days: 21
+      - name: Attach actual native render
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archive-native-n3
+          path: archive-native-n3*.png
+          retention-days: 21

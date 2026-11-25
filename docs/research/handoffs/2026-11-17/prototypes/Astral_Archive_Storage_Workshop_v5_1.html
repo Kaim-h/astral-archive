@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Astral Archive — Storage Workshop v5.1 — corrected geometry</title>
+<style>
+  :root {
+    --bg: #121e23;
+    --panel: #263c37;
+    --metal: #8c6e5a;
+    --engraving: #91ada1;
+    --text: #e6e1d8;
+    --soft: rgba(255,255,255,0.08);
+    --soft2: rgba(255,255,255,0.04);
+    --shadow: rgba(0,0,0,0.32);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; background: var(--bg); color: var(--text); }
+  .app { display:grid; grid-template-columns: 320px 1fr; min-height:100vh; }
+  .sidebar {
+    background: color-mix(in srgb, var(--panel) 88%, black 12%);
+    border-right:1px solid color-mix(in srgb, var(--metal) 58%, black 42%);
+    padding:22px 18px 28px; overflow-y:auto;
+  }
+  .sidebar h1 { margin:0 0 6px; font-size:28px; }
+  .sub { color:var(--engraving); font-size:14px; margin-bottom:16px; }
+  .group {
+    border:1px solid color-mix(in srgb, var(--metal) 70%, black 30%);
+    border-radius:12px; padding:14px; margin-bottom:16px;
+    background: color-mix(in srgb, var(--bg) 38%, transparent 62%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--engraving) 13%, transparent 87%);
+  }
+  .group h2 { margin:0 0 12px; font-size:16px; text-transform:uppercase; letter-spacing:0.06em; }
+  .control { display:grid; gap:6px; margin-bottom:12px; }
+  .control label, .tinylabel { font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--engraving); }
+  select, button, input[type="range"] { width:100%; }
+  select, button {
+    background:var(--bg); color:var(--text);
+    border:1px solid color-mix(in srgb, var(--metal) 72%, black 28%);
+    border-radius:8px; padding:8px 10px; font-size:14px;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity:0.45; filter:none; cursor:not-allowed; }
+  .inline { display:flex; gap:10px; align-items:center; }
+  .inline span { min-width:44px; text-align:right; font-variant-numeric: tabular-nums; font-size:13px; }
+  input[type="range"] { accent-color: var(--metal); }
+  .checkbox { display:flex; gap:8px; align-items:center; font-size:14px; margin:10px 0 4px; }
+  .checkbox input { accent-color: var(--metal); }
+  .notes { font-size:13px; line-height:1.45; color: color-mix(in srgb, var(--text) 88%, var(--engraving) 12%); }
+  .main { padding:24px; overflow-y:auto; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-bottom:18px; }
+  .header h2 { margin:0; font-size:26px; }
+  .header p { margin:6px 0 0; color:var(--engraving); }
+  .pill { font-size:12px; text-transform:uppercase; letter-spacing:0.06em; padding:7px 10px; border-radius:999px; border:1px solid color-mix(in srgb, var(--metal) 70%, black 30%); background: color-mix(in srgb, var(--panel) 74%, black 26%); }
+  .layout { display:grid; grid-template-columns: 1.06fr 0.94fr; gap:18px; }
+  .stack { display:grid; gap:18px; }
+  .card {
+    background: color-mix(in srgb, var(--panel) 92%, black 8%);
+    border:1px solid color-mix(in srgb, var(--metal) 68%, black 32%);
+    border-radius:14px; overflow:hidden;
+    box-shadow: 0 10px 28px var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--engraving) 12%, transparent 88%);
+  }
+  .card-header { padding:14px 16px 10px; border-bottom:1px solid color-mix(in srgb, var(--metal) 24%, transparent 76%); }
+  .card-header h3 { margin:0; font-size:18px; }
+  .card-header p { margin:5px 0 0; font-size:13px; line-height:1.4; color:var(--engraving); }
+  .canvasWrap { padding:12px; }
+  .canvas {
+    position:relative; width:100%; border-radius:12px; overflow:hidden;
+    border:1px solid color-mix(in srgb, var(--engraving) 20%, transparent 80%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 72%, black 28%), color-mix(in srgb, var(--panel) 83%, black 17%));
+  }
+  .canvas.gridOn::before {
+    content:""; position:absolute; inset:0;
+    background-image: linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: var(--grid-size, 24px) var(--grid-size, 24px); pointer-events:none;
+  }
+  #rackCanvas { aspect-ratio: 16 / 10; cursor:pointer; }
+  #cellCanvas { aspect-ratio: 1 / 1; cursor:pointer; }
+  #holderCanvas { aspect-ratio: 16 / 10; cursor:pointer; }
+  svg, canvas { display:block; width:100%; height:100%; }
+  .footerRow { display:flex; flex-wrap:wrap; gap:8px; padding:0 14px 14px; }
+  .legend { font-size:12px; padding:5px 8px; border:1px solid color-mix(in srgb, var(--metal) 42%, black 58%); border-radius:999px; background: color-mix(in srgb, var(--bg) 40%, transparent 60%); }
+  .statusBox { padding:0 14px 14px; display:grid; gap:8px; }
+  .statusLine { font-size:13px; color:var(--text); }
+  .soft { color:var(--engraving); }
+  .buttonRow { display:flex; gap:8px; flex-wrap:wrap; }
+  .buttonRow button { flex:1 1 150px; }
+  .inspector { padding:0 14px 14px; display:grid; gap:10px; }
+  .infoGrid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .infoTile { border:1px solid color-mix(in srgb, var(--metal) 35%, black 65%); border-radius:10px; padding:10px; background: color-mix(in srgb, var(--bg) 30%, transparent 70%); font-size:13px; }
+  .kbd { padding:1px 6px; border:1px solid color-mix(in srgb, var(--metal) 60%, black 40%); border-radius:6px; font-size:12px; }
+  @media (max-width: 1160px) { .app { grid-template-columns: 1fr; } .sidebar { border-right:none; border-bottom:1px solid color-mix(in srgb, var(--metal) 58%, black 42%);} .layout { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h1>The Astral Archive</h1>
+    <div class="sub">Storage Workshop v5.1 — corrected geometry · scroll physics and record display</div>
+
+    <div class="group">
+      <h2>Global</h2>
+      <div class="control">
+        <label for="themeSelect">Theme</label>
+        <select id="themeSelect">
+          <option value="evening">Evening</option>
+          <option value="twilight" selected>Twilight</option>
+          <option value="midnight">Midnight</option>
+        </select>
+      </div>
+      <label class="checkbox"><input id="showGrid" type="checkbox" /> Show construction grid</label>
+      <div class="control">
+        <label for="gridSize">Grid spacing</label>
+        <div class="inline"><input id="gridSize" type="range" min="8" max="48" step="4" value="24" /><span id="gridSizeValue">24</span></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Rack overview</h2>
+      <div class="control">
+        <label for="patternSelect">Cell pattern</label>
+        <select id="patternSelect">
+          <option value="diamond" selected>Diamond</option>
+          <option value="square">Square</option>
+          <option value="triangle">Triangle</option>
+          <option value="hex">Hex</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="densityRange">Population density</label>
+        <div class="inline"><input id="densityRange" type="range" min="2" max="5" step="1" value="3" /><span id="densityValue">3</span></div>
+      </div>
+      <button id="resetRackBtn">Reset rack</button>
+    </div>
+
+    <div class="group">
+      <h2>Selected cell</h2>
+      <div class="control">
+        <label for="newScrollSize">New scroll size tier</label>
+        <select id="newScrollSize">
+          <option value="0">Tier I · tiny</option>
+          <option value="1">Tier II · small</option>
+          <option value="2" selected>Tier III · medium</option>
+          <option value="3">Tier IV · large</option>
+          <option value="4">Tier V · great</option>
+        </select>
+      </div>
+      <div class="buttonRow">
+        <button id="dropBtn">Drop from top</button>
+        <button id="insertBtn" disabled>Insert at highlighted gap</button>
+      </div>
+      <div class="buttonRow" style="margin-top:8px;">
+        <button id="removeBtn" disabled>Remove selected scroll</button>
+        <button id="undoBtn" disabled>Undo</button>
+      </div>
+      <label class="checkbox"><input id="showGaps" type="checkbox" checked /> Show gap candidates</label>
+      <label class="checkbox"><input id="showPoints" type="checkbox" /> Show intersection points in overview</label>
+    </div>
+
+    <div class="group">
+      <h2>Holder</h2>
+      <div class="control">
+        <label for="holderMode">Stored object family</label>
+        <select id="holderMode">
+          <option value="records" selected>Records</option>
+          <option value="tablets">Typefaces / stone tablets</option>
+          <option value="ledgers">Ledgers</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="holderCount">Visible items</label>
+        <div class="inline"><input id="holderCount" type="range" min="4" max="9" step="1" value="7" /><span id="holderCountValue">7</span></div>
+      </div>
+      <div class="notes">Click a stored object to present its full face in the side display. The storage row remains primarily edge-on.</div>
+    </div>
+
+    <div class="group notes">
+      <h2>Interaction notes</h2>
+      <p>Click a rack cell to inspect it. While the cell is open, its simulation remains active. Capacity checks prevent impossible initial loads and additions. Removing a scroll lets others settle downward. Inserting a scroll at a highlighted gap displaces its neighbors and lets the pile re-adjust itself.</p>
+      <p>Gap candidates are found by sampling empty pockets, not by requiring a perfect circle-sized hole. Inserting can displace neighbors, but an unsolvable overcrowded cell rejects the addition instead of leaving overlapping scrolls.</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="header">
+      <div>
+        <h2>Scroll Cell Physics & Upright Holder</h2>
+        <p>A focused prototype of active cell simulation and side-presented holder contents.</p>
+      </div>
+      <div class="pill">standalone HTML prototype · synthetic files</div>
+    </div>
+
+    <div class="layout">
+      <div class="stack">
+        <section class="card">
+          <div class="card-header">
+            <h3>Rack overview</h3>
+            <p>Continuous tessellated storage. Select a specific cell to rummage through its scrolls in detail.</p>
+          </div>
+          <div class="canvasWrap"><div id="rackCanvas" class="canvas"></div></div>
+          <div class="footerRow">
+            <div class="legend">continuous tiling</div>
+            <div class="legend">click a cell to inspect</div>
+            <div class="legend">selected cell highlighted</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <h3>Selected cell inspector</h3>
+            <p>Continuous physics while open. Select a scroll to remove it, or hover an empty pocket and insert a new one there.</p>
+          </div>
+          <div class="canvasWrap"><div id="cellCanvas" class="canvas"></div></div>
+          <div class="statusBox">
+            <div id="cellStatus" class="statusLine">No cell selected.</div><div id="notice" class="statusLine soft">Select a cell, then a scroll or an insertion gap.</div>
+            <div class="infoGrid">
+              <div class="infoTile"><span class="soft">Selected scroll</span><div id="selectedScrollInfo">None</div></div>
+              <div class="infoTile"><span class="soft">Highlighted gap</span><div id="gapInfo">None</div></div>
+            </div>
+          </div>
+          <div class="footerRow">
+            <div class="legend">click scroll = select</div>
+            <div class="legend">hover gap = preview insert</div>
+            <div class="legend">drop from top = constrained fall</div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="card-header">
+          <h3>Upright holder with side presentation</h3>
+          <p>The stored objects remain edge-on in their holder. One selected item is presented fully to the side for recognition.</p>
+        </div>
+        <div class="canvasWrap"><div id="holderCanvas" class="canvas"></div></div>
+        <div class="footerRow">
+          <div class="legend">edge-on storage row</div>
+          <div class="legend">full-face side display</div>
+          <div class="legend">records / tablets / ledgers</div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+const themes = {
+  evening: { bg:'#343c43', panel:'#3f524f', metal:'#c2aa78', engraving:'#b7a2c8', text:'#f0f0e8' },
+  twilight:{ bg:'#121e23', panel:'#263c37', metal:'#8c6e5a', engraving:'#91ada1', text:'#e6e1d8' },
+  midnight:{ bg:'#080f10', panel:'#101c1b', metal:'#869c9c', engraving:'#568f80', text:'#dadfd9' }
+};
+const scrollPalette = ['#d0bf9c','#c4af88','#dfd0af','#b89b72','#cbb89b','#e4d8bb'];
+const recordPalette = ['#56636f','#627380','#6e8290','#788c98','#5f7180'];
+const tabletPalette = ['#c1b9a7','#b0aa9b','#d2cabb','#9d978a','#c7c0b0'];
+const ledgerPalette = ['#755e47','#7f6c55','#695e64','#5b6d67','#6f5a4a'];
+const state = {
+  theme:'twilight', showGrid:false, gridSize:24,
+  pattern:'diamond', density:3, showGaps:true, showPoints:false,
+  newTier:2,
+  holderMode:'records', holderCount:7
+};
+const scrollTiers = [7,9,12,15,18];
+const history = [];
+let rack = null;
+let selectedCellIndex = 0;
+let selectedScrollId = null;
+let hoveredGap = null;
+let hoveredHolderIndex = -1;
+let presentedHolderIndex = 0;
+let frameHandle = null;
+let lastTime = performance.now();
+let simActiveUntil = 0;
+let lastGapRefresh = 0;
+let nextId = 1;
+
+const ui = {};
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function setTheme(name){ const p = themes[name]; document.documentElement.style.setProperty('--bg', p.bg); document.documentElement.style.setProperty('--panel', p.panel); document.documentElement.style.setProperty('--metal', p.metal); document.documentElement.style.setProperty('--engraving', p.engraving); document.documentElement.style.setProperty('--text', p.text); }
+function syncCanvasClass(el){ el.classList.toggle('gridOn', state.showGrid); el.style.setProperty('--grid-size', state.gridSize + 'px'); }
+function updateReadouts(){ $('gridSizeValue').textContent = state.gridSize; $('densityValue').textContent = state.density; $('holderCountValue').textContent = state.holderCount; }
+
+function mulberry32(a){ return function(){ var t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
+
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function snapshotHistory(){ if(!rack) return; history.push({ rack: deepClone(rack), selectedCellIndex, selectedScrollId, presentedHolderIndex }); if(history.length>18) history.shift(); $('undoBtn').disabled = history.length===0; }
+function restoreHistory(){ if(!history.length) return; const h = history.pop(); rack = h.rack; selectedCellIndex = h.selectedCellIndex; selectedScrollId = h.selectedScrollId; presentedHolderIndex = h.presentedHolderIndex; hoveredGap = null; simActiveUntil = performance.now()+6000; $('undoBtn').disabled = history.length===0; updateStatus(); }
+
+// PHYSICAL MODEL v5.1 — convex polygon cells with shared edges.
+// All coordinates use the same 800×500 SVG world; y increases downward.
+function pointInPoly(pt, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i], b = poly[j];
+    if (((a.y > pt.y) !== (b.y > pt.y)) &&
+        pt.x < (b.x-a.x) * (pt.y-a.y) / (b.y-a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+function signedArea(poly) {
+  let a = 0;
+  for(let i=0;i<poly.length;i++) { const p=poly[i], q=poly[(i+1)%poly.length]; a+=p.x*q.y-q.x*p.y; }
+  return a/2;
+}
+function ccw(poly) { return signedArea(poly) < 0 ? [...poly].reverse() : poly; }
+function signedHalfPlaneDistance(pt, a, b) {
+  const ex=b.x-a.x, ey=b.y-a.y, len=Math.hypot(ex,ey)||1;
+  return ((pt.x-a.x)*(-ey)+(pt.y-a.y)*ex)/len;
+}
+function minWallDistance(pt, poly) {
+  let d=Infinity;
+  for(let i=0;i<poly.length;i++) d=Math.min(d,signedHalfPlaneDistance(pt,poly[i],poly[(i+1)%poly.length]));
+  return d;
+}
+function centroid(poly) {
+  const c=poly.reduce((s,p)=>({x:s.x+p.x,y:s.y+p.y}),{x:0,y:0});
+  return {x:c.x/poly.length,y:c.y/poly.length};
+}
+function polygonArea(poly) { return Math.abs(signedArea(poly)); }
+function distance(a,b) { return Math.hypot(a.x-b.x,a.y-b.y); }
+function polyBounds(poly) {
+  const b={minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity};
+  poly.forEach(p=>{b.minX=Math.min(b.minX,p.x);b.minY=Math.min(b.minY,p.y);b.maxX=Math.max(b.maxX,p.x);b.maxY=Math.max(b.maxY,p.y);});
+  return b;
+}
+function scalePoly(poly,s,ox,oy){return poly.map(p=>({x:p.x*s+ox,y:p.y*s+oy}));}
+function maxPenetration(cell) {
+  let max=0;
+  for(const s of cell.scrolls) max=Math.max(max,s.r-minWallDistance(s,cell.poly));
+  for(let i=0;i<cell.scrolls.length;i++) for(let j=i+1;j<cell.scrolls.length;j++){
+    const a=cell.scrolls[i],b=cell.scrolls[j];
+    max=Math.max(max,a.r+b.r-distance(a,b));
+  }
+  return Math.max(0,max);
+}
+function occupiedFraction(cell) {
+  const area = cell.scrolls.reduce((a,s)=>a+Math.PI*s.r*s.r,0);
+  return area / polygonArea(cell.poly);
+}
+// A coherent tessellation. Rows in the diamond grid are staggered by one
+// half-diagonal, so their shared segments coincide rather than only touching tips.
+function generateDiamondCells() {
+  const out=[], halfW=54, halfH=54;
+  for(let row=0;row<5;row++) for(let col=0;col<5;col++) {
+    const cx=130+col*2*halfW+(row%2)*halfW;
+    const cy=126+row*halfH;
+    out.push(ccw([{x:cx,y:cy-halfH},{x:cx+halfW,y:cy},{x:cx,y:cy+halfH},{x:cx-halfW,y:cy}]));
+  }
+  return out;
+}
+function generateSquareCells() {
+  const out=[],x0=110,y0=82,w=116,h=82;
+  for(let row=0;row<4;row++) for(let col=0;col<5;col++) {
+    const x=x0+col*w,y=y0+row*h;
+    out.push(ccw([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}]));
+  }
+  return out;
+}
+function generateTriangleCells() {
+  const out=[],x0=125,y0=91,s=108,h=s*Math.sqrt(3)/2;
+  // Each adjacent pair of horizontal lines has opposite half-unit offsets.
+  // Triangles share entire edges, with no isolated cells or artificial gaps.
+  for(let row=0;row<3;row++) {
+    const yt=y0+row*h, yb=yt+h;
+    for(let col=0;col<5;col++) {
+      if(row%2===0) {
+        const left=x0+col*s;
+        out.push(ccw([{x:left,y:yt},{x:left+s,y:yt},{x:left+s/2,y:yb}]));
+        if(col<4) out.push(ccw([{x:left+s,y:yt},{x:left+s/2,y:yb},{x:left+1.5*s,y:yb}]));
+      } else {
+        const left=x0+col*s;
+        out.push(ccw([{x:left+s/2,y:yt},{x:left,y:yb},{x:left+s,y:yb}]));
+        if(col<4) out.push(ccw([{x:left+s/2,y:yt},{x:left+1.5*s,y:yt},{x:left+s,y:yb}]));
+      }
+    }
+  }
+  return out;
+}
+function generateHexCells() {
+  const out=[],r=47,x0=124,y0=117,dx=Math.sqrt(3)*r,dy=1.5*r;
+  for(let row=0;row<4;row++) for(let col=0;col<7;col++) {
+    const cx=x0+col*dx+(row%2)*dx/2,cy=y0+row*dy;
+    const pts=[];
+    for(let i=0;i<6;i++){ const t=-Math.PI/2+i*Math.PI/3;pts.push({x:cx+r*Math.cos(t),y:cy+r*Math.sin(t)}); }
+    out.push(ccw(pts));
+  }
+  return out;
+}
+function generateCells(pattern) {
+  return pattern==='diamond'?generateDiamondCells():pattern==='square'?generateSquareCells():pattern==='triangle'?generateTriangleCells():generateHexCells();
+}
+function generateIntersectionPoints(cells) {
+  const out=[],seen=new Set();
+  for(const poly of cells) for(const p of poly){const key=p.x.toFixed(4)+','+p.y.toFixed(4);if(!seen.has(key)){seen.add(key);out.push(p);}}
+  return out;
+}
+function makeHolderItems(mode,count){return Array.from({length:count},(_,i)=>({id:i+1,mode,toneIndex:i}));}
+
+// Stable radius tiers: scaled for the current rack geometry.
+// The stored data model can later replace these with actual byte-size brackets.
+function randomRadius(rand) { return scrollTiers[Math.floor(rand()*scrollTiers.length)]; }
+function randomTone(rand) { return scrollPalette[Math.floor(rand()*scrollPalette.length)]; }
+function fitsWithoutMoving(cell,x,y,r,pad=0.5){
+  const p={x,y};
+  if(minWallDistance(p,cell.poly)<r+pad) return false;
+  return cell.scrolls.every(s=>distance(p,s)>=r+s.r+pad);
+}
+function findStaticSlot(cell,r,rand){
+  const b=polyBounds(cell.poly),step=3;
+  const center=centroid(cell.poly);
+  const preference=center.x+(rand()-0.5)*(b.maxX-b.minX)*0.45;
+  let best=null,bestScore=-Infinity;
+  // Descend from the lowest feasible point, as with a real heap of scrolls.
+  for(let y=b.maxY-r-1;y>=b.minY+r+1;y-=step){
+    for(let x=b.minX+r+1;x<=b.maxX-r-1;x+=step){
+      if(!fitsWithoutMoving(cell,x,y,r)) continue;
+      const score=y*1.9-Math.abs(x-preference)*0.16;
+      if(score>bestScore){bestScore=score;best={x,y};}
+    }
+    if(best && y < best.y - 12) break;
+  }
+  return best;
+}
+function desiredCountForCell(cell,idx){
+  const area=polygonArea(cell.poly);
+  const targetFraction=0.20+state.density*0.073;
+  const nominalArea=Math.PI*12*12;
+  return Math.max(2,Math.min(17,Math.round(area*targetFraction/nominalArea)+(idx%3===0?1:0)));
+}
+function seedCell(cell,rand,count){
+  cell.scrolls=[];
+  const desired=[];
+  for(let i=0;i<count;i++) desired.push({r:randomRadius(rand),tone:randomTone(rand)});
+  desired.sort((a,b)=>b.r-a.r);
+  for(const entry of desired){
+    const found=findStaticSlot(cell,entry.r,rand);
+    if(!found) continue; // This cell is full: NEVER create impossible overlaps.
+    cell.scrolls.push({id:nextId++,x:found.x,y:found.y,vx:0,vy:0,r:entry.r,tone:entry.tone});
+  }
+  cell.gaps=computeGapCandidates(cell);
+}
+function createRack(){
+  const rand=mulberry32(12345+state.pattern.length*97+state.density*77);
+  const cells=generateCells(state.pattern).map((poly,idx)=>({poly,scrolls:[],gaps:[],label:idx+1}));
+  for(let i=0;i<cells.length;i++) seedCell(cells[i],rand,desiredCountForCell(cells[i],i));
+  return {pattern:state.pattern,cells,holderItems:makeHolderItems(state.holderMode,state.holderCount),intersectionPoints:generateIntersectionPoints(cells.map(c=>c.poly))};
+}
+
+// A bounded position-based dynamics solver. Unlike v5, initial layouts are
+// collision-free. The solver only needs to move objects when disturbed.
+function physicsStep(cell) {
+  const arr=cell.scrolls, prev=arr.map(s=>({x:s.x,y:s.y}));
+  for(const s of arr){
+    s.vy=Math.min(2.8,(s.vy+0.17)*0.96);
+    s.vx*=0.93;
+    s.x+=s.vx;
+    s.y+=s.vy;
+  }
+  for(let iter=0;iter<14;iter++) {
+    for(let i=0;i<arr.length;i++) for(let j=i+1;j<arr.length;j++) {
+      const a=arr[i],b=arr[j]; let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);
+      const gap=a.r+b.r-d;
+      if(gap>0){
+        if(d<1e-6){const angle=((a.id*197+b.id*367)%360)*Math.PI/180;dx=Math.cos(angle);dy=Math.sin(angle);d=1;}
+        const nx=dx/d,ny=dy/d;
+        const wa=1/(a.r*a.r),wb=1/(b.r*b.r),f=wa+wb;
+        a.x-=nx*gap*wa/f; a.y-=ny*gap*wa/f;
+        b.x+=nx*gap*wb/f; b.y+=ny*gap*wb/f;
+      }
+    }
+    for(const s of arr){
+      for(let e=0;e<cell.poly.length;e++){
+        const a=cell.poly[e],b=cell.poly[(e+1)%cell.poly.length];
+        const ex=b.x-a.x,ey=b.y-a.y,len=Math.hypot(ex,ey)||1;
+        const nx=-ey/len,ny=ex/len;
+        const penetration=s.r-((s.x-a.x)*nx+(s.y-a.y)*ny);
+        if(penetration>0){s.x+=nx*penetration;s.y+=ny*penetration;}
+      }
+    }
+  }
+  for(let i=0;i<arr.length;i++) {
+    const s=arr[i],prevPos=prev[i];
+    s.vx=Math.max(-2.4,Math.min(2.4,(s.x-prevPos.x)*0.52));
+    s.vy=Math.max(-2.4,Math.min(2.4,(s.y-prevPos.y)*0.52));
+    if(Math.abs(s.vx)<0.015)s.vx=0;
+    if(Math.abs(s.vy)<0.015)s.vy=0;
+  }
+}
+function relaxCell(cell,steps=1){for(let i=0;i<steps;i++)physicsStep(cell);}
+function computeGapCandidates(cell){
+  const b=polyBounds(cell.poly),possible=[],step=8;
+  for(let y=b.minY+5;y<b.maxY-5;y+=step) for(let x=b.minX+5;x<b.maxX-5;x+=step){
+    const clearWall=minWallDistance({x,y},cell.poly);
+    if(clearWall<6)continue;
+    let clear=clearWall;
+    for(const sc of cell.scrolls) clear=Math.min(clear,distance({x,y},sc)-sc.r);
+    // The gap is only a hint of insertion location, not an exact-fit test.
+    if(clear>2)possible.push({x,y,score:clear});
+  }
+  possible.sort((a,b)=>b.score-a.score);
+  const kept=[];
+  for(const g of possible){if(kept.every(k=>distance(k,g)>20))kept.push(g);if(kept.length>=9)break;}
+  return kept;
+}
+function getSelectedCell(){return rack?rack.cells[selectedCellIndex]:null;}
+function activateSimulation(ms=4000){simActiveUntil=performance.now()+ms;}
+
+// Trial insertion prevents impossible states. A gap is selectable even if it
+// is narrower than a scroll; other scrolls may move to accommodate the new one.
+function trialPlacement(cell,location,r){
+  const trial={poly:cell.poly,scrolls:cell.scrolls.map(s=>({...s})),gaps:[]};
+  trial.scrolls.push({id:nextId,x:location.x,y:location.y,vx:0,vy:0,r,tone:scrollPalette[0]});
+  if(occupiedFraction(trial)>0.66)return false;
+  for(let i=0;i<900;i++) physicsStep(trial);
+  return maxPenetration(trial)<0.28;
+}
+function placeInsertedScroll(location,mode){
+  const cell=getSelectedCell(); if(!cell)return;
+  const tier=Number($('newScrollSize').value),r=scrollTiers[tier];
+  if(!trialPlacement(cell,location,r)){
+    setNotice('This cell cannot accommodate that scroll. Try a smaller tier or another cell.');
+    return;
+  }
+  snapshotHistory();
+  cell.scrolls.push({id:nextId++,x:location.x,y:location.y,vx:0,vy:mode==='drop'?0.6:0,r,tone:scrollPalette[(tier+cell.scrolls.length)%scrollPalette.length]});
+  selectedScrollId=null;hoveredGap=null;activateSimulation(8000);
+  setNotice(mode==='drop'?'Scroll dropped; the pile is settling.':'Scroll inserted; neighboring scrolls are adjusting.');
+  updateStatus();
+}
+function insertScrollAtGap(){if(hoveredGap)placeInsertedScroll({x:hoveredGap.x,y:hoveredGap.y},'insert');}
+function dropScrollFromTop(){
+  const cell=getSelectedCell();if(!cell)return;
+  const c=centroid(cell.poly),r=scrollTiers[Number($('newScrollSize').value)],bounds=polyBounds(cell.poly);
+  // Earliest point inside the cell along a downward ray near its center.
+  let location=null;
+  for(let y=bounds.minY+r;y<bounds.maxY-r;y+=2){
+    if(minWallDistance({x:c.x,y},cell.poly)>=r+0.4){location={x:c.x,y};break;}
+  }
+  if(!location){setNotice('The opening is too narrow for that scroll tier.');return;}
+  placeInsertedScroll(location,'drop');
+}
+function removeSelectedScroll(){
+  const cell=getSelectedCell();if(!cell||selectedScrollId==null)return;
+  snapshotHistory();cell.scrolls=cell.scrolls.filter(s=>s.id!==selectedScrollId);
+  selectedScrollId=null;hoveredGap=null;activateSimulation(7000);
+  cell.gaps=computeGapCandidates(cell);
+  setNotice('Scroll removed. The remaining scrolls are settling into the available space.');
+  updateStatus();
+}
+function selectedScroll(){const cell=getSelectedCell();return cell?cell.scrolls.find(s=>s.id===selectedScrollId):null;}
+function setNotice(message){const el=$('notice');if(el)el.textContent=message;}
+
+function renderRackOverview(){
+  const host = $('rackCanvas'); syncCanvasClass(host);
+  const p = themes[state.theme];
+  const w=800,h=500;
+  if(!rack){ host.innerHTML=''; return; }
+  const cellsSvg = rack.cells.map((cell, idx) => {
+    const pts = cell.poly.map(pt => `${pt.x},${pt.y}`).join(' ');
+    const sel = idx===selectedCellIndex;
+    const fill = sel ? `rgba(145,173,161,0.20)` : 'rgba(255,255,255,0.04)';
+    const stroke = sel ? p.engraving : p.metal;
+    const sw = sel ? 4 : 2.5;
+    let inner='';
+    for(const sc of cell.scrolls){ inner += scrollGlyph(sc.x, sc.y, sc.r, sc.tone, sel && sc.id===selectedScrollId, false); }
+    return `<g data-cell="${idx}"><polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>${inner}</g>`;
+  }).join('');
+  const points = state.showPoints ? rack.intersectionPoints.map(pt => `<circle cx="${pt.x}" cy="${pt.y}" r="2.3" fill="${p.engraving}" opacity="0.7"/>`).join('') : '';
+  host.innerHTML = `
+  <svg viewBox="0 0 ${w} ${h}" aria-label="Rack overview">
+    <rect width="${w}" height="${h}" fill="${p.bg}"/>
+    <rect x="60" y="54" width="680" height="378" rx="16" fill="${p.panel}" stroke="${p.metal}" stroke-width="3"/>
+    <rect x="76" y="70" width="648" height="346" rx="11" fill="rgba(255,255,255,0.03)" stroke="${p.engraving}" stroke-width="1" opacity="0.42"/>
+    ${cellsSvg}
+    ${points}
+    <text x="400" y="464" text-anchor="middle" fill="${p.engraving}" font-size="14">${esc(state.pattern.toUpperCase())} RACK · CLICK A CELL</text>
+  </svg>`;
+}
+
+function scrollGlyph(x,y,r,fill,selected=false,large=false){
+  const edge = selected ? 'rgba(255,255,255,0.92)' : 'rgba(102,81,55,0.74)';
+  const sw = selected ? 2.2 : 1.2;
+  const markScale = large ? 1.15 : 1;
+  return `
+    <g>
+      <circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${edge}" stroke-width="${sw}"/>
+      <circle cx="${x}" cy="${y}" r="${r*0.68}" fill="none" stroke="rgba(91,72,45,0.35)" stroke-width="1"/>
+      <circle cx="${x}" cy="${y}" r="${r*0.33}" fill="none" stroke="rgba(91,72,45,0.35)" stroke-width="1"/>
+      <path d="M ${x-r*0.12} ${y+r*0.05} Q ${x} ${y-r*0.15} ${x+r*0.14} ${y-r*0.02}" fill="none" stroke="rgba(91,72,45,0.72)" stroke-width="${1.05*markScale}" stroke-linecap="round"/>
+    </g>`;
+}
+
+function renderCellInspector(){
+  const host = $('cellCanvas'); syncCanvasClass(host);
+  const p = themes[state.theme];
+  const cell = getSelectedCell();
+  if(!cell){ host.innerHTML=''; return; }
+  const bounds = polyBounds(cell.poly);
+  const scale = Math.min(420/(bounds.maxX-bounds.minX+20), 420/(bounds.maxY-bounds.minY+20));
+  const poly = scalePoly(cell.poly, scale, 256 - ((bounds.minX+bounds.maxX)/2)*scale, 256 - ((bounds.minY+bounds.maxY)/2)*scale);
+  const scrolls = cell.scrolls.map(sc => ({...sc, sx: sc.x*scale + 256 - ((bounds.minX+bounds.maxX)/2)*scale, sy: sc.y*scale + 256 - ((bounds.minY+bounds.maxY)/2)*scale, sr: sc.r*scale }));
+  const gaps = cell.gaps.map(g => ({...g, sx:g.x*scale + 256 - ((bounds.minX+bounds.maxX)/2)*scale, sy:g.y*scale + 256 - ((bounds.minY+bounds.maxY)/2)*scale}));
+  const pts = poly.map(pt => `${pt.x},${pt.y}`).join(' ');
+  let gapSvg='';
+  if(state.showGaps){
+    gapSvg = gaps.map((g, idx) => {
+      const active = hoveredGap && Math.abs(hoveredGap.x-g.x)<0.01 && Math.abs(hoveredGap.y-g.y)<0.01;
+      return `<circle data-gap="${idx}" cx="${g.sx}" cy="${g.sy}" r="${Math.max(10, g.score*0.75)}" fill="${active ? 'rgba(194,170,120,0.22)' : 'rgba(255,255,255,0.08)'}" stroke="${active ? p.metal : 'rgba(255,255,255,0.24)'}" stroke-width="${active ? 2.4 : 1}"/>`;
+    }).join('');
+  }
+  host.innerHTML = `
+    <svg viewBox="0 0 512 512" aria-label="Selected cell inspector">
+      <rect width="512" height="512" fill="${p.bg}"/>
+      <polygon points="${pts}" fill="rgba(255,255,255,0.04)" stroke="${p.metal}" stroke-width="5"/>
+      ${gapSvg}
+      ${scrolls.map(sc => scrollGlyph(sc.sx, sc.sy, sc.sr, sc.tone, sc.id===selectedScrollId, true)).join('')}
+    </svg>`;
+  host._view = { poly, scrolls, gaps, scale, offsetX: 256 - ((bounds.minX+bounds.maxX)/2)*scale, offsetY: 256 - ((bounds.minY+bounds.maxY)/2)*scale };
+}
+
+
+function holderItemFace(mode, x, y, scale, index, presented=false){
+  const p=themes[state.theme];
+  if(mode==='records'){
+    const fill = recordPalette[index % recordPalette.length];
+    return `
+      <g transform="translate(${x},${y}) scale(${scale})">
+        <ellipse cx="0" cy="0" rx="62" ry="78" fill="${fill}" stroke="${p.metal}" stroke-width="3"/>
+        <ellipse cx="0" cy="0" rx="46" ry="60" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+        <ellipse cx="0" cy="0" rx="28" ry="36" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.6"/>
+        <ellipse cx="0" cy="0" rx="17" ry="22" fill="#d8cfb3" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+        <circle cx="0" cy="0" r="4" fill="${p.panel}"/>
+        <path d="M -6 2 q 6 -9 13 0" fill="none" stroke="${p.panel}" stroke-width="2" stroke-linecap="round"/>
+      </g>`;
+  }
+  if(mode==='tablets'){
+    const fill = tabletPalette[index % tabletPalette.length];
+    const glyphs = ['A','Ω','Æ','M','S','⟡','R','✶'];
+    return `
+      <g transform="translate(${x},${y}) scale(${scale})">
+        <rect x="-50" y="-72" width="100" height="144" rx="12" fill="${fill}" stroke="${p.metal}" stroke-width="3"/>
+        <rect x="-38" y="-58" width="76" height="116" rx="8" fill="none" stroke="rgba(90,76,56,0.28)" stroke-width="2"/>
+        <text x="0" y="12" text-anchor="middle" fill="rgba(88,72,54,0.82)" font-size="48">${glyphs[index%glyphs.length]}</text>
+      </g>`;
+  }
+  const fill = ledgerPalette[index % ledgerPalette.length];
+  return `
+    <g transform="translate(${x},${y}) scale(${scale})">
+      <rect x="-46" y="-72" width="92" height="144" rx="8" fill="${fill}" stroke="${p.metal}" stroke-width="3"/>
+      <rect x="-34" y="-55" width="4" height="110" fill="rgba(255,255,255,0.18)"/>
+      <rect x="-18" y="-40" width="44" height="3" fill="rgba(227,220,206,0.68)"/>
+      <rect x="-18" y="-3" width="44" height="3" fill="rgba(227,220,206,0.46)"/>
+      <rect x="-18" y="34" width="44" height="3" fill="rgba(227,220,206,0.46)"/>
+    </g>`;
+}
+function holderEdgeItem(mode, x, y, i, selected=false){
+  const p=themes[state.theme];
+  if(mode==='records'){
+    const fill = recordPalette[i % recordPalette.length];
+    return `
+      <g data-holder="${i}">
+        <ellipse cx="${x}" cy="${y}" rx="15" ry="102" fill="${fill}" stroke="${selected ? p.text : p.metal}" stroke-width="${selected ? 2.3 : 1.6}"/>
+        <ellipse cx="${x}" cy="${y}" rx="9" ry="70" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="1.2"/>
+      </g>`;
+  }
+  if(mode==='tablets'){
+    const fill = tabletPalette[i % tabletPalette.length];
+    return `
+      <g data-holder="${i}">
+        <rect x="${x-15}" y="${y-92}" width="30" height="184" rx="5" fill="${fill}" stroke="${selected ? p.text : p.metal}" stroke-width="${selected ? 2.3 : 1.6}"/>
+      </g>`;
+  }
+  const fill = ledgerPalette[i % ledgerPalette.length];
+  return `
+    <g data-holder="${i}">
+      <rect x="${x-15}" y="${y-92}" width="30" height="184" rx="4" fill="${fill}" stroke="${selected ? p.text : p.metal}" stroke-width="${selected ? 2.3 : 1.6}"/>
+      <rect x="${x-10}" y="${y-82}" width="2" height="164" fill="rgba(255,255,255,0.15)"/>
+    </g>`;
+}
+function renderHolder(){
+  const host = $('holderCanvas'); syncCanvasClass(host);
+  const p = themes[state.theme];
+  const mode = state.holderMode;
+  const count = state.holderCount;
+  const items = makeHolderItems(mode, count);
+  if(presentedHolderIndex >= items.length) presentedHolderIndex = items.length-1;
+  const baseX = 184, baseY = 345;
+  let edgeItems='';
+  for(let i=0;i<items.length;i++){
+    const x = 140 + i*36;
+    const y = 218;
+    edgeItems += holderEdgeItem(mode, x, y, i, i===presentedHolderIndex);
+  }
+  const face = holderItemFace(mode, 600, 215, 1, presentedHolderIndex, true);
+  host.innerHTML = `
+  <svg viewBox="0 0 800 500" aria-label="Upright holder">
+    <rect width="800" height="500" fill="${p.bg}"/>
+    <rect x="72" y="352" width="300" height="10" rx="4" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/>
+    <rect x="92" y="160" width="10" height="196" rx="4" fill="${p.metal}"/>
+    <rect x="336" y="160" width="10" height="196" rx="4" fill="${p.metal}"/>
+    <path d="M 102 324 L 336 324" stroke="${p.metal}" stroke-width="4"/>
+    <path d="M 122 340 L 316 340" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+    <path d="M 132 332 L 306 332" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+    ${edgeItems}
+    <rect x="458" y="118" width="250" height="212" rx="12" fill="rgba(255,255,255,0.03)" stroke="${p.engraving}" stroke-width="1" opacity="0.55"/>
+    <rect x="514" y="320" width="172" height="12" rx="4" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/>
+    ${face}
+    <text x="220" y="394" text-anchor="middle" fill="${p.engraving}" font-size="14">STORED ${mode.toUpperCase()}</text>
+    <text x="583" y="394" text-anchor="middle" fill="${p.engraving}" font-size="14">PRESENTED FACE</text>
+  </svg>`;
+}
+
+function updateStatus(){
+  const cell = getSelectedCell();
+  if(!cell){ $('cellStatus').textContent = 'No cell selected.'; $('selectedScrollInfo').textContent='None'; $('gapInfo').textContent='None'; $('removeBtn').disabled=true; $('insertBtn').disabled=true; return; }
+  const overlap = measureOverlap(cell);
+  $('cellStatus').textContent = `Cell ${selectedCellIndex+1} · ${cell.scrolls.length} scrolls · ${cell.gaps.length} candidate gaps · overlap ${overlap.toFixed(2)}`;
+  const sel = selectedScroll();
+  $('selectedScrollInfo').textContent = sel ? `ID ${sel.id} · radius ${sel.r} · tier ${scrollTiers.indexOf(sel.r)+1}` : 'None';
+  $('gapInfo').textContent = hoveredGap ? `(${hoveredGap.x.toFixed(1)}, ${hoveredGap.y.toFixed(1)}) · score ${hoveredGap.score.toFixed(1)}` : 'None';
+  $('removeBtn').disabled = !sel;
+  $('insertBtn').disabled = !hoveredGap;
+}
+function measureOverlap(cell){
+  let sum = 0;
+  for(let i=0;i<cell.scrolls.length;i++) for(let j=i+1;j<cell.scrolls.length;j++){
+    const a=cell.scrolls[i], b=cell.scrolls[j];
+    const d = distance(a,b); const md = a.r+b.r; if(d < md) sum += (md-d);
+  }
+  return sum;
+}
+
+function renderAll(){ renderRackOverview(); renderCellInspector(); renderHolder(); updateStatus(); }
+
+function resetEverything(){
+  history.length = 0; $('undoBtn').disabled = true;
+  rack = createRack();
+  selectedCellIndex = Math.min(selectedCellIndex, rack.cells.length-1);
+  selectedScrollId = null; hoveredGap = null; presentedHolderIndex = 0;
+  activateSimulation(2500); setNotice("New collision-free cell layouts generated. Click a cell to inspect it."); updateStatus(); renderAll();
+}
+
+function rackCanvasClick(ev){
+  const rect = $('rackCanvas').getBoundingClientRect();
+  const x = (ev.clientX-rect.left)/rect.width*800;
+  const y = (ev.clientY-rect.top)/rect.height*500;
+  for(let i=0;i<rack.cells.length;i++){
+    if(pointInPoly({x,y}, rack.cells[i].poly)){ selectedCellIndex = i; selectedScrollId = null; hoveredGap = null; activateSimulation(2000); renderAll(); return; }
+  }
+}
+
+function cellCanvasPointer(ev){
+  const host = $('cellCanvas'); const view = host._view; if(!view) return;
+  const rect = host.getBoundingClientRect(); const x = (ev.clientX-rect.left)/rect.width*512; const y = (ev.clientY-rect.top)/rect.height*512;
+  hoveredGap = null;
+  if(state.showGaps){
+    let best = null; let bestDist = Infinity;
+    for(let i=0;i<view.gaps.length;i++){
+      const g = view.gaps[i]; const d = Math.hypot(x-g.sx, y-g.sy); const rr = Math.max(10, g.score*0.75)+6;
+      if(d < rr && d < bestDist){ bestDist = d; best = getSelectedCell().gaps[i]; }
+    }
+    hoveredGap = best;
+  }
+  updateStatus(); renderCellInspector();
+}
+function cellCanvasClick(ev){
+  const host = $('cellCanvas'); const view = host._view; if(!view) return;
+  const rect = host.getBoundingClientRect(); const x = (ev.clientX-rect.left)/rect.width*512; const y = (ev.clientY-rect.top)/rect.height*512;
+  selectedScrollId = null;
+  for(let i=view.scrolls.length-1;i>=0;i--){
+    const sc = view.scrolls[i];
+    if(Math.hypot(x-sc.sx,y-sc.sy) <= sc.sr){ selectedScrollId = sc.id; hoveredGap = null; updateStatus(); renderCellInspector(); return; }
+  }
+  // clicking a hovered gap does not insert automatically; it just highlights.
+  updateStatus(); renderCellInspector();
+}
+
+function holderCanvasMove(ev){
+  const rect = $('holderCanvas').getBoundingClientRect();
+  const x = (ev.clientX-rect.left)/rect.width*800;
+  const y = (ev.clientY-rect.top)/rect.height*500;
+  hoveredHolderIndex = -1;
+  for(let i=0;i<state.holderCount;i++){
+    const hx = 140 + i*36;
+    const within = state.holderMode==='records' ? ((Math.pow((x-hx)/15,2) + Math.pow((y-218)/102,2)) <= 1.2)
+      : (x >= hx-18 && x <= hx+18 && y >= 126 && y <= 310);
+    if(within){ hoveredHolderIndex = i; break; }
+  }
+}
+function holderCanvasClick(){ if(hoveredHolderIndex >=0){ presentedHolderIndex = hoveredHolderIndex; renderHolder(); } }
+
+function animate(now){
+  const dt = Math.min(33, now-lastTime); lastTime = now;
+  const cell = getSelectedCell();
+  if(cell){
+    const steps = Math.max(1, Math.min(2,Math.round(dt/16)));
+    for(let i=0;i<steps;i++) relaxCell(cell, 1);
+    if(now - lastGapRefresh > 180){ const oldGap=hoveredGap;
+      cell.gaps = computeGapCandidates(cell);
+      if(oldGap){const near=cell.gaps.find(g=>distance(g,oldGap)<12);hoveredGap=near||oldGap;}
+      lastGapRefresh = now; }
+    renderRackOverview(); renderCellInspector(); updateStatus();
+  }
+  frameHandle = requestAnimationFrame(animate);
+}
+
+function bindUI(){
+  $('themeSelect').addEventListener('input', e=>{ state.theme = e.target.value; setTheme(state.theme); renderAll(); });
+  $('showGrid').addEventListener('input', e=>{ state.showGrid = e.target.checked; renderAll(); });
+  $('gridSize').addEventListener('input', e=>{ state.gridSize = Number(e.target.value); updateReadouts(); renderAll(); });
+  $('patternSelect').addEventListener('input', e=>{ state.pattern = e.target.value; resetEverything(); });
+  $('densityRange').addEventListener('input', e=>{ state.density = Number(e.target.value); updateReadouts(); resetEverything(); });
+  $('resetRackBtn').addEventListener('click', resetEverything);
+  $('newScrollSize').addEventListener('input', e=>{ state.newTier = Number(e.target.value); });
+  $('dropBtn').addEventListener('click', ()=>{ dropScrollFromTop(); renderAll(); });
+  $('insertBtn').addEventListener('click', ()=>{ insertScrollAtGap(); renderAll(); });
+  $('removeBtn').addEventListener('click', ()=>{ removeSelectedScroll(); renderAll(); });
+  $('undoBtn').addEventListener('click', ()=>{ restoreHistory(); renderAll(); });
+  $('showGaps').addEventListener('input', e=>{ state.showGaps = e.target.checked; renderCellInspector(); updateStatus(); });
+  $('showPoints').addEventListener('input', e=>{ state.showPoints = e.target.checked; renderRackOverview(); });
+  $('holderMode').addEventListener('input', e=>{ state.holderMode = e.target.value; rack.holderItems = makeHolderItems(state.holderMode, state.holderCount); presentedHolderIndex = 0; renderHolder(); });
+  $('holderCount').addEventListener('input', e=>{ state.holderCount = Number(e.target.value); updateReadouts(); rack.holderItems = makeHolderItems(state.holderMode, state.holderCount); if(presentedHolderIndex >= state.holderCount) presentedHolderIndex = state.holderCount-1; renderHolder(); });
+
+  $('rackCanvas').addEventListener('click', rackCanvasClick);
+  $('cellCanvas').addEventListener('mousemove', cellCanvasPointer);
+  // Keep the chosen gap while moving the pointer to the Insert button.
+  $('cellCanvas').addEventListener('mouseleave', ()=>{ updateStatus(); });
+  $('cellCanvas').addEventListener('click', cellCanvasClick);
+  $('holderCanvas').addEventListener('mousemove', holderCanvasMove);
+  $('holderCanvas').addEventListener('click', holderCanvasClick);
+}
+
+updateReadouts();
+setTheme(state.theme);
+bindUI();
+resetEverything();
+frameHandle = requestAnimationFrame(animate);
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ns0:svg xmlns:ns0="http://www.w3.org/2000/svg" width="564" height="167" viewBox="0 253 564 167" xmlns="http://www.w3.org/2000/svg"><ns0:path d="M 3.0,275.0 L 12.0,282.0 L 23.0,294.0 L 33.0,320.0 L 43.0,355.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="3.0" cy="275" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="12.0" cy="282" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="23.0" cy="294" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="33.0" cy="320" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M29 320 H37 M33 316 V324" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="43.0" cy="355" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M47 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="23.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">I</ns0:text>
+<ns0:path d="M7 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 49.0,361.0 L 60.0,343.0 L 69.0,319.0 L 79.0,287.0 L 90.0,276.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="49.0" cy="361" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="60.0" cy="343" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="69.0" cy="319" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="79.0" cy="287" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M75 287 H83 M79 283 V291" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="90.0" cy="276" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M94 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="70.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">II</ns0:text>
+<ns0:path d="M54 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 97.0,275.0 L 106.0,304.0 L 117.0,347.0 L 127.0,362.0 L 137.0,377.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="97.0" cy="275" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="106.0" cy="304" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="117.0" cy="347" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="127.0" cy="362" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M123 362 H131 M127 358 V366" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="137.0" cy="377" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M141 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="117.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">III</ns0:text>
+<ns0:path d="M101 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 144.0,377.0 L 154.0,362.0 L 164.0,343.0 L 174.0,301.0 L 184.0,277.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="144.0" cy="377" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="154.0" cy="362" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="164.0" cy="343" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="174.0" cy="301" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M170 301 H178 M174 297 V305" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="184.0" cy="277" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M188 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="164.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">IV</ns0:text>
+<ns0:path d="M148 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 191.0,269.0 L 201.0,280.0 L 211.0,302.0 L 221.0,351.0 L 231.0,367.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="191.0" cy="269" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="201.0" cy="280" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="211.0" cy="302" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="221.0" cy="351" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M217 351 H225 M221 347 V355" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="231.0" cy="367" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M235 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="211.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">V</ns0:text>
+<ns0:path d="M195 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 238.0,372.0 L 248.0,354.0 L 258.0,313.0 L 268.0,295.0 L 278.0,275.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="238.0" cy="372" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="248.0" cy="354" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="258.0" cy="313" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="268.0" cy="295" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M264 295 H272 M268 291 V299" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="278.0" cy="275" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M282 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="258.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">VI</ns0:text>
+<ns0:path d="M242 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 285.0,275.0 L 294.0,282.0 L 305.0,294.0 L 315.0,320.0 L 325.0,355.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="285.0" cy="275" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="294.0" cy="282" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="305.0" cy="294" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="315.0" cy="320" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M311 320 H319 M315 316 V324" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="325.0" cy="355" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M329 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="305.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">I</ns0:text>
+<ns0:path d="M289 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 331.0,361.0 L 342.0,343.0 L 351.0,319.0 L 361.0,287.0 L 372.0,276.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="331.0" cy="361" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="342.0" cy="343" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="351.0" cy="319" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="361.0" cy="287" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M357 287 H365 M361 283 V291" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="372.0" cy="276" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M376 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="352.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">II</ns0:text>
+<ns0:path d="M336 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 379.0,275.0 L 388.0,304.0 L 399.0,347.0 L 409.0,362.0 L 419.0,377.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="379.0" cy="275" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="388.0" cy="304" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="399.0" cy="347" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="409.0" cy="362" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M405 362 H413 M409 358 V366" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="419.0" cy="377" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M423 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="399.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">III</ns0:text>
+<ns0:path d="M383 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 426.0,377.0 L 436.0,362.0 L 446.0,343.0 L 456.0,301.0 L 466.0,277.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="426.0" cy="377" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="436.0" cy="362" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="446.0" cy="343" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="456.0" cy="301" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M452 301 H460 M456 297 V305" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="466.0" cy="277" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M470 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="446.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">IV</ns0:text>
+<ns0:path d="M430 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 473.0,269.0 L 483.0,280.0 L 493.0,302.0 L 503.0,351.0 L 513.0,367.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="473.0" cy="269" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="483.0" cy="280" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="493.0" cy="302" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="503.0" cy="351" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M499 351 H507 M503 347 V355" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="513.0" cy="367" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M517 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="493.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">V</ns0:text>
+<ns0:path d="M477 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/>
+<ns0:path d="M 520.0,372.0 L 530.0,354.0 L 540.0,313.0 L 550.0,295.0 L 560.0,275.0" fill="none" stroke="#61a190" stroke-width="1.1" stroke-linejoin="round" opacity=".94"/>
+<ns0:circle cx="520.0" cy="372" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="530.0" cy="354" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="540.0" cy="313" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:circle cx="550.0" cy="295" r="2.1" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M546 295 H554 M550 291 V299" stroke="#a2bdbd" opacity=".65" stroke-width=".55"/>
+<ns0:circle cx="560.0" cy="275" r="1.5" fill="#abc7c7" opacity=".93"/>
+<ns0:path d="M564 258 V420" stroke="#558e7f" stroke-width=".75" stroke-dasharray="2 6" opacity=".34"/>
+<ns0:text x="540.5" y="311" fill="#9eb8b8" font-size="9.3" font-family="Georgia,serif" letter-spacing="1" text-anchor="middle">VI</ns0:text>
+<ns0:path d="M524 401 h33" stroke="#579081" stroke-width=".7" opacity=".34"/></ns0:svg>

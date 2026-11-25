@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Astral Archive — Storage Workshop III</title>
+<style>
+:root{--background:#121e23;--panel:#263c37;--metal:#8c6e5a;--engraving:#91ada1;--text:#e6e1d8;--ink:#172326}
+*{box-sizing:border-box}html{scrollbar-color:var(--metal) var(--background)}body{margin:0;background:var(--background);color:var(--text);font-family:Georgia,'Times New Roman',serif;min-width:320px}
+.shell{display:grid;grid-template-columns:292px minmax(0,1fr);min-height:100vh}.side{border-right:1px solid color-mix(in srgb,var(--metal) 60%,transparent);background:color-mix(in srgb,var(--panel) 58%,var(--background));padding:24px 17px 40px;position:sticky;top:0;height:100vh;overflow:auto}.brand{display:flex;align-items:center;gap:11px;padding:3px 2px 17px;border-bottom:1px solid color-mix(in srgb,var(--metal) 30%,transparent)}.logo{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--metal);border-radius:50%;color:var(--engraving);font-size:22px}.brand h1{font-size:19px;line-height:1.1;margin:0;letter-spacing:.04em}.brand p{font-size:11px;color:var(--engraving);margin:5px 0 0;letter-spacing:.1em;text-transform:uppercase}.sideintro{font-size:13px;line-height:1.55;color:var(--engraving);padding:15px 3px 2px}
+fieldset{border:1px solid color-mix(in srgb,var(--metal) 44%,transparent);border-radius:10px;margin:13px 0;padding:12px 12px 13px;min-width:0}legend{padding:0 6px;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.14em;font-weight:bold}.field{margin:10px 0}.field label{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--engraving);margin-bottom:7px}.field output{color:var(--text);font-variant-numeric:tabular-nums}.field input[type=range]{width:100%;accent-color:var(--metal)}.field select{width:100%;border:1px solid var(--metal);background:var(--background);color:var(--text);border-radius:6px;padding:7px;font-family:inherit;font-size:14px}.switch{display:flex;align-items:center;gap:8px;font-size:12px;margin:10px 0;color:var(--text)}.switch input{accent-color:var(--metal)}.buttonrow{display:flex;gap:8px;flex-wrap:wrap}.buttonrow button{font-family:inherit;background:var(--panel);border:1px solid var(--metal);color:var(--text);font-size:12px;padding:7px 10px;border-radius:6px;cursor:pointer}.buttonrow button:hover{background:color-mix(in srgb,var(--metal) 22%,var(--panel))}
+main{padding:28px clamp(14px,2.7vw,38px) 55px;min-width:0}.top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;border-bottom:1px solid color-mix(in srgb,var(--metal) 43%,transparent);padding-bottom:20px;margin-bottom:22px}.eyebrow{font-size:11px;letter-spacing:.2em;color:var(--engraving);text-transform:uppercase;margin:0 0 8px}.top h2{font-size:clamp(25px,3vw,36px);line-height:1.15;margin:0;font-weight:normal;letter-spacing:.025em}.top p{font-size:14px;margin:9px 0 0;color:var(--engraving);max-width:720px;line-height:1.5}.stamp{white-space:nowrap;color:var(--engraving);border:1px solid color-mix(in srgb,var(--metal) 50%,transparent);padding:7px 10px;border-radius:5px;font-size:11px;letter-spacing:.09em;text-transform:uppercase}
+.content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}.bay{border:1px solid color-mix(in srgb,var(--metal) 65%,transparent);background:color-mix(in srgb,var(--panel) 42%,var(--background));border-radius:12px;overflow:hidden;box-shadow:0 13px 28px rgba(0,0,0,.12)}.bayheader{padding:16px 18px 11px;border-bottom:1px solid color-mix(in srgb,var(--metal) 26%,transparent)}.bay h3{font-size:19px;margin:0 0 7px;font-weight:normal}.bayheader p{font-size:12.5px;line-height:1.47;margin:0;color:var(--engraving);min-height:36px}.render{padding:7px}.render svg{width:100%;height:auto;display:block;border-radius:6px}.caption{padding:3px 17px 15px;font-size:11.5px;line-height:1.5;color:var(--engraving)}.status{font-family:ui-monospace,monospace;font-size:11px;display:inline-block;color:var(--text);background:color-mix(in srgb,var(--panel) 80%,var(--background));padding:6px 9px;border-radius:5px;border:1px solid color-mix(in srgb,var(--metal) 50%,transparent)}.status[data-ok=no]{color:#ecc6a2;border-color:#b67f60}.status[data-ok=yes]{color:var(--engraving)}.detail{margin-top:25px;border:1px solid color-mix(in srgb,var(--metal) 40%,transparent);border-radius:10px;padding:15px 17px;color:var(--engraving);font-size:13px;line-height:1.55}.detail strong{color:var(--text)}
+.s-inscription{font-size:13px;letter-spacing:.1em;font-family:Georgia,serif}.object{cursor:help}.object:hover{filter:brightness(1.08)}#tooltip{position:fixed;z-index:20;pointer-events:none;max-width:265px;background:var(--panel);color:var(--text);border:1px solid var(--metal);padding:8px 11px;border-radius:6px;font-size:12px;line-height:1.4;box-shadow:0 7px 22px rgba(0,0,0,.3)}[hidden]{display:none!important}
+@media(max-width:1250px){.content{grid-template-columns:1fr}}@media(max-width:800px){.shell{display:block}.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--metal)}main{padding:22px 12px 45px}.top{display:block}.stamp{display:inline-block;margin-top:12px}}
+
+/* Storage Workshop IV — selected-cell inspector and scroll operations */
+.rack-cell{cursor:pointer;transition:fill .13s ease}
+.rack-cell:hover{fill:#52675c!important}
+.rack-cell.active-cell{cursor:pointer}
+#rackSvg svg .object[data-cell]{cursor:pointer}
+.focus-shell{padding:13px 17px 17px;border-top:1px solid color-mix(in srgb,var(--metal) 35%,transparent);background:color-mix(in srgb,var(--background) 36%,transparent)}
+.focus-head{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.focus-head strong{font-weight:normal;font-size:18px}
+.focus-head small{color:var(--engraving)}
+.focus-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(190px,.85fr);gap:14px;align-items:start}
+#cellInspectorSvg{background:color-mix(in srgb,var(--background) 80%,var(--panel));border:1px solid color-mix(in srgb,var(--metal) 40%,transparent);border-radius:8px;overflow:hidden;min-height:265px;display:grid;place-items:center;touch-action:none}
+#cellFocus{width:100%;height:300px;display:block;touch-action:none;cursor:crosshair}
+#cellFocus [data-scroll]{cursor:grab}
+#cellFocus [data-scroll]:active{cursor:grabbing}
+.cell-notes{font-size:12px;color:var(--engraving);line-height:1.6}
+.cell-notes p{margin:0 0 10px}
+.cell-notes b{color:var(--text);font-weight:normal}
+.cell-action-row{display:flex;flex-wrap:wrap;gap:7px}
+.cell-action-row button{cursor:pointer;color:var(--text);border:1px solid var(--metal);background:var(--panel);padding:7px 9px;border-radius:5px;font:inherit;font-size:12px}
+.cell-action-row button:disabled{opacity:.4;cursor:not-allowed}
+.cell-status{min-height:42px;color:var(--engraving);font-size:12px;line-height:1.5;padding:8px 10px;border:1px solid color-mix(in srgb,var(--metal) 29%,transparent);border-radius:6px;margin-top:9px}
+.side .field select:disabled,.side .field input:disabled{opacity:.45}
+@media(max-width:920px){.focus-layout{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side">
+ <header class="brand"><div class="logo" aria-hidden="true">✧</div><div><h1>The Astral Archive</h1><p>Storage Workshop · IV</p></div></header>
+ <div class="sideintro">A study of how each illustrated file object physically occupies its container. Change the controls and inspect the contact points or cell intersections.</div>
+ <fieldset><legend>Archive</legend>
+  <div class="field"><label for="theme">Palette</label><select id="theme"><option value="evening">Evening</option><option value="twilight">Twilight</option><option value="midnight">Midnight</option></select></div>
+  <label class="switch"><input id="contacts" type="checkbox"> Show shelf contact points</label>
+ </fieldset>
+ <fieldset><legend>01 · Books</legend>
+  <div class="field"><label for="bookCount">Volumes <output id="bookCountValue"></output></label><input id="bookCount" type="range" min="4" max="14" step="1"></div>
+  <div class="field"><label for="bookGap">Spine gap <output id="bookGapValue"></output></label><input id="bookGap" type="range" min="1" max="9" step="1"></div>
+ </fieldset>
+ <fieldset><legend>02 · Scroll rack</legend>
+  <div class="field"><label for="pattern">Connected cell tiling</label><select id="pattern"><option value="square">Square</option><option value="diamond">Diamond</option><option value="triangle">Triangle</option><option value="hex">Hexagonal</option><option value="plain">Undivided</option></select></div>
+  <div class="field"><label for="pitch">Cell scale <output id="pitchValue"></output></label><input id="pitch" type="range" min="92" max="215" step="1"></div>
+  <div class="field"><label for="load">Scroll population <output id="loadValue"></output></label><input id="load" type="range" min="15" max="100" step="5"></div>
+  <label class="switch"><input id="guide" type="checkbox"> Show intersection nodes</label>
+  <div class="buttonrow"><button id="repack" type="button">Try another settlement</button><button id="resetPack" type="button">Reset layout</button></div>
+ </fieldset>
+ <fieldset><legend>02b · Selected scroll cell</legend>
+  <div class="field"><label for="cellMode">Cell interaction</label><select id="cellMode"><option value="browse">Browse · inspect only</option><option value="arrange" selected>Arrange · move and insert</option></select></div>
+  <div class="field"><label for="newTier">New scroll radius tier <output id="newTierValue">3/5</output></label><input id="newTier" type="range" min="1" max="5" step="1" value="3"></div>
+  <p class="notes" style="font-size:12px;color:var(--engraving)">Click a cell in the rack. In Arrange, hover a vacancy in its enlarged view to highlight a legal insertion location. Dropping follows an open top-entry path instead.</p>
+  <div class="buttonrow"><button id="dropOne" type="button">↓ Drop from top</button><button id="insertOne" type="button" disabled>⊕ Insert at gap</button></div>
+  <div class="buttonrow" style="margin-top:8px"><button id="clearOne" type="button">Remove demo scroll</button><button id="undoOne" type="button">Undo placement</button></div>
+ </fieldset>
+ <fieldset><legend>03 · Edge-on holder</legend>
+  <div class="field"><label for="holder">Illustrated object</label><select id="holder"><option value="records">Audio records</option><option value="tablets">Typeface stone tablets</option><option value="ledgers">Ledgers</option></select></div>
+  <div class="field"><label for="holderCount">Filled slots <output id="holderCountValue"></output></label><input id="holderCount" type="range" min="3" max="12" step="1"></div>
+  <div class="field"><label for="holderAngle">Face exposure <output id="holderAngleValue"></output></label><input id="holderAngle" type="range" min="0" max="38" step="1"></div>
+  <label class="switch"><input id="leadFace" type="checkbox" checked> Reveal the first artifact face</label>
+ </fieldset>
+ <fieldset><legend>04 · Supported objects</legend>
+  <div class="field"><label for="exhibit">Display family</label><select id="exhibit"><option value="mixed">Mixed exhibit</option><option value="art">Images / video / presentation</option><option value="sculpture">Sculptures</option><option value="instrument">Scientific instruments</option><option value="satchel">Sealed satchels</option></select></div>
+  <div class="field"><label for="exhibitCount">Objects <output id="exhibitCountValue"></output></label><input id="exhibitCount" type="range" min="1" max="5" step="1"></div>
+ </fieldset>
+</aside>
+<main>
+ <header class="top"><div><div class="eyebrow">The study of physical storage</div><h2>Objects should belong to their furniture.</h2><p>Fewer arbitrary positions, more explicit geometry. The diagrams use the Archive's three actual palettes and the book and shelf proportions established in the repository.</p></div><div class="stamp">Prototype IV · interactive scroll cells</div></header>
+ <div class="content">
+  <section class="bay"><div class="bayheader"><h3>01 · The book shelf</h3><p>Existing 42-unit spines with their ribbon bookmarks; every bottom meets the same actual shelf surface.</p></div><div class="render" id="bookSvg"></div><div class="caption">Source-informed reinterpretation of <code>Book.qml</code> and <code>Shelf.qml</code>, not a runtime QML renderer.</div></section>
+  <section class="bay"><div class="bayheader"><h3>02 · The scroll rack</h3><p>One continuous partitioned rack. Lines and their intersections define each square, diamond, or triangular cell; hexes form a separate tessellation.</p></div><div class="render" id="rackSvg"></div><div class="caption"><span id="rackStatus" class="status">Calculating geometry…</span><p>Click any cell to open its enlarged rummaging view. Each cell has its own saved demonstration placements, with individual drops or gap insertion.</p></div>
+   <div class="focus-shell">
+    <div class="focus-head"><strong id="selectedCellName">Selected cell</strong><small id="cellStats">Calculating…</small></div>
+    <div class="focus-layout"><div id="cellInspectorSvg"></div><div class="cell-notes">
+     <p><b>Rummage:</b> click a scroll for metadata. In Arrange, drag it to any collision-free position within the same cell.</p>
+     <p><b>Gap insertion:</b> faint rings mark candidate vacancies. Hover a free pocket to see the proposed scroll; then choose <b>Insert at gap</b>.</p>
+     <p><b>Top drop:</b> the new scroll enters near the upper edge and settles only along a collision-free route. If the entrance is blocked, insert it instead.</p>
+     <p id="scrollDetails">Select a scroll to inspect.</p>
+     <p>Insertion: <span id="insertionCoordinates">No gap selected</span></p>
+     <div id="cellMessage" class="cell-status" aria-live="polite"></div>
+    </div></div>
+   </div></section>
+  <section class="bay"><div class="bayheader"><h3>03 · The upright holder</h3><p>A compact plate-holder structure with actual bottom grooves and edge-on objects, not a row of overlapping front-facing icons.</p></div><div class="render" id="holderSvg"></div><div class="caption">All items are seated in defined slots and retained by the holder's side rails. Increase face exposure to explore a more angled drawing.</div></section>
+  <section class="bay"><div class="bayheader"><h3>04 · The exhibition shelf</h3><p>Illustrated artworks hang against the backing. Sculptures, instruments, and parcels are anchored by their physical bases.</p></div><div class="render" id="displaySvg"></div><div class="caption">All images are symbolic drawings; they do not preview the contents of actual files. Hover a drawn object for its metadata description.</div></section>
+ </div>
+ <div class="detail"><strong>Scope:</strong> This is a browser source prototype with synthetic objects. Its geometry is calculated rather than hand-positioned. Single-scroll drops use constrained gravity steps and are <strong>not</strong> a full rigid-body dynamics engine. It does not modify your files, repository, or Quickshell installation. The next technical step is to translate the validated placement rules into QML policy and reuse the existing shelf widget directly.</div>
+</main>
+</div>
+<div id="tooltip" hidden></div>
+<script>
+'use strict';
+const THEMES={
+ evening:{background:'#343c43',panel:'#3f524f',metal:'#c2aa78',engraving:'#b7a2c8',text:'#f0f0e8'},
+ twilight:{background:'#121e23',panel:'#263c37',metal:'#8c6e5a',engraving:'#91ada1',text:'#e6e1d8'},
+ midnight:{background:'#080f10',panel:'#101c1b',metal:'#869c9c',engraving:'#568f80',text:'#dadfd9'}
+};
+const state={theme:'twilight',bookCount:9,bookGap:2,pattern:'diamond',pitch:142,load:45,variant:0,guide:false,holder:'records',holderCount:8,holderAngle:13,exhibit:'mixed',exhibitCount:4,contacts:false};
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const fmt=n=>Number(n.toFixed(2));
+const hash=(a,b=0)=>{let x=(Math.imul(a+1,0x9e3779b1)^Math.imul(b+13,0x85ebca6b))>>>0; x^=x>>>16;x=Math.imul(x,0x7feb352d);x^=x>>>15;x=Math.imul(x,0x846ca68b);x^=x>>>16;return (x>>>0)/4294967296;};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const svgWrap=(content,title)=>`<svg viewBox="0 0 940 520" role="img" aria-label="${esc(title)}" xmlns="http://www.w3.org/2000/svg">${content}</svg>`;
+const title=(x,y,value,p)=>`<text x="${x}" y="${y}" class="s-inscription" text-anchor="middle" fill="${p.engraving}">${esc(value)}</text>`;
+const palette=()=>THEMES[state.theme];
+const matte=(p)=>`<rect x="0" y="0" width="940" height="520" fill="${p.background}"/><path d="M28 36H912M28 482H912" stroke="${p.engraving}" opacity=".13"/>`;
+const point=(x,y,r=3)=>`<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="#d8b47b" stroke="#263c37" stroke-width="1"/>`;
+const guides=(p,pts)=>state.guide?pts.map(q=>point(q.x,q.y,2.35)).join(''):'';
+const bookColors=['#4d6860','#665a63','#777360','#455a68','#71664f','#55526b','#586a59','#6c5156','#62737a','#544e5b'];
+const names=['DOLPHIN','KONSOLE','FIREFOX','EDITOR','MUSIC','ATLAS','INDEX','SCRIPT','GALLERY','NOTES','STAR MAP','BROWSER','ARCHIVE','SKETCH'];
+function booksView(){
+ const p=palette(),n=state.bookCount,gap=state.bookGap,boardTop=385,bw=42,total=n*bw+(n-1)*gap,x0=(940-total)/2;
+ let out=matte(p)+`<rect x="75" y="385" width="790" height="15" rx="3" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/><path d="M94 393H405M535 393H846" stroke="${p.engraving}" opacity=".5"/>${title(470,396,'◇ ✧ ◇',p)}<path d="M75 400H865" stroke="#050e10" opacity=".22" stroke-width="6"/>`;
+ for(let i=0;i<n;i++){
+  const x=x0+i*(bw+gap),h=clamp(102+Math.round(hash(i,3)*60),90,160),y=boardTop-h,col=bookColors[i%bookColors.length],name=names[i%names.length],horizontal=i%4===0,active=i===1||i===4||i===8;
+  out+=`<g class="object" data-tip="${esc(name)} · Application volume · ${h} × 42 design units"><rect x="${x}" y="${y}" width="42" height="${h}" rx="4" fill="${col}" stroke="${p.metal}" stroke-width="1.25"/><path d="M${x+4} ${y+5}v${h-10}M${x+38} ${y+5}v${h-10}" stroke="${p.engraving}" opacity=".2" stroke-width="1"/><path d="M${x+5} ${y+13}h32 M${x+5} ${y+Math.round(h*.49)}h32 M${x+5} ${y+h-14}h32" stroke="${p.metal}" opacity=".78" stroke-width="2"/>`;
+  if(horizontal){out+=`<text x="${x+21}" y="${y+Math.round(h*.35)}" font-size="9.5" text-anchor="middle" fill="${p.engraving}" font-family="Georgia">${esc(name.slice(0,6))}</text><text x="${x+21}" y="${y+Math.round(h*.7)}" font-size="9" text-anchor="middle" fill="${p.engraving}">VOL</text>`;}
+  else {out+=`<text transform="translate(${x+21} ${y+h/2}) rotate(90)" font-size="11" fill="${p.engraving}" font-family="Georgia" text-anchor="middle">${esc(name)}</text>`;}
+  if(active){const rx=x+14,by=y+6,len=h*.72; out+=`<path d="M${rx} ${by}H${rx+14}Q${rx+15} ${by+len*.25} ${rx+14} ${by+len*.63}V${by+len}L${rx+7} ${by+len-9}L${rx} ${by+len}V${by+len*.62}Q${rx} ${by+len*.3} ${rx} ${by}Z" fill="${i===4?p.engraving:p.metal}" stroke="${p.background}" stroke-width=".7"/><path d="M${rx+2} ${by+4}Q${rx+4} ${by+len*.45} ${rx+2} ${by+len*.75}" stroke="#fff" stroke-opacity=".24" fill="none"/>`;}
+  out+='</g>';
+ }
+ out+=`${state.contacts?`<path d="M${x0} 385H${x0+total}" stroke="#e4c679" stroke-width="2" stroke-dasharray="4 4"/>`:''}${title(470,454,'SHARED SUPPORT SURFACE · BOOKS REST AT Y = 385',p)}`;
+ return svgWrap(out,'Existing Astral Archive book spines with ribbon bookmarks resting on a shared shelf board');
+}
+// Geometry. All working polygons are counter-clockwise in SVG y-down coordinates,
+// so signed cross products in the containment tests must use the polygon's own winding.
+const FACE={x:72,y:70,w:796,h:380};
+function areaSigned(poly){let a=0;for(let i=0;i<poly.length;i++){const q=poly[i],r=poly[(i+1)%poly.length];a+=q.x*r.y-r.x*q.y;}return a/2;}
+function area(poly){return Math.abs(areaSigned(poly));}
+function normalize(poly){return areaSigned(poly)<0?poly.slice().reverse():poly;}
+function clipPoly(poly,rect){
+ const xmin=rect.x,xmax=rect.x+rect.w,ymin=rect.y,ymax=rect.y+rect.h;
+ let pts=poly;
+ const cuts=[{f:p=>p.x-xmin},{f:p=>xmax-p.x},{f:p=>p.y-ymin},{f:p=>ymax-p.y}];
+ for(const cut of cuts){const src=pts;pts=[];if(!src.length)break;
+  for(let i=0;i<src.length;i++){const a=src[i],b=src[(i+1)%src.length],fa=cut.f(a),fb=cut.f(b),aIn=fa>=-1e-8,bIn=fb>=-1e-8;
+   if(aIn)pts.push(a);if(aIn!==bIn){const t=fa/(fa-fb);pts.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});}
+  }
+ }
+ const out=[];for(const q of pts){if(!out.length||Math.hypot(q.x-out[out.length-1].x,q.y-out[out.length-1].y)>1e-5)out.push(q);}
+ if(out.length>1&&Math.hypot(out[0].x-out[out.length-1].x,out[0].y-out[out.length-1].y)<1e-5)out.pop();
+ return out.length>=3&&area(out)>0.00001?normalize(out):[];
+}
+function p2(x,y){return {x,y};}
+function tiles(pattern,pitch,rect=FACE){
+ const out=[],cx=rect.x+rect.w/2,cy=rect.y+rect.h/2;
+ function add(poly){let q=clipPoly(poly,rect);if(q.length && area(q)>0.00001)out.push(q);}
+ if(pattern==='square'||pattern==='plain'){
+  if(pattern==='plain'){add([p2(rect.x,rect.y),p2(rect.x+rect.w,rect.y),p2(rect.x+rect.w,rect.y+rect.h),p2(rect.x,rect.y+rect.h)]);return out;}
+  let nx=Math.ceil(rect.w/pitch),ny=Math.ceil(rect.h/pitch);const ox=rect.x+(rect.w-nx*pitch)/2,oy=rect.y+(rect.h-ny*pitch)/2;
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){let x=ox+i*pitch,y=oy+j*pitch;add([p2(x,y),p2(x+pitch,y),p2(x+pitch,y+pitch),p2(x,y+pitch)]);}
+ } else if(pattern==='diamond'){
+  // Intersections of perpendicular diagonal line families u=(x+y)/sqrt(2), v=(x-y)/sqrt(2).
+  const d=Math.SQRT2,range=Math.ceil((rect.w+rect.h)/pitch)+3;
+  const xy=(u,v)=>p2(cx+(u+v)/d,cy+(u-v)/d);
+  for(let i=-range;i<range;i++)for(let j=-range;j<range;j++){
+   const u0=i*pitch,u1=(i+1)*pitch,v0=j*pitch,v1=(j+1)*pitch;
+   add([xy(u0,v0),xy(u1,v0),xy(u1,v1),xy(u0,v1)]);
+  }
+ } else if(pattern==='triangle'){
+  // Intersections of the 0°, +60°, -60° line families form an equilateral triangular lattice.
+  const h=pitch*Math.sqrt(3)/2,N=Math.ceil((rect.w+rect.h)/pitch)+4;
+  const v=(i,j)=>p2(cx+i*pitch+j*pitch/2,cy+j*h);
+  for(let j=-N;j<N;j++)for(let i=-N;i<N;i++){
+   const a=v(i,j),b=v(i+1,j),c=v(i,j+1),d=v(i+1,j+1);
+   add([a,b,c]);add([b,d,c]);
+  }
+ } else if(pattern==='hex'){
+  // Pointy-top axial hex coordinates; shared edges form a true tessellation.
+  const radius=pitch/Math.sqrt(3),N=Math.ceil((rect.w+rect.h)/pitch)+3;
+  for(let r=-N;r<N;r++)for(let q=-N;q<N;q++){
+   const x=cx+Math.sqrt(3)*radius*(q+r/2),y=cy+radius*1.5*r;
+   if(x<rect.x-radius-2||x>rect.x+rect.w+radius+2||y<rect.y-radius-2||y>rect.y+rect.h+radius+2)continue;
+   const poly=Array.from({length:6},(_,i)=>{let a=(30+60*i)*Math.PI/180;return p2(x+radius*Math.cos(a),y+radius*Math.sin(a));});
+   add(poly);
+  }
+ }
+ return out;
+}
+function pointCircleIn(poly,x,y,r){
+ // In screen coordinates, normalize() produces positive signed area and its left normal points inward.
+ for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+  if((dx*(y-a.y)-dy*(x-a.x))/len < r+1.05-1e-6)return false;
+ }
+ return true;
+}
+function insideAndFree(poly,circles,x,y,r){
+ if(!pointCircleIn(poly,x,y,r))return false;
+ for(const c of circles){let min=r+c.r+.65,dx=c.x-x,dy=c.y-y;if(dx*dx+dy*dy<min*min-1e-6)return false;}
+ return true;
+}
+function bounds(poly){return {left:Math.min(...poly.map(p=>p.x)),right:Math.max(...poly.map(p=>p.x)),top:Math.min(...poly.map(p=>p.y)),bottom:Math.max(...poly.map(p=>p.y))};}
+function packCell(poly,cellId,load,variant){
+ const box=bounds(poly),a=area(poly);
+ // Five logarithmically compressed visual size tiers, independent of absolute screen scale.
+ const tiers=[8.5,10.5,12.5,15,18];
+ const meanArea=tiers.reduce((s,r)=>s+Math.PI*r*r,0)/tiers.length;
+ const desired=clamp(Math.round((a/meanArea)*(load/100)*.80),0,100);
+ let entries=Array.from({length:desired},(_,i)=>({id:i,r:tiers[Math.floor(hash(cellId*101+i,5)*5)],pref:hash(i+13,cellId+variant*137)}));
+ entries.sort((a,b)=>b.r-a.r||a.id-b.id);
+ const placed=[];let overflow=0;
+ for(const entry of entries){
+  const r=entry.r;let pos=null;
+  const left=box.left+r+1.1,right=box.right-r-1.1,bottom=box.bottom-r-1.1,top=box.top+r+1.1;
+  if(left>right||top>bottom){overflow++;continue;}
+  const step=3.3,candidateCount=Math.max(1,Math.floor((right-left)/step)),prefX=left+entry.pref*(right-left);
+  for(let y=bottom;y>=top;y-=step){
+   const chosen=[];
+   for(let k=0;k<=candidateCount;k++){
+    const x=left+(right-left)*(candidateCount===0?0:k/candidateCount);
+    chosen.push(x);
+   }
+   chosen.push(prefX);
+   chosen.sort((x,y)=>Math.abs(x-prefX)-Math.abs(y-prefX));
+   for(const x of chosen){if(insideAndFree(poly,placed,x,y,r)){pos={x,y,r,id:entry.id,tier:tiers.indexOf(r)};break;}}
+   if(pos)break;
+  }
+  if(pos)placed.push(pos);else overflow++;
+ }
+ return {placed,overflow,desired};
+}
+function verifyRack(cells,packs){
+ let overlap=0,outside=0,total=0;
+ cells.forEach((poly,i)=>{const cs=packs[i].placed;total+=cs.length;
+  for(let k=0;k<cs.length;k++){
+   let c=cs[k];if(!pointCircleIn(poly,c.x,c.y,c.r))outside++;
+   for(let j=k+1;j<cs.length;j++){const d=cs[j],dist=Math.hypot(c.x-d.x,c.y-d.y);if(dist+1e-5<c.r+d.r+.65)overlap++;}
+  }
+ });return {overlap,outside,total,overflow:packs.reduce((s,p)=>s+p.overflow,0),capacity:packs.reduce((s,p)=>s+p.desired,0),cells:cells.length};
+}
+function uniqueEdges(cells){
+ const edges=new Map(),vertices=new Map();
+ const key=(p)=>`${Math.round(p.x*1000)/1000},${Math.round(p.y*1000)/1000}`;
+ cells.forEach(poly=>poly.forEach((p,i)=>{let q=poly[(i+1)%poly.length],a=key(p),b=key(q);edges.set(a<b?a+'|'+b:b+'|'+a,[p,q]);vertices.set(a,p);}));
+ return {edges:[...edges.values()],vertices:[...vertices.values()]};
+}
+function scrollEnd(c,p,idx){const tones=['#d1bf9f','#cab38d','#d9c8a9','#bda681','#e1d2b5'];const fill=tones[(c.tier+idx)%tones.length],r=c.r,x=fmt(c.x),y=fmt(c.y);
+ return `<g class="object" data-tip="Scroll ${idx+1} · size tier ${c.tier+1}/5 · contained within rack cell"><circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#6f5d48" stroke-width="1.3"/><circle cx="${x}" cy="${y}" r="${fmt(r*.77)}" fill="none" stroke="#9b8266" stroke-width="1" opacity=".75"/><path d="M${fmt(c.x-r*.29)} ${fmt(c.y+r*.2)}Q${fmt(c.x+r*.3)} ${fmt(c.y-r*.35)} ${fmt(c.x+r*.15)} ${fmt(c.y+r*.19)}" fill="none" stroke="#887358" stroke-width=".85" opacity=".72"/>${state.contacts?`<circle cx="${x}" cy="${y}" r="1.8" fill="#8b332d"/>`:''}</g>`;
+}
+function rackView(){
+ const p=palette(),face=FACE,cells=tiles(state.pattern,state.pitch,face),packs=cells.map((poly,i)=>packCell(poly,i+1,state.load,state.variant)),diag=verifyRack(cells,packs);window.archiveDiagnostics=diag;
+ const geom=uniqueEdges(cells);
+ let out=matte(p)+`<rect x="58" y="55" width="824" height="414" rx="10" fill="${p.panel}" stroke="${p.metal}" stroke-width="9"/><rect x="${face.x}" y="${face.y}" width="${face.w}" height="${face.h}" fill="#1c2929"/>`;
+ cells.forEach((poly,i)=>{const d=poly.map((q,j)=>`${j?'L':'M'}${fmt(q.x)} ${fmt(q.y)}`).join(' ')+'Z';out+=`<path d="${d}" fill="${i%2?'#263934':'#293a36'}" stroke="none"/>`;});
+ let index=0;
+ packs.forEach(pack=>{pack.placed.forEach(c=>{out+=scrollEnd(c,p,index++);});});
+ out+=`<g stroke="${p.metal}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none">${geom.edges.map(([a,b])=>`<path d="M${fmt(a.x)} ${fmt(a.y)}L${fmt(b.x)} ${fmt(b.y)}"/>`).join('')}</g>`;
+ out+=`<rect x="${face.x}" y="${face.y}" width="${face.w}" height="${face.h}" fill="none" stroke="${p.metal}" stroke-width="6"/>`;
+ if(state.guide){out+=`<g opacity=".96">${geom.vertices.map(q=>point(q.x,q.y,2.5)).join('')}</g>`;}
+ if(state.contacts){out+=`<rect x="${face.x}" y="${face.y}" width="${face.w}" height="${face.h}" fill="none" stroke="#e1bd77" stroke-width="1" stroke-dasharray="5 5"/>`;}
+ out+=title(470,497,`${state.pattern.toUpperCase()} · ${diag.cells} CONNECTED CELLS · ${diag.total} SCROLLS · ${diag.overflow} OVERFLOW`,p);
+ const status=$('rackStatus');if(status){status.textContent=`${diag.total} scrolls placed · ${diag.cells} cells · ${diag.overlap} overlaps · ${diag.outside} boundary violations · ${diag.overflow} overflow`;status.dataset.ok=(diag.overlap===0&&diag.outside===0)?'yes':'no';}
+ return svgWrap(out,'Continuous tessellated scroll compartments with actual bounded circle packing');
+}
+const recordColors=['#566975','#465461','#68777a','#4e5b68','#5d6670'];
+const stoneColors=['#b4b1a4','#989b98','#8d918d','#b1a698','#777e81'];
+const ledgerColors=['#71665f','#5d6866','#756b55','#5e5b65','#82735f'];
+function holderItem(x,base,i,angle,p){
+ const mode=state.holder,col=(mode==='records'?recordColors:mode==='tablets'?stoneColors:ledgerColors)[i%5];
+ // All objects present their thin edges to the viewer, as in a plate-holder stand.
+ const rx=6+angle*.42,cy=base-99;
+ if(mode==='records'){
+  return `<g class="object" data-tip="Audio record ${i+1} · upright edge profile · slot ${i+1}"><ellipse cx="${x}" cy="${cy}" rx="${fmt(rx)}" ry="92" fill="${col}" stroke="${p.metal}" stroke-width="1.3"/><ellipse cx="${x-1}" cy="${cy}" rx="${fmt(Math.max(2,rx-3))}" ry="87" fill="none" stroke="#bec8c6" stroke-opacity=".48" stroke-width="1"/><path d="M${fmt(x-rx+1.5)} ${cy-70}Q${fmt(x-rx-4)} ${cy} ${fmt(x-rx+1.5)} ${cy+70}" stroke="#cfdbd5" stroke-opacity=".35" fill="none" stroke-width="1"/>${angle>16?`<circle cx="${fmt(x+rx*.15)}" cy="${cy}" r="${fmt(Math.min(13,angle*.36))}" fill="#868678" opacity=".65"/>`:''}</g>`;
+ }
+ if(mode==='tablets'){
+  const w=7+angle*.60,h=177,top=base-h;
+  return `<g class="object" data-tip="Typeface stone tablet ${i+1} · edge profile · slot ${i+1}"><path d="M${fmt(x-w/2)} ${top+5}L${fmt(x-w/2+4)} ${top}H${fmt(x+w/2-2)}L${fmt(x+w/2)} ${top+7}V${base-5}Q${fmt(x+w/2-1)} ${base} ${fmt(x+w/2-5)} ${base}H${fmt(x-w/2+3)}Q${fmt(x-w/2)} ${base} ${fmt(x-w/2)} ${base-5}Z" fill="${col}" stroke="#666960" stroke-width="1.2"/><path d="M${fmt(x-w/2+3)} ${top+13}V${base-13}" stroke="#ddd7c7" stroke-width="2" opacity=".5"/>${angle>17?`<text x="${x}" y="${base-85}" fill="#5b5c56" text-anchor="middle" font-size="${Math.min(15,angle*.45)}">${['A','Æ','R','Ω','M','N','S','T'][i%8]}</text>`:''}</g>`;
+ }
+ const w=8+angle*.42,h=166,top=base-h;
+ return `<g class="object" data-tip="Ledger ${i+1} · page block facing sideways · slot ${i+1}"><rect x="${fmt(x-w/2)}" y="${top}" width="${fmt(w)}" height="${h}" rx="2" fill="${col}" stroke="${p.metal}" stroke-width="1.3"/><path d="M${fmt(x-w/2+3)} ${top+8}V${base-8}" stroke="#d7ccb3" opacity=".66" stroke-width="1.3"/><path d="M${fmt(x+w/2-2)} ${top+9}V${base-10}" stroke="#282522" opacity=".45" stroke-width="1"/>${angle>19?`<path d="M${fmt(x-w/2+3)} ${top+27}h${fmt(w-6)}M${fmt(x-w/2+3)} ${top+34}h${fmt(w-6)}" stroke="#cfbd92" opacity=".6"/>`:''}</g>`;
+}
+function holderView(){
+ const p=palette(),n=state.holderCount,step=26,span=(n-1)*step,x0=470-span/2,base=358,left=x0-35,right=x0+span+35;
+ let out=matte(p);
+ out+=`<rect x="85" y="378" width="770" height="16" rx="4" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/>`;
+ // Behind each plate/tablet: lower channel supports the edge in a discrete slot.
+ out+=`<path d="M${left} 342H${right}" stroke="${p.metal}" stroke-width="7" stroke-linecap="round"/><path d="M${left} 355H${right}" stroke="${p.engraving}" stroke-opacity=".42" stroke-width="2"/>`;
+ for(let i=0;i<n;i++)out+=`<path d="M${fmt(x0+i*step-10)} 342v-11h20v11" fill="none" stroke="${p.metal}" stroke-width="1.5" opacity=".66"/>`;
+ for(let i=0;i<n;i++)out+=holderItem(x0+i*step,base,i,state.holderAngle,p);
+ // Outer U-shaped side cheeks pass in front of the stack; objects are physically captured by the stand.
+ out+=`<path d="M${left-13} 274V383H${right+13}V274" fill="none" stroke="${p.metal}" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/><path d="M${left-10} 345Q470 363 ${right+10} 345" fill="none" stroke="${p.engraving}" stroke-width="3" opacity=".64"/>`;
+ out+=`<path d="M${left-10} 383h-22M${right+10} 383h22" stroke="${p.metal}" stroke-width="6" stroke-linecap="round"/>`;
+ if(state.contacts){for(let i=0;i<n;i++)out+=point(x0+i*step,base,3.3);}
+ out+=title(470,446,`${state.holder.toUpperCase()} · ${n} UPRIGHT SLOTS · EDGE-ON PROFILES`,p);
+ return svgWrap(out,'Plate-holder inspired stand with records, tablets, or ledgers shown edge-on in physical slots');
+}
+function drawingArt(cx,top,w,h,p,i){
+ const scene=['#566d70','#6b665d','#5d665a','#6e6170','#646d59'][i%5],x=cx-w/2;
+ return `<g class="object" data-tip="Symbolic visual artwork ${i+1} · framed 2D depiction, not a file thumbnail"><rect x="${x}" y="${top}" width="${w}" height="${h}" fill="${p.metal}" rx="2"/><rect x="${x+7}" y="${top+7}" width="${w-14}" height="${h-14}" fill="${scene}"/><path d="M${x+12} ${top+h-24}Q${cx-18} ${top+h*.39} ${cx+12} ${top+h*.62}T${x+w-13} ${top+h-27}" fill="none" stroke="#c1bba0" stroke-opacity=".45" stroke-width="2"/><circle cx="${cx+20}" cy="${top+33}" r="10" fill="#d5c6a2" opacity=".65"/><path d="M${cx} ${top}V${top-9}" stroke="${p.metal}" stroke-width="2"/><circle cx="${cx}" cy="${top-9}" r="2" fill="${p.metal}"/></g>`;
+}
+function sculpture(cx,baseline,p,i){let col=['#b0a99b','#87999a','#a99f8e','#9b938d'][i%4];
+ return `<g class="object" data-tip="Sculpture ${i+1} · 2D figurine with base anchored to shelf" transform="translate(${cx} ${baseline})"><path d="M-41 -8H41V0H-41Z" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/><path d="M-31 -18H31V-8H-31Z" fill="${p.metal}" opacity=".58"/><path d="M-23 -42Q-31 -62 -21 -84L-13 -97Q0 -88 13 -97L21 -84Q31 -63 23 -42Z" fill="${col}" stroke="#53605c" stroke-width="1.5"/><path d="M-17 -42H17V-19H-17Z" fill="${col}" stroke="#53605c" stroke-width="1.2"/><ellipse cx="0" cy="-111" rx="18" ry="23" fill="${col}" stroke="#53605c" stroke-width="1.4"/><path d="M-7 -113Q0 -106 7 -113" fill="none" stroke="#53605c" stroke-width="1"/>${state.contacts?point(0,0,3):''}</g>`;
+}
+function instrument(cx,baseline,p,i){
+ return `<g class="object" data-tip="Scientific instrument ${i+1} · supported on a stone shelf" transform="translate(${cx} ${baseline})"><rect x="-39" y="-9" width="78" height="9" rx="2" fill="${p.panel}" stroke="${p.metal}" stroke-width="2"/><path d="M-8 -9V-44M8 -9V-44" stroke="${p.metal}" stroke-width="4"/><circle cx="0" cy="-82" r="46" fill="none" stroke="${p.metal}" stroke-width="5"/><circle cx="0" cy="-82" r="30" fill="none" stroke="${p.engraving}" stroke-width="2"/><path d="M-46 -82H46M0 -128V-36" stroke="${p.metal}" stroke-width="1.6"/><circle cx="0" cy="-82" r="5" fill="${p.metal}"/>${state.contacts?point(0,0,3):''}</g>`;
+}
+function satchel(cx,baseline,p,i){const col=['#7e6454','#826a58','#6f665f','#756358'][i%4];
+ return `<g class="object" data-tip="Sealed archive satchel ${i+1} · bottom edge rests on shelf" transform="translate(${cx} ${baseline})"><path d="M-46 0V-53Q-38 -70 -22 -72H22Q38 -70 46 -53V0Z" fill="${col}" stroke="#a48c71" stroke-width="1.5"/><path d="M-46 -49Q0 -68 46 -49L38 -30H-38Z" fill="#8f7962" stroke="#c0a386" stroke-width="1"/><path d="M-33 -56Q0 -92 33 -56" fill="none" stroke="#c0a386" stroke-width="3"/><circle cx="0" cy="-31" r="7" fill="${p.metal}"/><path d="M-41 0H41" stroke="#443b34" stroke-width="2"/>${state.contacts?point(0,0,3):''}</g>`;
+}
+function displayView(){const p=palette(),mode=state.exhibit,n=state.exhibitCount,base=385;
+ let out=matte(p)+`<rect x="80" y="70" width="780" height="258" rx="6" fill="#1b2929" stroke="${p.engraving}" opacity=".65"/><rect x="73" y="385" width="794" height="15" rx="3" fill="${p.panel}" stroke="${p.metal}" stroke-width="2.4"/>`;
+ if(mode==='art'){
+  let gap=20,w=Math.min(156,(700-(n-1)*gap)/n),start=(940-(n*w+(n-1)*gap))/2;
+  for(let i=0;i<n;i++)out+=drawingArt(start+i*(w+gap)+w/2,100,w,180,p,i);
+ }else if(mode==='mixed'){
+  out+=drawingArt(230,104,142,173,p,0);
+  out+=sculpture(438,base,p,0)+instrument(617,base,p,0)+satchel(776,base,p,0);
+ }else{
+  let gap=mode==='satchel'?125:160,x0=470-(n-1)*gap/2;
+  for(let i=0;i<n;i++){let x=x0+i*gap;
+   out+=mode==='sculpture'?sculpture(x,base,p,i):mode==='instrument'?instrument(x,base,p,i):satchel(x,base,p,i);
+  }
+ }
+ if(state.contacts){out+=`<path d="M73 385H867" stroke="#e1bd77" stroke-dasharray="5 5" stroke-width="2"/>`;}
+ out+=title(470,453,`${mode==='mixed'?'MIXED DISPLAY':mode.toUpperCase()} · ${mode==='art'?'WALL HANGERS':'SHARED SHELF BASELINE'}`,p);
+ return svgWrap(out,'Framed visual artwork and supported sculptures instruments and parcels');
+}
+function applyTheme(){const p=palette();for(const [k,v] of Object.entries(p))document.documentElement.style.setProperty(`--${k}`,v);}
+function render(){applyTheme();$('bookSvg').innerHTML=booksView();$('rackSvg').innerHTML=rackView();$('holderSvg').innerHTML=holderView();$('displaySvg').innerHTML=displayView();updateLabels();}
+function updateLabels(){['bookCount','bookGap','pitch','load','holderCount','holderAngle','exhibitCount'].forEach(k=>{const el=$(k+'Value');if(el)el.textContent=state[k]+(k==='load'?'%':k==='holderAngle'?'°':'');});}
+function connectControls(){
+ const fields=['theme','bookCount','bookGap','pattern','pitch','load','guide','contacts','holder','holderCount','holderAngle','exhibit','exhibitCount'];
+ fields.forEach(k=>{const el=$(k);el.value=state[k];if(el.type==='checkbox')el.checked=state[k];el.addEventListener('input',()=>{state[k]=el.type==='checkbox'?el.checked:el.type==='range'?Number(el.value):el.value;render();});});
+ $('repack').addEventListener('click',()=>{state.variant++;render();});
+ $('resetPack').addEventListener('click',()=>{state.variant=0;render();});
+ const tooltip=$('tooltip');
+ for(const svgId of ['bookSvg','rackSvg','holderSvg','displaySvg']){
+  const host=$(svgId);
+  host.addEventListener('pointermove',ev=>{
+   const elem=ev.target.closest('[data-tip]');if(!elem){tooltip.hidden=true;return;}
+   tooltip.textContent=elem.dataset.tip;tooltip.hidden=false;
+   tooltip.style.left=Math.min(window.innerWidth-280,ev.clientX+15)+'px';
+   tooltip.style.top=Math.min(window.innerHeight-55,ev.clientY+16)+'px';
+  });
+  host.addEventListener('pointerleave',()=>{tooltip.hidden=true;});
+ }
+}
+// Storage Workshop IV — selected cells, one-at-a-time dropping and gap insertion.
+const WORKSHOP = {
+  key:'', cells:[], packs:[], selected:-1, chosenId:null,
+  gap:null, gaps:[], history:[], nextId:10000,
+  dragging:null, dropping:false, dropGhost:null,
+  cellMode:'arrange', message:'Select a scroll or hover an open pocket to inspect it.'
+};
+const SCROLL_NAMES=['survey-notes.md','atlas-draft.pdf','field-record.txt','moon-phase.odt','observations.csv','archivist-letter.pdf','research.txt','diagram.svg','specimen-notes.md','study-outline.pdf'];
+const RADII=[8.5,10.5,12.5,15,18];
+const newScrollName=(cellId,entryId)=>SCROLL_NAMES[Math.abs(cellId*17+entryId)%SCROLL_NAMES.length];
+const cloneCircles=arr=>arr.map(c=>({...c}));
+function modelKey(){return [state.pattern,state.pitch,state.load,state.variant].join(':');}
+function ensureModel(){
+ const key=modelKey();if(WORKSHOP.key===key)return;
+ WORKSHOP.key=key;
+ WORKSHOP.cells=tiles(state.pattern,state.pitch,FACE);
+ WORKSHOP.packs=WORKSHOP.cells.map((poly,i)=>packCell(poly,i+1,state.load,state.variant));
+ WORKSHOP.history=[];WORKSHOP.chosenId=null;WORKSHOP.gap=null;WORKSHOP.gaps=[];WORKSHOP.dragging=null;WORKSHOP.dropGhost=null;WORKSHOP.dropping=false;
+ WORKSHOP.nextId=10000;
+ const eligible=WORKSHOP.cells.map((poly,i)=>({i,a:area(poly),count:WORKSHOP.packs[i].placed.length})).filter(o=>o.count>0&&o.a>2000);
+ eligible.sort((a,b)=> b.a-a.a || a.i-b.i);
+ WORKSHOP.selected=eligible.length?eligible[0].i:WORKSHOP.cells.findIndex(poly=>area(poly)>100);
+ WORKSHOP.message='Cell selected. Click a scroll for metadata; hover a pocket to insert.';
+}
+function selectedPack(){return WORKSHOP.selected>=0?WORKSHOP.packs[WORKSHOP.selected]:null;}
+function selectedPoly(){return WORKSHOP.selected>=0?WORKSHOP.cells[WORKSHOP.selected]:null;}
+function actionRadius(){return RADII[Number($('newTier').value)-1];}
+function snapshot(){const pack=selectedPack(); if(!pack)return; WORKSHOP.history.push({cell:WORKSHOP.selected, placed:cloneCircles(pack.placed)});if(WORKSHOP.history.length>40)WORKSHOP.history.shift();}
+function setMessage(s){WORKSHOP.message=s;let p=$('cellMessage');if(p)p.textContent=s;}
+function clearanceScore(poly,arr,x,y,r){
+ let closest=Infinity;
+ for(let i=0;i<poly.length;i++){
+  let a=poly[i],b=poly[(i+1)%poly.length],dx=b.x-a.x,dy=b.y-a.y;
+  closest=Math.min(closest,(dx*(y-a.y)-dy*(x-a.x))/Math.hypot(dx,dy)-r);
+ }
+ for(const c of arr)closest=Math.min(closest,Math.hypot(x-c.x,y-c.y)-r-c.r);
+ return closest;
+}
+function detectedGaps(poly,arr,r,max=12){
+ const b=bounds(poly),possible=[];
+ for(let y=b.top+r+1.8;y<b.bottom-r-1.8;y+=6.5){
+  for(let x=b.left+r+1.8;x<b.right-r-1.8;x+=6.5){
+   if(!insideAndFree(poly,arr,x,y,r))continue;
+   let safe=clearanceScore(poly,arr,x,y,r);
+   possible.push({x,y,r,safe,rank:safe+0.07*(b.bottom-y)});
+  }
+ }
+ possible.sort((a,b)=>b.rank-a.rank || a.y-b.y || a.x-b.x);
+ const chosen=[];
+ for(const v of possible){
+  if(chosen.every(w=>Math.hypot(w.x-v.x,w.y-v.y)>r*2+11))chosen.push(v);
+  if(chosen.length>=max)break;
+ }
+ return chosen;
+}
+function chooseNearestGap(x,y){
+ const poly=selectedPoly(),pack=selectedPack(); if(!poly||!pack)return null;
+ const r=actionRadius();
+ if(insideAndFree(poly,pack.placed,x,y,r))return {x,y,r};
+ let best=null,dist=Infinity;
+ for(const c of WORKSHOP.gaps){const d=Math.hypot(c.x-x,c.y-y);if(d<dist){dist=d;best=c;}}
+ return dist<Math.max(22,r*1.55)?best:null;
+}
+function showGapCursor(){
+ const svg=$('cellFocus'); if(!svg)return;
+ const mark=svg.querySelector('#hoverGap');
+ const label=svg.querySelector('#gapTag');
+ if(mark){
+  const g=WORKSHOP.gap;
+  mark.style.display=g&&WORKSHOP.cellMode==='arrange'?'':'none';
+  if(g){mark.setAttribute('cx',fmt(g.x));mark.setAttribute('cy',fmt(g.y));mark.setAttribute('r',g.r);}
+ }
+ if(label){const g=WORKSHOP.gap;label.style.display=g&&WORKSHOP.cellMode==='arrange'?'':'none';if(g){label.setAttribute('x',fmt(g.x));label.setAttribute('y',fmt(g.y-g.r-7));}}
+ const btn=$('insertOne');if(btn)btn.disabled=!(WORKSHOP.gap&&WORKSHOP.cellMode==='arrange'&&!WORKSHOP.dropping);
+ const slot=$('insertionCoordinates');if(slot)slot.textContent=WORKSHOP.gap?`(${Math.round(WORKSHOP.gap.x)}, ${Math.round(WORKSHOP.gap.y)})`:'No gap selected';
+}
+function renderSelectedInfo(){
+ const poly=selectedPoly(),pack=selectedPack();
+ const n=$('selectedCellName'),stats=$('cellStats'),m=$('cellMessage'),meta=$('scrollDetails');
+ if(!poly||!pack){if(n)n.textContent='No cell';if(meta)meta.textContent='Select a rack cell.';return;}
+ if(n)n.textContent=`Cell ${WORKSHOP.selected+1}`;
+ if(stats)stats.textContent=`${pack.placed.length} scrolls · ${Math.round(area(poly))} area units · ${pack.overflow} initial overflow`;
+ if(m)m.textContent=WORKSHOP.message;
+ const chosen=pack.placed.find(c=>String(c.id)===String(WORKSHOP.chosenId));
+ if(meta){
+  meta.textContent=chosen?`${newScrollName(WORKSHOP.selected,chosen.id)} · size tier ${chosen.tier+1}/5 · ${Math.round(chosen.x)}, ${Math.round(chosen.y)} · synthetic file`: 'Click a scroll to inspect its name, size tier, and position.';
+ }
+ const arrMode=WORKSHOP.cellMode==='arrange';
+ for(const id of ['dropOne','clearOne','undoOne','newTier']){const e=$(id);if(e)e.disabled=(id==='undoOne'?!WORKSHOP.history.length||!arrMode:!arrMode||WORKSHOP.dropping)||(id==='clearOne'&&!chosen);}
+ showGapCursor();
+}
+function cellPath(poly){return poly.map((p,i)=>(i?'L':'M')+fmt(p.x)+' '+fmt(p.y)).join(' ')+'Z';}
+function svgScroll(c,p,i,cellIdx){
+ return `<g data-cell="${cellIdx}" data-scroll="${esc(c.id)}" class="object" data-tip="${esc(newScrollName(cellIdx,c.id))} · tier ${c.tier+1}/5"><circle cx="${fmt(c.x)}" cy="${fmt(c.y)}" r="${c.r}" fill="${['#d1bf9f','#cab38d','#d9c8a9','#bda681','#e1d2b5'][(c.tier+i)%5]}" stroke="#6f5d48" stroke-width="1.3"/><circle cx="${fmt(c.x)}" cy="${fmt(c.y)}" r="${fmt(c.r*.74)}" fill="none" stroke="#9b8266" stroke-width=".8" opacity=".73"/><path d="M${fmt(c.x-c.r*.27)} ${fmt(c.y+c.r*.2)}Q${fmt(c.x+c.r*.29)} ${fmt(c.y-c.r*.33)} ${fmt(c.x+c.r*.15)} ${fmt(c.y+c.r*.18)}" fill="none" stroke="#887358" stroke-width=".8"/></g>`;
+}
+// Original v3 renderer replaced by an interactive renderer, retaining the connected tessellation and collision geometry.
+rackView=function(){
+ ensureModel();
+ const p=palette(),face=FACE,cells=WORKSHOP.cells,packs=WORKSHOP.packs,diag=verifyRack(cells,packs);window.archiveDiagnostics=diag;
+ const geom=uniqueEdges(cells);
+ let out=matte(p)+`<rect x="58" y="55" width="824" height="414" rx="10" fill="${p.panel}" stroke="${p.metal}" stroke-width="9"/><rect x="${face.x}" y="${face.y}" width="${face.w}" height="${face.h}" fill="#1c2929"/>`;
+ cells.forEach((poly,i)=>{out+=`<path data-cell="${i}" class="rack-cell ${i===WORKSHOP.selected?'active-cell':''}" d="${cellPath(poly)}" fill="${i===WORKSHOP.selected?'#43574c':i%2?'#263934':'#293a36'}" stroke="none"/>`;});
+ packs.forEach((pack,i)=>{pack.placed.forEach((c,j)=>out+=svgScroll(c,p,j,i));});
+ out+=`<g stroke="${p.metal}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" pointer-events="none">${geom.edges.map(([a,b])=>`<path d="M${fmt(a.x)} ${fmt(a.y)}L${fmt(b.x)} ${fmt(b.y)}"/>`).join('')}</g>`;
+ if(WORKSHOP.selected>=0){out+=`<path d="${cellPath(cells[WORKSHOP.selected])}" fill="none" stroke="${p.engraving}" stroke-width="4" pointer-events="none"/>`;}
+ out+=`<rect x="${face.x}" y="${face.y}" width="${face.w}" height="${face.h}" fill="none" stroke="${p.metal}" stroke-width="6" pointer-events="none"/>`;
+ if(state.guide)out+=`<g opacity=".96" pointer-events="none">${geom.vertices.map(q=>point(q.x,q.y,2.5)).join('')}</g>`;
+ if(state.contacts)out+=`<rect x="${face.x}" y="${face.y}" width="${face.w}" height="${face.h}" fill="none" stroke="#e1bd77" stroke-width="1" stroke-dasharray="5 5" pointer-events="none"/>`;
+ out+=title(470,497,`${state.pattern.toUpperCase()} · ${diag.cells} CELLS · ${diag.total} SCROLLS · ${diag.overflow} OVERFLOW`,p);
+ const status=$('rackStatus');if(status){status.textContent=`${diag.total} scrolls · ${diag.cells} cells · ${diag.overlap} overlaps · ${diag.outside} outside · ${diag.overflow} initial overflow`;status.dataset.ok=(diag.overlap===0&&diag.outside===0)?'yes':'no';}
+ return svgWrap(out,'Select a connected scroll rack cell and inspect its individual scrolls');
+};
+function focusView(){
+ const poly=selectedPoly(),pack=selectedPack(),p=palette();
+ if(!poly||!pack)return `<svg id="cellFocus" viewBox="0 0 300 220"><text x="150" y="110" fill="${p.text}" text-anchor="middle">Select a storage cell above</text></svg>`;
+ const b=bounds(poly),pad=Math.max(22,Math.min(42,Math.max(b.right-b.left,b.bottom-b.top)*.16));
+ const w=b.right-b.left+2*pad,h=b.bottom-b.top+2*pad;
+ const selected=WORKSHOP.chosenId;
+ WORKSHOP.gaps=detectedGaps(poly,pack.placed,actionRadius());
+ let out=`<svg id="cellFocus" viewBox="${fmt(b.left-pad)} ${fmt(b.top-pad)} ${fmt(w)} ${fmt(h)}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Selected scroll storage cell, select a scroll or hover a gap">`;
+ out+=`<path d="${cellPath(poly)}" fill="#263934" stroke="${p.metal}" stroke-width="3.5"/>`;
+ if(WORKSHOP.cellMode==='arrange'){
+  out+=`<g class="gapHints" pointer-events="none">${WORKSHOP.gaps.map(g=>`<circle cx="${fmt(g.x)}" cy="${fmt(g.y)}" r="${g.r}" fill="${p.engraving}" fill-opacity=".07" stroke="${p.engraving}" stroke-opacity=".46" stroke-width="1" stroke-dasharray="3 4"/>`).join('')}</g>`;
+ }
+ out+=`<path data-gap-surface="true" d="${cellPath(poly)}" fill="transparent" stroke="none"/>`;
+ pack.placed.forEach((c,i)=>{
+  out+=svgScroll(c,p,i,WORKSHOP.selected);
+  if(String(c.id)===String(selected))out+=`<circle cx="${fmt(c.x)}" cy="${fmt(c.y)}" r="${c.r+3.5}" stroke="${p.engraving}" fill="none" stroke-width="1.5" pointer-events="none"/>`;
+ });
+ out+=`<circle id="hoverGap" cx="0" cy="0" r="8" fill="${p.engraving}" fill-opacity=".16" stroke="${p.engraving}" stroke-width="2" style="display:none" pointer-events="none"/>`;
+ out+=`<text id="gapTag" x="0" y="0" font-size="9" text-anchor="middle" fill="${p.text}" style="display:none" pointer-events="none">INSERT</text>`;
+ out+=`<circle id="dragPreview" cx="0" cy="0" r="0" fill="${p.engraving}" fill-opacity=".28" stroke="${p.engraving}" stroke-width="2" style="display:none" pointer-events="none"/>`;
+ out+='</svg>';
+ return out;
+}
+function redrawFocus(){const host=$('cellInspectorSvg');if(!host)return;host.innerHTML=focusView();WORKSHOP.gap=null;renderSelectedInfo();}
+const olderRender=render;
+render=function(){olderRender();redrawFocus();};
+function rackRefresh(message){if(message)setMessage(message);render();}
+function setActiveCell(i,scrollId=null){
+ if(WORKSHOP.dropping)return;
+ if(i<0||i>=WORKSHOP.cells.length)return;
+ WORKSHOP.selected=i;WORKSHOP.chosenId=scrollId;WORKSHOP.gap=null;
+ rackRefresh(`Inspecting cell ${i+1}. Select a scroll or hover an open pocket.`);
+}
+function focusPoint(e,svg){
+ const P=svg.createSVGPoint();P.x=e.clientX;P.y=e.clientY;
+ const ctm=svg.getScreenCTM();return ctm?P.matrixTransform(ctm.inverse()):null;
+}
+function setGhostPoint(e){
+ if(WORKSHOP.cellMode!=='arrange'||WORKSHOP.dropping)return;
+ const svg=$('cellFocus'),pt=focusPoint(e,svg);if(!pt)return;
+ const scroll=e.target.closest('[data-scroll]');
+ if(scroll){return;}
+ WORKSHOP.gap=chooseNearestGap(pt.x,pt.y);
+ showGapCursor();
+}
+function selectScroll(id){WORKSHOP.chosenId=id;WORKSHOP.gap=null;redrawFocus();}
+function selectedScroll(){const pack=selectedPack();return pack?.placed.find(c=>String(c.id)===String(WORKSHOP.chosenId))||null;}
+function addCircleAt(x,y,r,method){
+ const pack=selectedPack(),poly=selectedPoly();
+ if(!pack||!poly||!insideAndFree(poly,pack.placed,x,y,r))return false;
+ snapshot();const id=WORKSHOP.nextId++;
+ pack.placed.push({x,y,r,id,tier:RADII.indexOf(r)});WORKSHOP.chosenId=id;WORKSHOP.gap=null;
+ rackRefresh(`${method}: inserted ${newScrollName(WORKSHOP.selected,id)} into cell ${WORKSHOP.selected+1}.`);
+ return true;
+}
+function traceDrop(poly,placed,r){
+ // Discrete, collision-constrained gravity walk; no force is applied to the stored circles.
+ const b=bounds(poly),starts=[];
+ const top=b.top+r+1.4,limit=Math.min(b.bottom-r-1.4,b.top+Math.min(75,(b.bottom-b.top)*.38));
+ for(let y=top;y<=limit;y+=3.1){
+  let row=[];
+  for(let x=b.left+r+1.5;x<=b.right-r-1.5;x+=3.8){if(insideAndFree(poly,placed,x,y,r))row.push({x,y});}
+  if(row.length){starts.push(...row);break;}
+ }
+ if(!starts.length)return null;
+ const mid=(b.left+b.right)/2;
+ starts.sort((a,b)=>Math.abs(a.x-mid)-Math.abs(b.x-mid));
+ const walk=(first,dir)=>{
+  let x=first.x,y=first.y,path=[{x,y}],steps=0;
+  for(;steps<620;steps++){
+   const advance=1.5;
+   if(insideAndFree(poly,placed,x,y+advance,r)){y+=advance;path.push({x,y});continue;}
+   let shifted=false;
+   for(const h of [dir,-dir]){
+    const nx=x+1.8*h,ny=y+0.8;
+    if(insideAndFree(poly,placed,nx,ny,r)){x=nx;y=ny;path.push({x,y});shifted=true;break;}
+   }
+   if(!shifted)break;
+  }
+  return {x,y,path,steps};
+ };
+ let best=null;
+ const candidates=starts.slice(0,Math.min(starts.length,75));
+ for(const a of candidates){for(const dir of [-1,1]){const v=walk(a,dir);if(!best||v.y>best.y+0.02||(Math.abs(v.y-best.y)<.02&&Math.abs(v.x-mid)<Math.abs(best.x-mid)))best=v;}}
+ return best;
+}
+function animateDrop(plan,r,finish){
+ WORKSHOP.dropping=true;const dropButton=$('dropOne'),insertButton=$('insertOne');if(dropButton)dropButton.disabled=true;if(insertButton)insertButton.disabled=true;
+ const rackSvg=$('rackSvg').querySelector('svg'),detailSvg=$('cellFocus');const p=palette();
+ const createGhost=(svg)=>{if(!svg)return null;const ns='http://www.w3.org/2000/svg';const c=document.createElementNS(ns,'circle');c.setAttribute('r',r);c.setAttribute('fill','#daccab');c.setAttribute('stroke',p.engraving);c.setAttribute('stroke-width','1.7');c.setAttribute('opacity','.93');c.setAttribute('pointer-events','none');svg.appendChild(c);return c;};
+ const ghosts=[createGhost(rackSvg),createGhost(detailSvg)];
+ const path=plan.path;let start=null;
+ function step(ts){
+  if(start===null)start=ts;
+  const progress=clamp((ts-start)/510,0,1);
+  const t=progress*(path.length-1),i=Math.min(path.length-1,Math.floor(t));
+  const a=path[i],b=path[Math.min(path.length-1,i+1)],f=t-i;
+  const x=a.x+(b.x-a.x)*f,y=a.y+(b.y-a.y)*f;
+  ghosts.forEach(c=>{if(c){c.setAttribute('cx',fmt(x));c.setAttribute('cy',fmt(y));}});
+  if(progress<1){requestAnimationFrame(step);}else{
+   ghosts.forEach(c=>c?.remove());WORKSHOP.dropping=false;finish();
+  }
+ }
+ requestAnimationFrame(step);
+}
+function insertAction(){
+ if(WORKSHOP.cellMode!=='arrange')return;
+ const g=WORKSHOP.gap;
+ if(!g){setMessage('Hover a highlighted empty pocket first; a green circle marks the insertion point.');return;}
+ if(!addCircleAt(g.x,g.y,actionRadius(),'Gap insertion'))setMessage('That pocket is no longer available. Choose another gap.');
+}
+function dropAction(){
+ if(WORKSHOP.dropping||WORKSHOP.cellMode!=='arrange')return;
+ const poly=selectedPoly(),pack=selectedPack(),r=actionRadius();if(!poly||!pack)return;
+ const plan=traceDrop(poly,pack.placed,r);
+ if(!plan){setMessage('Top entry blocked for this scroll size. Try Insert, a smaller tier, or rearrange existing scrolls.');return;}
+ setMessage('Dropping one scroll from the top of the selected cell…');
+ animateDrop(plan,r,()=>{if(!addCircleAt(plan.x,plan.y,r,'Top drop'))setMessage('No safe resting position found for the dropped scroll.');});
+}
+function removeOne(){
+ if(WORKSHOP.cellMode!=='arrange'||!selectedScroll())return;
+ const id=WORKSHOP.chosenId,pack=selectedPack();snapshot();pack.placed=pack.placed.filter(c=>String(c.id)!==String(id));WORKSHOP.chosenId=null;
+ rackRefresh('Removed the selected synthetic scroll from this demonstration (no disk operation).');
+}
+function undoAction(){
+ if(!WORKSHOP.history.length||WORKSHOP.cellMode!=='arrange'||WORKSHOP.dropping)return;
+ const h=WORKSHOP.history.pop();WORKSHOP.selected=h.cell;WORKSHOP.packs[h.cell].placed=h.placed;WORKSHOP.chosenId=null;
+ rackRefresh('Reverted the last scroll arrangement change.');
+}
+function inspectPointerDown(e){
+ const scroll=e.target.closest('[data-scroll]');if(!scroll)return;
+ const svg=$('cellFocus'),pt=focusPoint(e,svg);if(!pt)return;
+ const id=scroll.dataset.scroll,c=selectedPack().placed.find(x=>String(x.id)===id);if(!c)return;
+ WORKSHOP.chosenId=c.id;
+ renderSelectedInfo();
+ if(WORKSHOP.cellMode!=='arrange'||e.button!==0)return;
+ WORKSHOP.dragging={id:c.id,start:{x:pt.x,y:pt.y},offset:{x:c.x-pt.x,y:c.y-pt.y},dest:{x:c.x,y:c.y},valid:true,moved:false};
+ try{svg.setPointerCapture(e.pointerId);}catch(_){}
+ e.preventDefault();
+}
+function inspectPointerMove(e){
+ const dragging=WORKSHOP.dragging;
+ if(dragging){
+  const svg=$('cellFocus'),pt=focusPoint(e,svg);if(!pt)return;
+  const dest={x:pt.x+dragging.offset.x,y:pt.y+dragging.offset.y};
+  const pack=selectedPack(),chosen=pack.placed.find(x=>String(x.id)===String(dragging.id));if(!chosen)return;
+  const others=pack.placed.filter(x=>String(x.id)!==String(dragging.id));
+  dragging.moved ||= Math.hypot(pt.x-dragging.start.x,pt.y-dragging.start.y)>2.4;
+  dragging.dest=dest;dragging.valid=insideAndFree(selectedPoly(),others,dest.x,dest.y,chosen.r);
+  const preview=svg.querySelector('#dragPreview');if(preview&&dragging.moved){preview.style.display='';preview.setAttribute('cx',fmt(dest.x));preview.setAttribute('cy',fmt(dest.y));preview.setAttribute('r',chosen.r);preview.setAttribute('stroke',dragging.valid?palette().engraving:'#d98773');}
+  return;
+ }
+ setGhostPoint(e);
+}
+function inspectPointerUp(e){
+ const dragging=WORKSHOP.dragging;if(!dragging)return;
+ WORKSHOP.dragging=null;
+ if(dragging.moved&&dragging.valid){
+  const pack=selectedPack(),c=pack.placed.find(x=>String(x.id)===String(dragging.id));
+  if(c){snapshot();c.x=dragging.dest.x;c.y=dragging.dest.y;rackRefresh('Rummaged: moved a scroll to a collision-free space inside its cell.');return;}
+ }
+ if(dragging.moved&&!dragging.valid){setMessage('That position intersects another scroll or the cell wall; move cancelled.');}
+ else{setMessage('Scroll selected. Inspect its metadata below.');}
+ redrawFocus();
+}
+function connectWorkshop(){
+ const rack=$('rackSvg');
+ rack.addEventListener('click',e=>{
+  const target=e.target.closest('[data-cell]');if(!target)return;
+  setActiveCell(Number(target.dataset.cell),e.target.closest('[data-scroll]')?.dataset.scroll??null);
+ });
+ const inspector=$('cellInspectorSvg');
+ inspector.addEventListener('pointerdown',inspectPointerDown);
+ inspector.addEventListener('pointermove',inspectPointerMove);
+ inspector.addEventListener('pointerup',inspectPointerUp);
+ inspector.addEventListener('pointercancel',()=>{WORKSHOP.dragging=null;redrawFocus();});
+ // Hold the selected gap while the pointer travels to the Insert button.
+ inspector.addEventListener('pointerleave',()=>{if(!WORKSHOP.dragging)showGapCursor();});
+ inspector.addEventListener('click',e=>{
+  const scroll=e.target.closest('[data-scroll]');if(scroll){WORKSHOP.chosenId=scroll.dataset.scroll;WORKSHOP.gap=null;redrawFocus();return;}
+  if(WORKSHOP.cellMode!=='arrange')return;
+  const svg=$('cellFocus');if(!svg)return;
+  const pt=focusPoint(e,svg);if(pt){WORKSHOP.gap=chooseNearestGap(pt.x,pt.y);showGapCursor();}
+ });
+ $('dropOne').addEventListener('click',dropAction);
+ $('insertOne').addEventListener('click',insertAction);
+ $('clearOne').addEventListener('click',removeOne);
+ $('undoOne').addEventListener('click',undoAction);
+ $('cellMode').addEventListener('input',e=>{WORKSHOP.cellMode=e.target.value;WORKSHOP.gap=null;WORKSHOP.dragging=null;rackRefresh(WORKSHOP.cellMode==='arrange'?'Arrange: drag scrolls, drop from above, or insert into gaps.':'Browse: click a scroll to inspect; no placements can be changed.');});
+ $('newTier').addEventListener('input',()=>{$('newTierValue').textContent=$('newTier').value+'/5';WORKSHOP.gap=null;redrawFocus();});
+ $('leadFace').addEventListener('change',e=>{state.leadFace=e.target.checked;render();});
+}
+
+// One readable front artifact — the rest remain properly edge-on in their slots.
+state.leadFace=true;
+const baseHolderItem=holderItem;
+holderItem=function(x,base,i,angle,p){
+ if(!state.leadFace||i!==0)return baseHolderItem(x,base,i,angle,p);
+ const y=base-99;
+ if(state.holder==='records'){
+  const rx=28+angle*.13;
+  return `<g class="object" data-tip="Audio record 1 · first specimen with visible grooves" transform="translate(${x} ${y})"><ellipse rx="${fmt(rx)}" ry="92" fill="#4b616a" stroke="${p.metal}" stroke-width="1.5"/><ellipse rx="${fmt(rx-4)}" ry="84" fill="none" stroke="#c2d0ce" opacity=".5" stroke-width="1.2"/><ellipse rx="${fmt(rx*.75)}" ry="69" fill="none" stroke="#d0d7cb" opacity=".22" stroke-width=".9"/><ellipse rx="${fmt(rx*.5)}" ry="48" fill="none" stroke="#d0d7cb" opacity=".22" stroke-width=".9"/><ellipse rx="${fmt(rx*.39)}" ry="27" fill="#a7a08b" stroke="#e0d4b6" stroke-width=".7"/><ellipse rx="3" ry="6" fill="#46575b"/><path d="M-7 -7H7 M-5 5H5" stroke="#6b695c" stroke-width="1"/></g>`;
+ }
+ if(state.holder==='tablets'){
+  const w=46+angle*.15;
+  return `<g class="object" data-tip="Typeface tablet 1 · carved glyph and beveled stone edge" transform="translate(${x-w/2} ${base-177})"><path d="M5 0H${fmt(w-6)}L${fmt(w)} 6V171L${fmt(w-6)} 177H6L0 171V6Z" fill="#b2afa2" stroke="#666a67" stroke-width="1.6"/><path d="M7 12H${fmt(w-7)}V165H7Z" fill="none" stroke="#e0dbcc" stroke-opacity=".66" stroke-width="1.3"/><text x="${fmt(w/2)}" y="96" font-size="28" text-anchor="middle" fill="#59605b" font-family="Georgia">Æ</text><path d="M13 113H${fmt(w-13)}" stroke="#74786f" stroke-width="1.2"/></g>`;
+ }
+ const w=40+angle*.13;
+ return `<g class="object" data-tip="Ledger 1 · front cover with page-block edge" transform="translate(${x-w/2} ${base-166})"><rect width="${fmt(w)}" height="166" rx="3" fill="#786b5d" stroke="${p.metal}" stroke-width="1.6"/><path d="M4 7V159" stroke="#d1bd93" stroke-width="3" opacity=".72"/><path d="M11 14H${fmt(w-6)}V151H11Z" fill="none" stroke="#b2a488" stroke-width="1"/><path d="M15 49H${fmt(w-9)}M15 56H${fmt(w-9)}M15 108H${fmt(w-9)}" stroke="#c8b996" stroke-width="1.3"/><text x="${fmt(w/2+4)}" y="87" font-size="10" fill="#dfd0ab" text-anchor="middle">XII</text></g>`;
+};
+
+const previousConnect=connectControls;
+connectControls=function(){previousConnect();connectWorkshop();};
+window.archiveWorkshopV4={model:WORKSHOP,detectedGaps,traceDrop,clearanceScore};
+
+if(typeof window!=='undefined'){
+ window.archiveGeometry={tiles,packCell,verifyRack,pointCircleIn,area,FACE,hash};
+ window.archiveState=state;
+ window.addEventListener('DOMContentLoaded',()=>{connectControls();render();});
+}
+
+</script>
+</body></html>

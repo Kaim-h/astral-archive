@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astral Archive · B7r2 Artwork Study</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#121e23;--panel:#263c37;--metal:#8c6e5a;--engraving:#91ada1;--text:#e6e1d8;--shadow:rgba(0,0,0,.28)}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 Georgia,serif}
+main{max-width:1260px;margin:auto;padding:22px clamp(12px,3vw,36px)}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--metal);padding-bottom:12px}
+h1{font-size:25px;font-weight:normal;margin:0}.muted,small{color:var(--engraving);font:12px/1.5 system-ui}h2{font-weight:normal;font-size:18px;margin:0 0 10px}
+.controls{display:flex;gap:12px 20px;flex-wrap:wrap;padding:16px 0;align-items:end}
+label{display:grid;gap:4px;font:12px system-ui;color:var(--engraving)}
+button,select{font:14px Georgia,serif;background:var(--panel);color:var(--text);border:1px solid var(--metal);border-radius:5px;padding:7px 11px}
+button{cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid var(--text);outline-offset:3px}button:hover{filter:brightness(1.12)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px}
+.stage{border:1px solid color-mix(in srgb,var(--metal) 60%,transparent);border-radius:7px;overflow:hidden;background:var(--panel);min-width:0}
+svg{display:block;width:100%;height:auto}.detail{border:1px solid color-mix(in srgb,var(--metal) 45%,transparent);border-radius:7px;padding:14px;min-width:0}.detail svg{max-height:240px}.detail p{margin:8px 0;overflow-wrap:anywhere}.detail button{margin:4px 4px 0 0}
+.note{margin-top:14px;max-width:78ch}.item{cursor:pointer;outline:none}.item:focus-visible .outline,.item.selected .outline{opacity:1}.item:hover .outline{opacity:.7}.outline{opacity:0;fill:none;stroke:var(--engraving);stroke-width:1.6;stroke-dasharray:5 3}.debug{stroke:var(--engraving);fill:none;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.detail{order:-1}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Framed works <span class="muted">/ B7r2</span></h1><small>Astral Archive · independent material study</small></header>
+<div class="controls">
+<label>Theme<select id="theme"><option>Evening</option><option selected>Twilight</option><option>Midnight</option></select></label>
+<label>Fixture<select id="mount"><option value="wall">Wall mounted</option><option value="ledge">Supported ledge</option></select></label>
+<label>Frame profile<select id="profile"><option value="mixed">Curated mix</option><option value="bronze">Bevelled bronze</option><option value="stone">Inlaid stone</option><option value="slim">Fine metal</option></select></label>
+<label>Display density<select id="density"><option value="3">3 works</option><option selected value="6">6 works</option><option value="12">12 works</option></select></label>
+<label>View<select id="view"><option value="normal">Object study</option><option value="compact">Compact scale</option></select></label>
+<label><span>Geometry</span><span><input id="debug" type="checkbox"> Show guides</span></label>
+<button id="reset">Reset study</button>
+</div>
+<div class="layout">
+<section class="stage" aria-label="Artwork display"><svg id="wall" viewBox="0 0 920 510" aria-label="Framed works"></svg></section>
+<aside class="detail"><h2>Selected work</h2><svg id="preview" viewBox="0 0 240 250" aria-hidden="true"></svg><p id="filename"></p><p class="muted" id="metadata"></p><button id="previous">Previous</button><button id="next">Next</button><button id="variant">Change motif</button><p class="muted" id="status" role="status"></p></aside>
+</div>
+<p class="note muted">Original symbolic drawings, not file thumbnails. The visible wall handle has been removed for cleaner mounting. Each work now carries a lower-right plaque with filetype iconography and symbolic title lines; hover the plaque to expand its register. Select a frame with mouse or Tab/Enter. The motif override affects appearance only.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const themes={Evening:['#343c43','#3f524f','#c2aa78','#b7a2c8','#f0f0e8'],Twilight:['#121e23','#263c37','#8c6e5a','#91ada1','#e6e1d8'],Midnight:['#080f10','#101c1b','#869c9c','#568f80','#dadfd9']};
+const motifs=['Moonlit mountains','Estuary','Celestial chart','Botanical study','Arcade','Dusk dunes'];
+const artPaths=[
+'<circle cx="72" cy="23" r="12" fill="B"/><path d="M0 65 25 32 47 61 65 40 100 72V100H0Z" fill="C"/><path d="M0 77 32 57 49 70 71 54 100 80V100H0Z" fill="D"/><path d="M24 34 31 43 24 41 18 45Z" fill="B"/>',
+'<circle cx="25" cy="21" r="9" fill="B"/><path d="M0 48Q32 26 55 52T100 45V100H0Z" fill="D"/><path d="M0 72Q38 47 100 62V100H0Z" fill="C"/><path d="M15 80h38m-18 8h43m-58 7h23" stroke="B" opacity=".65" stroke-width="1.2"/>',
+'<g fill="none" stroke="C" stroke-width=".8"><circle cx="50" cy="50" r="34"/><circle cx="50" cy="50" r="25"/><ellipse cx="50" cy="50" rx="35" ry="14" transform="rotate(-35 50 50)"/><path d="M50 12V88M12 50H88"/></g><path d="M27 63 39 34 62 43 75 24 70 71 27 63" stroke="B" fill="none" stroke-width="1.2"/><g fill="B"><circle cx="27" cy="63" r="2"/><circle cx="39" cy="34" r="2"/><circle cx="62" cy="43" r="2.5"/><circle cx="75" cy="24" r="2"/><circle cx="70" cy="71" r="2"/></g>',
+'<path d="M50 88Q45 60 53 17M49 71 29 47M50 57 71 32M51 45 36 25" stroke="B" fill="none" stroke-width="2"/><g fill="C" stroke="D" stroke-width=".8"><path d="M29 47Q10 45 15 30 32 30 29 47Z"/><path d="M71 32Q90 26 85 16 69 17 71 32Z"/><path d="M36 25Q20 24 24 12 40 11 36 25Z"/><path d="M53 17Q43 6 55 3 64 10 53 17Z"/><path d="M49 71Q74 61 77 70 63 82 49 71Z"/></g>',
+'<path d="M0 100V28H100V100Z" fill="C"/><path d="M8 100V51Q8 12 31 12T54 51V100M58 100V55Q58 24 79 24T100 55V100" fill="B" stroke="D" stroke-width="3"/><path d="M15 100V54Q15 24 31 24T47 54V100M65 100V58Q65 35 79 35T94 58V100" fill="D"/><path d="M0 88H100M0 94H100" stroke="C"/>',
+'<circle cx="61" cy="32" r="17" fill="B"/><path d="M0 69Q30 42 67 65T100 60V100H0Z" fill="C"/><path d="M0 84Q35 60 70 83T100 78V100H0Z" fill="D"/><path d="M6 83Q35 65 60 77" stroke="B" opacity=".5" fill="none"/>'
+];
+const palettes=[['#253b45','#d8c7a1','#557078','#303f46'],['#526b70','#e1c79b','#77918a','#374b4f'],['#24343d','#c7b791','#819b95','#354b55'],['#c0b99a','#374d44','#7d8961','#64704f'],['#978674','#d7c5a6','#5d5754','#71675d'],['#574d64','#d6b1a0','#81758b','#3b4659']];
+const sample=['Moonrise.png','Tidal study.jpg','Observatory.mp4','Botanical plate.svg','Architectural studies.pptx','Dusk.webm','Meridian.png','Rain.jpg','Field notes.pptx','Estuary.tif','Eclipse.mov','Garden.webp'];
+const sizeFor=i=>['18 KiB','420 KiB','18.4 MiB','1.2 MiB','2.8 MiB','34.0 MiB','511 KiB','1.9 MiB','3.4 MiB','4.1 MiB','27.6 MiB','2.2 MiB'][i];
+const files=sample.map((name,i)=>{
+  const ext='.'+name.split('.').pop().toLowerCase();
+  const kind=/\.(mp4|webm|mov)$/.test(name)?'Video':/\.pptx$/.test(name)?'Presentation':'Image';
+  return {id:i,name,ext,kind,motif:i%6,ratio:[.76,1.35,1.5,.8,1.3,1,1.4,.77,1.2,.85,1.5,1][i],profile:['bronze','stone','slim'][i%3],added:['18 Oct 2026','21 Oct 2026','22 Oct 2026','24 Oct 2026','26 Oct 2026','28 Oct 2026','30 Oct 2026','31 Oct 2026','02 Nov 2026','07 Nov 2026','10 Nov 2026','15 Nov 2026'][i],size:sizeFor(i)};
+});
+let selected=0, hoverPlaque=null;
+function drawing(n){const [a,b,c,d]=palettes[n];return `<rect width="100" height="100" fill="${a}"/>`+artPaths[n].replace(/"([BCD])"/g,(_,v)=>`"${{B:b,C:c,D:d}[v]}"`) }
+function icon(kind,x,y,s,color='currentColor'){
+  if(kind==='Video')return `<g transform="translate(${x} ${y}) scale(${s/16})" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"><rect x="-7" y="-5.5" width="11" height="11" rx="1.2"/><path d="M4 -2.8 9 -5v10L4 2.8Z" fill="${color}" stroke="none"/></g>`;
+  if(kind==='Presentation')return `<g transform="translate(${x} ${y}) scale(${s/16})" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M-6 -5H6V3H-6Z"/><path d="M0 3V6M-3.5 6H3.5"/><path d="M-3.2 -2.5H2.8M-3.2 .3H1.3"/></g>`;
+  return `<g transform="translate(${x} ${y}) scale(${s/16})" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"><rect x="-6.5" y="-5" width="13" height="10" rx="1.3"/><circle cx="2.4" cy="-1.7" r="1.3" fill="${color}" stroke="none"/><path d="M-5 4 -1 .2 1 2.4 4 -1 6 1.5 6 4Z" fill="${color}" stroke="none"/></g>`;
+}
+function squiggles(x,y,w,count,seed,color){
+  let out='';
+  for(let i=0;i<count;i++){
+    const yy=y+i*4.9, amp=1.2+(seed+i)%3*.3;
+    out+=`<path d="M${x} ${yy} q ${w*.18} ${-amp} ${w*.36} 0 t ${w*.36} 0 t ${w*.28} 0" fill="none" stroke="${color}" stroke-width="1.05" stroke-linecap="round" opacity="${0.88-i*.18}"/>`;
+  }
+  return out;
+}
+function plaque(f,w,h,expanded,id){
+  const pad=expanded?7:5, ph=expanded?54:18, pw=expanded?Math.min(110,Math.max(86,w*.58)):Math.min(42,Math.max(34,w*.23));
+  const px=w-pw-6, py=h-ph-6;
+  const bg='color-mix(in srgb, var(--bg) 86%, #000 14%)';
+  const stroke='var(--metal)';
+  const iconX=pad+10, iconY=pad+(expanded?11:4)+4;
+  let inner=`<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="4" fill="${bg}" stroke="${stroke}" stroke-width="1" opacity=".96"/><path d="M${px+1} ${py+ph-1}H${px+pw-1}V${py+1}" fill="none" stroke="#000" opacity=".25"/><path d="M${px+1} ${py+ph-1}V${py+1}H${px+pw-1}" fill="none" stroke="#fff" opacity=".09"/>`;
+  inner+=icon(f.kind,px+11,py+(expanded?15:9.5),expanded?14:12,'#eee3cb');
+  inner+=squiggles(px+22,py+(expanded?14:7),expanded?pw-31:pw-26,expanded?3:2,f.id,'#cfbf98');
+  if(expanded){
+    inner+=`<text x="${px+7}" y="${py+35}" fill="var(--text)" font-size="8.8" font-family="Georgia,serif">${escapeXML(f.name)}</text>`+
+           `<text x="${px+7}" y="${py+46}" fill="var(--engraving)" font-size="7.3" font-family="system-ui, sans-serif">${f.kind} · ${f.ext} · ${f.size}</text>`;
+  }
+  return `<g class="plaque" data-plaque="${id}">${inner}</g>`;
+}
+function escapeXML(t){return t.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function frame(f,x,y,w,h){
+  const style=$('profile').value==='mixed'?f.profile:$('profile').value;
+  const t=style==='slim'?Math.max(3,w*.045):Math.max(5,w*.075), m=style==='stone'?t*.65:t*.35, a=t+m;
+  const metal=style==='stone'?'var(--bg)':'var(--metal)';
+  const reveal=style==='stone'?'#776758':style==='slim'?'#313936':'#b8ae92';
+  const expanded=hoverPlaque===f.id;
+  return `<g transform="translate(${x} ${y})">
+    <rect x="3" y="5" width="${w}" height="${h}" rx="2" fill="#000" opacity=".26"/>
+    <rect width="${w}" height="${h}" rx="2" fill="${metal}" stroke="#090f10" stroke-width="1.2"/>
+    <rect x="2" y="2" width="${w-4}" height="${h-4}" rx="1" fill="none" stroke="var(--engraving)" opacity=".65"/>
+    <path d="M1 ${h-1}V1H${w-1}" fill="none" stroke="#fff" opacity=".16"/>
+    <path d="M1 ${h-1}H${w-1}V1" fill="none" stroke="#000" opacity=".43"/>
+    <rect x="${t}" y="${t}" width="${w-2*t}" height="${h-2*t}" fill="${reveal}" stroke="#101616" stroke-width="1"/>
+    <svg x="${a}" y="${a}" width="${w-2*a}" height="${h-2*a}" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" overflow="hidden">${drawing(f.motif)}</svg>
+    <rect x="${a}" y="${a}" width="${w-2*a}" height="${h-2*a}" fill="none" stroke="#101616" stroke-width=".9"/>
+    ${plaque(f,w,h,expanded,f.id)}
+  </g>`;
+}
+function render(){
+  const p=themes[$('theme').value];
+  ['bg','panel','metal','engraving','text'].forEach((k,i)=>document.body.style.setProperty('--'+k,p[i]));
+  const count=+$('density').value, cols=count===12?6:3, rows=Math.ceil(count/cols), cw=820/cols, rh=400/rows;
+  const ledge=$('mount').value==='ledge', compact=$('view').value==='compact';
+  selected=Math.min(selected,count-1); if(hoverPlaque!=null && hoverPlaque>=count) hoverPlaque=null;
+  let s='<rect width="920" height="510" fill="var(--bg)"/><rect x="35" y="23" width="850" height="464" rx="5" fill="var(--panel)" stroke="var(--metal)" stroke-width="2"/><rect x="43" y="31" width="834" height="448" rx="3" fill="none" stroke="var(--engraving)" opacity=".35"/>';
+  for(let row=0;row<rows;row++){
+    let bottom=53+(row+1)*rh-18;
+    if(ledge) s+=`<rect x="56" y="${bottom}" width="808" height="10" rx="2" fill="var(--metal)"/><rect x="56" y="${bottom+3}" width="808" height="7" fill="#000" opacity=".24"/>`;
+    for(let j=0;j<cols;j++){
+      let i=row*cols+j; if(i>=count) break;
+      let f=files[i], maxW=(cw-30)*(compact?.61:1), maxH=(rh-35)*(compact?.61:1), h=Math.min(maxH,maxW/f.ratio), w=h*f.ratio;
+      let x=50+j*cw+(cw-w)/2, y=ledge?bottom-h:53+row*rh+(rh-h)/2-9;
+      s+=`<g class="item ${i===selected?'selected':''}" data-id="${i}" role="button" tabindex="0" aria-pressed="${i===selected}" aria-label="${escapeXML(f.name)}">${frame(f,x,y,w,h)}<rect class="outline" x="${x-4}" y="${y-4}" width="${w+8}" height="${h+8}" rx="3"/>${$('debug').checked?`<rect class="debug" x="${x}" y="${y}" width="${w}" height="${h}"/><circle cx="${x+w/2}" cy="${ledge?bottom:y}" r="3" fill="var(--engraving)"/>`:''}</g>`;
+    }
+  }
+  $('wall').innerHTML=s;
+  const f=files[selected], h=Math.min(210,208/f.ratio), w=h*f.ratio;
+  const oldHover=hoverPlaque; hoverPlaque=null;
+  $('preview').innerHTML=frame(f,(240-w)/2,(250-h)/2,w,h);
+  hoverPlaque=oldHover;
+  $('filename').textContent=f.name;
+  $('metadata').textContent=`${f.kind} · ${f.ext} · ${motifs[f.motif]} · ${f.ratio<.95?'Portrait':f.ratio>1.05?'Landscape':'Square'} · ${f.size} · Added ${f.added}`;
+}
+function select(i,focus=false){selected=i;render(); if(focus){const n=$('wall').querySelector(`[data-id="${i}"]`); if(n) n.focus();}}
+$('wall').addEventListener('click',e=>{const g=e.target.closest('[data-id]'); if(g) select(+g.dataset.id,true)});
+$('wall').addEventListener('mousemove',e=>{const p=e.target.closest('[data-plaque]'); const n=p?+p.dataset.plaque:null; if(n!==hoverPlaque){hoverPlaque=n; render();}});
+$('wall').addEventListener('mouseleave',()=>{if(hoverPlaque!==null){hoverPlaque=null; render();}});
+$('wall').addEventListener('keydown',e=>{
+  const g=e.target.closest('[data-id]'); if(!g) return; let i=+g.dataset.id;
+  if(e.key==='Enter'||e.key===' '){e.preventDefault(); select(i,true)}
+  else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault(); const n=+$('density').value, c=n===12?6:3;
+    select(Math.max(0,Math.min(n-1,i+({ArrowLeft:-1,ArrowRight:1,ArrowUp:-c,ArrowDown:c}[e.key]))),true);
+  }
+});
+for(const id of ['theme','mount','profile','density','view','debug']) $(id).addEventListener('change',render);
+$('previous').onclick=()=>select((selected+ +$('density').value-1)%+$('density').value);
+$('next').onclick=()=>select((selected+1)%+$('density').value);
+$('variant').onclick=()=>{files[selected].motif=(files[selected].motif+1)%motifs.length; render(); $('status').textContent='Symbolic motif changed; file identity unchanged.'};
+$('reset').onclick=()=>{for(const [id,value] of Object.entries({theme:'Twilight',mount:'wall',profile:'mixed',density:'6',view:'normal'})) $(id).value=value; $('debug').checked=false; files.forEach((f,i)=>f.motif=i%6); selected=0; hoverPlaque=null; $('status').textContent='Study reset.'; render();};
+render();
+</script>
+</body>
+</html>

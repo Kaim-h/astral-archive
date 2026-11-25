@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+# Preserve imported, dated handoffs, browser prototypes and diagnostics exactly
+# as originally received. Their original bytes are part of the design record.
+docs/research/handoffs/** -text -eol
