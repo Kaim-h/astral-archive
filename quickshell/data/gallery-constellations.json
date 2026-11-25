@@ -1,0 +1,1511 @@
+{
+    "schemaVersion": 1,
+    "constellations": [
+        {
+            "id": "lantern",
+            "name": "The Lantern",
+            "source": "archive-original",
+            "description": "A warding light carried between shelves",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.24,
+                    "y": 0.19,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.71,
+                    "y": 0.19,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.81,
+                    "y": 0.66,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.18,
+                    "y": 0.66,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.5,
+                    "y": 0.91,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.5,
+                    "y": 0.08,
+                    "brightness": 0.73
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s1"
+                ],
+                [
+                    "s3",
+                    "s5"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s6",
+                    "s1"
+                ],
+                [
+                    "s6",
+                    "s2"
+                ]
+            ]
+        },
+        {
+            "id": "key",
+            "name": "The Keeper’s Key",
+            "source": "archive-original",
+            "description": "The lock and threshold",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.18,
+                    "y": 0.23,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.4,
+                    "y": 0.14,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.58,
+                    "y": 0.31,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.42,
+                    "y": 0.48,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.66,
+                    "y": 0.66,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.86,
+                    "y": 0.67,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.73,
+                    "y": 0.88,
+                    "brightness": 0.84
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s1"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s5",
+                    "s7"
+                ]
+            ]
+        },
+        {
+            "id": "quill",
+            "name": "The Quill",
+            "source": "archive-original",
+            "description": "A stroke that records forgotten names",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.21,
+                    "y": 0.76,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.35,
+                    "y": 0.59,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.5,
+                    "y": 0.36,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.74,
+                    "y": 0.13,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.65,
+                    "y": 0.49,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.43,
+                    "y": 0.74,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.84,
+                    "y": 0.23,
+                    "brightness": 0.84
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s4",
+                    "s7"
+                ]
+            ]
+        },
+        {
+            "id": "gate",
+            "name": "The Threshold",
+            "source": "archive-original",
+            "description": "An entrance that opens only at night",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.18,
+                    "y": 0.83,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.21,
+                    "y": 0.19,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.79,
+                    "y": 0.19,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.82,
+                    "y": 0.83,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.36,
+                    "y": 0.41,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.63,
+                    "y": 0.41,
+                    "brightness": 0.73
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s2",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s3"
+                ]
+            ]
+        },
+        {
+            "id": "compass",
+            "name": "The Compass Rose",
+            "source": "archive-original",
+            "description": "The map that points to possibilities",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.5,
+                    "y": 0.08,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.82,
+                    "y": 0.48,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.5,
+                    "y": 0.88,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.17,
+                    "y": 0.48,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.5,
+                    "y": 0.49,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.36,
+                    "y": 0.34,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.65,
+                    "y": 0.65,
+                    "brightness": 0.84
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s5"
+                ],
+                [
+                    "s2",
+                    "s5"
+                ],
+                [
+                    "s3",
+                    "s5"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s6",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s7"
+                ]
+            ]
+        },
+        {
+            "id": "hourglass",
+            "name": "The Hourglass",
+            "source": "archive-original",
+            "description": "Time gathered like sand",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.18,
+                    "y": 0.17,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.8,
+                    "y": 0.17,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.52,
+                    "y": 0.5,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.2,
+                    "y": 0.84,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.78,
+                    "y": 0.84,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.46,
+                    "y": 0.7,
+                    "brightness": 0.73
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s1"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s3"
+                ],
+                [
+                    "s6",
+                    "s4"
+                ],
+                [
+                    "s6",
+                    "s5"
+                ]
+            ]
+        },
+        {
+            "id": "moth",
+            "name": "The Night Moth",
+            "source": "archive-original",
+            "description": "A quiet visitor to reading lamps",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.5,
+                    "y": 0.17,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.5,
+                    "y": 0.48,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.5,
+                    "y": 0.86,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.23,
+                    "y": 0.31,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.14,
+                    "y": 0.69,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.77,
+                    "y": 0.31,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.86,
+                    "y": 0.69,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.28,
+                    "y": 0.8,
+                    "brightness": 0.95
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s2",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s8"
+                ],
+                [
+                    "s2",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ]
+            ]
+        },
+        {
+            "id": "ribbon",
+            "name": "The Binding Ribbon",
+            "source": "archive-original",
+            "description": "The thread that holds stories together",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.14,
+                    "y": 0.25,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.32,
+                    "y": 0.16,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.55,
+                    "y": 0.28,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.77,
+                    "y": 0.14,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.87,
+                    "y": 0.45,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.69,
+                    "y": 0.65,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.42,
+                    "y": 0.76,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.27,
+                    "y": 0.9,
+                    "brightness": 0.95
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ],
+                [
+                    "s7",
+                    "s8"
+                ]
+            ]
+        },
+        {
+            "id": "well",
+            "name": "The Starwell",
+            "source": "archive-original",
+            "description": "The reflection of an unseen sky",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.49,
+                    "y": 0.11,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.73,
+                    "y": 0.27,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.83,
+                    "y": 0.54,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.61,
+                    "y": 0.81,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.36,
+                    "y": 0.81,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.18,
+                    "y": 0.53,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.26,
+                    "y": 0.27,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.5,
+                    "y": 0.52,
+                    "brightness": 0.95
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ],
+                [
+                    "s7",
+                    "s1"
+                ],
+                [
+                    "s8",
+                    "s4"
+                ],
+                [
+                    "s8",
+                    "s1"
+                ]
+            ]
+        },
+        {
+            "id": "crown",
+            "name": "The Crescent Crown",
+            "source": "archive-original",
+            "description": "The guardian of unwritten volumes",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.13,
+                    "y": 0.31,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.28,
+                    "y": 0.55,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.49,
+                    "y": 0.66,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.72,
+                    "y": 0.55,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.87,
+                    "y": 0.31,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.49,
+                    "y": 0.17,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.49,
+                    "y": 0.88,
+                    "brightness": 0.84
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s2",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s4"
+                ],
+                [
+                    "s3",
+                    "s7"
+                ]
+            ]
+        },
+        {
+            "id": "ladder",
+            "name": "The Astral Ladder",
+            "source": "archive-original",
+            "description": "Steps between levels of the Archive",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.24,
+                    "y": 0.12,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.71,
+                    "y": 0.12,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.25,
+                    "y": 0.36,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.72,
+                    "y": 0.36,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.25,
+                    "y": 0.62,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.72,
+                    "y": 0.62,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.26,
+                    "y": 0.88,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.71,
+                    "y": 0.88,
+                    "brightness": 0.95
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s1",
+                    "s3"
+                ],
+                [
+                    "s2",
+                    "s4"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s3",
+                    "s5"
+                ],
+                [
+                    "s4",
+                    "s6"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s5",
+                    "s7"
+                ],
+                [
+                    "s6",
+                    "s8"
+                ],
+                [
+                    "s7",
+                    "s8"
+                ]
+            ]
+        },
+        {
+            "id": "fox",
+            "name": "The Silver Fox",
+            "source": "archive-original",
+            "description": "A guide to hidden passages",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.19,
+                    "y": 0.36,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.32,
+                    "y": 0.21,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.46,
+                    "y": 0.38,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.61,
+                    "y": 0.16,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.81,
+                    "y": 0.35,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.74,
+                    "y": 0.6,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.48,
+                    "y": 0.78,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.29,
+                    "y": 0.68,
+                    "brightness": 0.95
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ],
+                [
+                    "s7",
+                    "s8"
+                ],
+                [
+                    "s8",
+                    "s1"
+                ],
+                [
+                    "s3",
+                    "s7"
+                ]
+            ]
+        },
+        {
+            "id": "bridge",
+            "name": "The Whisper Bridge",
+            "source": "archive-original",
+            "description": "A crossing between distant shelves",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.11,
+                    "y": 0.7,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.29,
+                    "y": 0.42,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.48,
+                    "y": 0.28,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.67,
+                    "y": 0.43,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.88,
+                    "y": 0.72,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.48,
+                    "y": 0.76,
+                    "brightness": 0.73
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s1",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s5"
+                ]
+            ]
+        },
+        {
+            "id": "bell",
+            "name": "The Last Bell",
+            "source": "archive-original",
+            "description": "The hour of closing and returning",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.5,
+                    "y": 0.08,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.36,
+                    "y": 0.23,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.23,
+                    "y": 0.57,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.33,
+                    "y": 0.77,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.67,
+                    "y": 0.77,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.77,
+                    "y": 0.57,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.64,
+                    "y": 0.23,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.5,
+                    "y": 0.91,
+                    "brightness": 0.95
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ],
+                [
+                    "s7",
+                    "s1"
+                ],
+                [
+                    "s5",
+                    "s8"
+                ],
+                [
+                    "s4",
+                    "s8"
+                ]
+            ]
+        },
+        {
+            "id": "vessel",
+            "name": "The Ink Vessel",
+            "source": "archive-original",
+            "description": "A pool from which stories emerge",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.22,
+                    "y": 0.23,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.77,
+                    "y": 0.23,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.69,
+                    "y": 0.68,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.32,
+                    "y": 0.68,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.5,
+                    "y": 0.83,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.5,
+                    "y": 0.12,
+                    "brightness": 0.73
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s1"
+                ],
+                [
+                    "s4",
+                    "s5"
+                ],
+                [
+                    "s3",
+                    "s5"
+                ],
+                [
+                    "s6",
+                    "s1"
+                ],
+                [
+                    "s6",
+                    "s2"
+                ]
+            ]
+        },
+        {
+            "id": "antler",
+            "name": "The Moon Antler",
+            "source": "archive-original",
+            "description": "A branching path through winter",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.5,
+                    "y": 0.85,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.48,
+                    "y": 0.54,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.25,
+                    "y": 0.42,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.17,
+                    "y": 0.2,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.37,
+                    "y": 0.31,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.69,
+                    "y": 0.41,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.83,
+                    "y": 0.18,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.62,
+                    "y": 0.26,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s9",
+                    "x": 0.48,
+                    "y": 0.13,
+                    "brightness": 0.62
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s3",
+                    "s5"
+                ],
+                [
+                    "s2",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ],
+                [
+                    "s6",
+                    "s8"
+                ],
+                [
+                    "s2",
+                    "s9"
+                ]
+            ]
+        },
+        {
+            "id": "ship",
+            "name": "The Paper Ship",
+            "source": "archive-original",
+            "description": "A voyage that never leaves the page",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.16,
+                    "y": 0.48,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.82,
+                    "y": 0.48,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.59,
+                    "y": 0.76,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.37,
+                    "y": 0.76,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.49,
+                    "y": 0.14,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.48,
+                    "y": 0.48,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.72,
+                    "y": 0.29,
+                    "brightness": 0.84
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s4",
+                    "s1"
+                ],
+                [
+                    "s5",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ]
+            ]
+        },
+        {
+            "id": "orchard",
+            "name": "The Clockwork Orchard",
+            "source": "archive-original",
+            "description": "A patient garden of starlight",
+            "stars": [
+                {
+                    "id": "s1",
+                    "x": 0.49,
+                    "y": 0.82,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s2",
+                    "x": 0.48,
+                    "y": 0.57,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s3",
+                    "x": 0.27,
+                    "y": 0.4,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s4",
+                    "x": 0.17,
+                    "y": 0.22,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s5",
+                    "x": 0.36,
+                    "y": 0.18,
+                    "brightness": 0.62
+                },
+                {
+                    "id": "s6",
+                    "x": 0.72,
+                    "y": 0.42,
+                    "brightness": 0.73
+                },
+                {
+                    "id": "s7",
+                    "x": 0.83,
+                    "y": 0.23,
+                    "brightness": 0.84
+                },
+                {
+                    "id": "s8",
+                    "x": 0.61,
+                    "y": 0.14,
+                    "brightness": 0.95
+                },
+                {
+                    "id": "s9",
+                    "x": 0.66,
+                    "y": 0.73,
+                    "brightness": 0.62
+                }
+            ],
+            "edges": [
+                [
+                    "s1",
+                    "s2"
+                ],
+                [
+                    "s2",
+                    "s3"
+                ],
+                [
+                    "s3",
+                    "s4"
+                ],
+                [
+                    "s3",
+                    "s5"
+                ],
+                [
+                    "s2",
+                    "s6"
+                ],
+                [
+                    "s6",
+                    "s7"
+                ],
+                [
+                    "s6",
+                    "s8"
+                ],
+                [
+                    "s2",
+                    "s9"
+                ]
+            ]
+        }
+    ]
+}
