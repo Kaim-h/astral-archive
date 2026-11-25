@@ -85,6 +85,45 @@ running application when the pointer merely passes over the capsule.
 **not** part of the runtime shell after revised Batch 7. This is intentional
 and avoids breaking any earlier `BarTest.qml` test scenes.
 
+## Desktop theme persistence (WP-01)
+
+The production shell owns one `ThemePreferences.qml` adapter for
+`Quickshell.statePath("theme.json")`, with a version-1 envelope
+(`{"version":1,"index":1}`; 0 Evening, 1 Twilight, 2 Midnight).
+`themes/Theme.qml` remains the shared in-memory palette singleton, independent
+of Quickshell I/O. Synthetic Archive checkpoints and local material overrides
+are unchanged and do not write desktop preferences.
+
+A valid saved index is restored before Veranda initialization. A missing file
+starts at Twilight and is not created until a deliberate selection. Unreadable,
+malformed or unsupported preferences start at Twilight and are protected from
+writes for the session; deliberate selection still changes the session theme.
+If a user selects before the initial read completes, that choice wins, but is
+written only if the read authorizes writes. Initialization alone never writes.
+The sole production writer is the capsule's explicit theme selection. Repeated
+selection of the already persisted value does not write.
+
+The adapter uses FileView atomic writes and a tiny synchronous write on an
+explicit selection (no animation/frame/slider writes), so completion cannot
+race a later choice. Write failure preserves the old file under FileView's
+atomic-write contract, keeps the chosen session theme, and disables further
+writes until restart. A small ! on the theme glyph and a log warning distinguish
+session-only changes. Back up and repair the file or move it aside explicitly
+while Quickshell is stopped; never automatically replace an unreadable or
+incompatible file. Restart to retry after a storage failure. Concurrent external
+edits/multiple production shell instances are not supported by this single-owner
+preference adapter.
+
+Regression: `node scripts/check-theme-policy.js` exercises pure policy and
+actual adapter functions against mocked FileView callbacks, and
+`node scripts/check-veranda.js` covers the startup gate. These do not establish
+actual Quickshell file I/O or target-session restart behavior. During N4, use
+disposable state storage: cycle all three themes, restart the actual shell,
+confirm the first wallpaper corresponds to the restored theme, check missing,
+malformed, unsupported and unreadable preferences, atomic write failure and
+session-only indicator, and confirm isolated study checkpoints do not touch
+the desktop preference. Preserve real user state and recovery path.
+
 ## Native testing required
 
 - Popup placement on different resolutions, scale factors, and multiple monitors.

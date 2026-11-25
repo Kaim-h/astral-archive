@@ -13,6 +13,8 @@ Item {
     width: 0
     height: 0
 
+    // Do not apply or persist a wallpaper against the provisional startup theme.
+    property bool themeReady: true // production shell binds its preference adapter
     property bool initialized: false
     property bool manifestReady: false
     property string stateReadStatus: "pending"
@@ -75,7 +77,7 @@ Item {
         finishInitialization();
     }
     function finishInitialization() {
-        if (!manifestReady || initialized || stateReadStatus === "pending") return;
+        if (!themeReady || !manifestReady || initialized || stateReadStatus === "pending") return;
         var decoded = Policy.decodePreferences(stateReadStatus,
             stateReadStatus === "loaded" ? stateFile.text() : "");
         saved = decoded.state;
@@ -198,6 +200,9 @@ Item {
 
     onThemeNameChanged: {
         if (initialized) Qt.callLater(function(){service.ensureToday(true);});
+    }
+    onThemeReadyChanged: {
+        if (themeReady) finishInitialization();
     }
     Timer {
         // Local-calendar boundary and wake-from-sleep check; no fast polling.
