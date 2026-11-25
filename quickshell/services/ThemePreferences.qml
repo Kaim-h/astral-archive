@@ -13,6 +13,7 @@ Item {
     height: 0
 
     property bool ready: false
+    property bool initializationStarted: false
     property string readStatus: "pending"
     property bool writable: false
     property bool userSelected: false
@@ -23,7 +24,9 @@ Item {
     FileView {
         id: stateFile
         // Set path after construction so no initial result is missed.
-        blockLoading: true
+        preload: true
+        blockLoading: false
+        blockAllReads: false
         atomicWrites: true
         // Tiny explicit preference writes, not animation/slider I/O.
         // Synchronous completion avoids competing writes and late save results.
@@ -38,9 +41,28 @@ Item {
         onSaveFailed: service.writeFailed()
     }
 
+    Timer {
+        id: initializationDeadline
+        interval: 3000
+        repeat: false
+        onTriggered: service.noteRead("timeout")
+    }
+
+    function startInitialization() {
+        if (service.initializationStarted || service.ready) return;
+        service.initializationStarted = true;
+        initializationDeadline.start();
+        try {
+            stateFile.path = Quickshell.statePath("theme.json");
+            // Background preload; read text only after loaded.
+        } catch (error) {
+            service.noteRead("failed");
+        }
+    }
     function noteRead(status) {
-        if (service.ready || service.readStatus !== "pending") return;
+        if (!service.initializationStarted || service.ready || service.readStatus !== "pending") return;
         service.readStatus = status;
+        initializationDeadline.stop();
         // Never write from inside a FileView load callback.
         Qt.callLater(service.finishInitialization);
     }
@@ -51,12 +73,13 @@ Item {
             decoded = Policy.decodePreferences(service.readStatus,
                 service.readStatus === "loaded" ? stateFile.text() : "");
         } catch (error) {
+            service.readStatus = "failed";
             decoded = Policy.decodePreferences("failed", "");
         }
         service.savedIndex = decoded.savedIndex;
         service.writable = decoded.writable;
         if (!decoded.writable) {
-            service.warning = "Theme preference " + decoded.status + " — session-only changes.";
+            service.warning = "Theme preference " + (service.readStatus === "timeout" ? "read timed out" : decoded.status) + " — session-only changes.";
             console.warn(service.warning + " Original file preserved; back up and repair or move theme.json before restarting.");
         }
         // Explicit selection while the read was pending wins.
@@ -95,13 +118,5 @@ Item {
         console.warn(service.warning + " Check state storage and restart.");
     }
 
-    Component.onCompleted: {
-        try {
-            stateFile.path = Quickshell.statePath("theme.json");
-            stateFile.text(); // small blocking startup read, before shell windows
-        } catch (error) {
-            service.noteRead("failed");
-        }
-        service.finishInitialization();
-    }
+    Component.onCompleted: service.startInitialization()
 }

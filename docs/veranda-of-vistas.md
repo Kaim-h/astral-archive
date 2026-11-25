@@ -158,3 +158,32 @@ Daemon CLI paths retain literal filenames. QML preview, thumbnail, mask and tran
 Regression checks are in `scripts/check-veranda.js`. Native acceptance remains: use disposable state/manifest fixtures; verify corrupt, unknown-version, unreadable and missing files, toggles while an apply is pending, successful and failed daemon commands, paused manual selection followed by multiple ticks, theme/day changes, and literal spaces, Unicode, #, ?, % and percent-like filenames in both normal fade and shader paths. No actual daemon or target Quickshell test is implied by pure logic checks.
 
 First checkpoint: 63 focused policy/wiring assertions plus 26 extracted-service assertions passed using a mock FileView/process and deterministic date. The first local mock harness failed because its replacement date source did not override the extracted lexical function; corrected harness uses an explicitly injected date. These results are not native Qt I/O or actual wallpaper application.
+
+## Bounded startup recovery (WP-07 / AUD-22)
+
+Theme, catalogue and Veranda preferences are separate readiness prerequisites.
+Both adapters use background FileView preload with a 3-second single-shot
+startup deadline, separate from the 12-second wallpaper backend watchdog.
+Read text only after a loaded callback. Each read resolves once per service
+lifetime; late results cannot replace that decision while another prerequisite
+is pending. The deadline requires a responsive event loop.
+
+Veranda preference timeout permits protected **manual-only** selection for
+the session: no initial apply, daily tick, theme-change apply or automatic
+retry. Daily rotation displays MANUAL; explicit wallpaper and animation
+changes remain session-only. Unavailable catalogue disables application and
+persistence. Confirmed missing preferences still permit first-run defaults
+and writes with a valid catalogue. Corrupt/failed/unsupported reads retain
+the established protected fallback. Theme timeout preserves explicit pending
+selection or Twilight; a valid Veranda read can initialize against this
+resolved theme. Controls indicate pending startup. Save failure prohibits
+subsequent persistence until restart; actual atomic-write behavior and any
+already-submitted asynchronous writes require target verification.
+
+The existing mock checks exercise absent, late, repeated and ordered
+completions, deadlines, user intent, protected manual-only recovery, linked
+theme readiness and failed writes. They do not exercise native FileView/timer/
+binding scheduling. N4 requires disposable state, real lifecycle and first
+wallpaper request counts, byte preservation, restart recovery and daemon
+behavior. Preserve AUD-11/12/15. See also
+[Quickshell FileView 0.3.1](https://quickshell.org/docs/v0.3.1/types/Quickshell.Io/FileView/).

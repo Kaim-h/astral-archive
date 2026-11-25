@@ -137,7 +137,7 @@ assert.notEqual(ctx.appliedKey(applied,true),ctx.applicationKey(theme,"2026-11-2
 assert.equal(ctx.appliedKey(null,false),"");
 assert.notEqual(ctx.appliedKey(applied,false),ctx.applicationKey("evening",date,id,false));
 assert.match(svc,/error === FileViewError\.FileNotFound \? "missing" : "failed"/);
-assert.match(svc,/if \(!preferencesWritable\) return;\s*stateFile\.setText/);
+assert.match(svc,/if \(!preferencesWritable\) return;\s*try \{ stateFile\.setText/);
 assert.equal((svc.match(/stateFile\.setText\(/g)||[]).length,1);
 assert.match(svc,/preferencesWritable = decoded\.writable && artworks\.length > 0/);
 assert.match(svc,/lastAppliedKey=Policy\.appliedKey\(service\.lastSuccessful,next\.rotationEnabled\)/);
@@ -156,26 +156,43 @@ const exitStart=svc.indexOf("        onExited: function(code, status) {");
 const exitEnd=svc.lastIndexOf("\n        }\n    }\n}");
 assert.ok(exitStart>=0&&exitEnd>exitStart);
 const exitFn=svc.slice(exitStart,exitEnd+10).replace("onExited: function","function backendExit");
-function mockService(readStatus,raw,validManifest=true){
-    const s={Policy:ctx, themeReady:true,initialized:false,manifestReady:false,stateReadStatus:readStatus,
+function mockService(readStatus,raw,validManifest=true,manifestStatus="loaded",writeFails=false){
+    const queue=[];
+    const s={Policy:ctx, themeReady:true,initialized:false,initializationStarted:false,manifestReady:false,manifestReadStatus:"pending",stateReadStatus:"pending",
       preferencesWritable:false,preferenceWarning:"",artworks:[],saved:ctx.initialState(),
       themeName:"twilight",wallpaperDirectory:"/tmp/a b#%/",lastSuccessful:null,
       message:"",busy:false,lastAppliedKey:"",lastAttemptKey:"",backendErrorText:"",
       pending:null,transitionLayer:null,lastKnownWallpaperPath:"",writes:[],applies:0,
-      today:"2026-11-24",console:{warn(){}},Qt:{callLater(fn){fn()}},
-      catalogue:{text(){return JSON.stringify(validManifest?manifest:{wallpapers:[]})}},
-      stateFile:{text(){return raw},setText(value){s.writes.push(value)}},
+      today:"2026-11-24",console:{warn(){}},Qt:{callLater(fn){queue.push(fn)},resolvedUrl(p){return p}},
+      Quickshell:{statePath(p){return "/synthetic/"+p}},
+      readCount:0,manifestReads:0,pathSets:0,
+      initializationDeadline:{running:false,start(){this.running=true},stop(){this.running=false}},
+      catalogue:{set path(value){s.pathSets++;if(manifestStatus!=="pending")s.noteManifestRead(manifestStatus)},
+        text(){s.manifestReads++;return JSON.stringify(validManifest?manifest:{wallpapers:[]})}},
+      stateFile:{set path(value){s.pathSets++;if(readStatus!=="pending")s.noteStateRead(readStatus)},
+        text(){s.readCount++;return raw},setText(value){s.writes.push(value);if(writeFails==="throw")throw Error("write failed");if(writeFails)s.preferenceWriteFailed()}},
       watchdog:{restart(){},stop(){}},wallpaperApplied(){}};
     s.service=s;
     s.wallpaperProcess={command:[],set running(value){if(value)s.applies++}};
     Object.defineProperties(s,{
+        manualOnly:{get(){return s.stateReadStatus==="timeout"}},
         eligible:{get(){return ctx.forTheme(s.artworks,s.themeName)}},
         rotationEnabled:{get(){return s.saved.rotationEnabled}},
         transitionEnabled:{get(){return s.saved.transitionEnabled}},
         currentId:{get(){return s.saved.byTheme[s.themeName].current}}
     });
     vm.createContext(s);
-    vm.runInContext(serviceFns+"\n"+exitFn,s);
+    const themeHandlers=["onThemeNameChanged","onThemeReadyChanged"].map(name=>{
+        const start=svc.indexOf("    "+name+": {");
+        const end=svc.indexOf("\n    }",start);
+        assert.ok(start>=0&&end>start);
+        return "    function "+name+"() "+svc.slice(svc.indexOf("{",start),end+6);
+    }).join("\n");
+    vm.runInContext(serviceFns+"\n"+exitFn+"\n"+themeHandlers,s);
+    s.drain=()=>{while(queue.length)queue.shift()()};
+    s.expire=()=>{if(s.initializationDeadline.running){s.initializationDeadline.running=false;s.expireInitialization()}};
+    const load=s.loadAll;
+    s.loadAll=()=>{load();s.drain()};
     return s;
 }
 const guarded=mockService("loaded","{broken");
@@ -201,7 +218,7 @@ assert.equal(missing.writes.length,0);missing.retry();assert.equal(missing.appli
 missing.backendExit(0,0);assert.equal(missing.writes.length,1);
 const waiting=mockService("pending","");
 waiting.loadAll();assert.equal(waiting.initialized,false);assert.equal(waiting.applies,0);
-waiting.stateReadStatus="failed";waiting.finishInitialization();
+waiting.noteStateRead("failed");waiting.drain();
 assert.equal(waiting.initialized,true);waiting.backendExit(0,0);assert.equal(waiting.writes.length,0);
 const waitingTheme=mockService("loaded",raw);
 waitingTheme.themeReady=false;waitingTheme.loadAll();
@@ -214,4 +231,101 @@ waitingTheme.finishInitialization();assert.equal(waitingTheme.applies,1);
 const empty=mockService("loaded",raw,false);
 empty.loadAll();empty.setRotationEnabled(true);
 assert.equal(empty.applies,0);assert.equal(empty.writes.length,0);
+// AUD-22: bounded terminal results, asynchronous ordering, protected fallback.
+const timed=mockService("pending",raw);
+timed.loadAll();timed.loadAll();assert.equal(timed.pathSets,2);
+assert.equal(timed.readCount,0);assert.equal(timed.initialized,false);
+timed.applyManual(id);timed.setTransitionEnabled(false);timed.setRotationEnabled(false);
+timed.ensureToday(false);timed.retry();
+assert.equal(timed.applies,0);assert.equal(timed.writes.length,0);
+assert.equal(timed.transitionEnabled,true);
+timed.expire();timed.noteStateRead("loaded");timed.drain();
+assert.equal(timed.stateReadStatus,"timeout");assert.equal(timed.initialized,true);
+assert.equal(timed.manualOnly,true);assert.equal(timed.rotationEnabled,false);
+assert.equal(timed.preferencesWritable,false);assert.equal(timed.applies,0);
+assert.equal(timed.readCount,0);assert.match(timed.preferenceWarning,/timed out/);
+assert.equal(timed.initializationDeadline.running,false);
+timed.ensureToday(true);timed.ensureToday(false);timed.retry();
+timed.setRotationEnabled(true);assert.equal(timed.rotationEnabled,false);
+assert.equal(timed.applies,0);
+timed.applyManual(other);assert.equal(timed.applies,1);
+timed.setTransitionEnabled(false);timed.backendExit(0,0);
+assert.equal(timed.currentId,other);assert.equal(timed.transitionEnabled,false);
+const session=JSON.stringify(timed.saved);
+timed.noteStateRead("missing");timed.noteManifestRead("failed");timed.finishInitialization();timed.drain();
+assert.equal(JSON.stringify(timed.saved),session);assert.equal(timed.stateReadStatus,"timeout");
+assert.equal(timed.manifestReadStatus,"loaded");assert.equal(timed.writes.length,0);
+timed.themeName="midnight";timed.onThemeNameChanged();timed.drain();
+timed.ensureToday(true);timed.ensureToday(false);assert.equal(timed.applies,1);
+const noCatalogue=mockService("loaded",raw,true,"pending");
+noCatalogue.loadAll();assert.equal(noCatalogue.initialized,false);
+noCatalogue.expire();noCatalogue.noteManifestRead("loaded");noCatalogue.drain();
+assert.equal(noCatalogue.initialized,true);assert.equal(noCatalogue.manifestReadStatus,"timeout");
+assert.equal(noCatalogue.manifestReads,0);assert.equal(noCatalogue.artworks.length,0);
+assert.equal(noCatalogue.applies,0);assert.equal(noCatalogue.preferencesWritable,false);
+noCatalogue.setTransitionEnabled(false);assert.equal(noCatalogue.writes.length,0);
+const bothAbsent=mockService("pending",raw,true,"pending");
+bothAbsent.loadAll();bothAbsent.expire();bothAbsent.drain();
+assert.equal(bothAbsent.initialized,true);assert.equal(bothAbsent.stateReadStatus,"timeout");
+assert.equal(bothAbsent.manifestReadStatus,"timeout");assert.equal(bothAbsent.applies,0);
+for(const order of [["state","manifest","theme"],["manifest","theme","state"],["theme","state","manifest"]]){
+    const pending=mockService("pending",raw,true,"pending");pending.themeReady=false;pending.loadAll();
+    for(const part of order){
+        if(part==="state"){pending.noteStateRead("loaded");pending.noteStateRead("missing");}
+        else if(part==="manifest"){pending.noteManifestRead("loaded");pending.noteManifestRead("failed");}
+        else {pending.themeName="midnight";pending.onThemeNameChanged();pending.themeReady=true;pending.onThemeReadyChanged();}
+        pending.drain();
+        if(part!==order.at(-1))assert.equal(pending.applies,0);
+    }
+    assert.equal(pending.initializationDeadline.running,false);pending.expire();
+    assert.equal(pending.stateReadStatus,"loaded");
+    assert.equal(pending.initialized,true);assert.equal(pending.applies,1);
+    assert.equal(pending.pending.theme,"midnight");pending.backendExit(0,0);
+    // Model a late same-theme notification after fast backend completion.
+    pending.onThemeNameChanged();pending.finishInitialization();pending.ensureToday(false);pending.drain();
+    assert.equal(pending.applies,1);assert.equal(pending.writes.length,1);
+}
+const beforeDeadline=mockService("pending",raw);
+beforeDeadline.loadAll();beforeDeadline.noteStateRead("loaded");beforeDeadline.expire();beforeDeadline.drain();
+assert.equal(beforeDeadline.initialized,true);assert.equal(beforeDeadline.preferencesWritable,true);
+assert.equal(beforeDeadline.stateReadStatus,"loaded");assert.equal(beforeDeadline.applies,1);
+for(const failure of [true,"throw"]){
+    const failedWrite=mockService("loaded",raw,true,"loaded",failure);
+    failedWrite.loadAll();failedWrite.backendExit(0,0);
+    assert.equal(failedWrite.writes.length,1);assert.equal(failedWrite.preferencesWritable,false);
+    assert.match(failedWrite.preferenceWarning,/not saved/);
+    failedWrite.setTransitionEnabled(false);failedWrite.setRotationEnabled(true);
+    assert.equal(failedWrite.writes.length,1);assert.equal(failedWrite.transitionEnabled,false);
+}
+// Link actual theme adapter completion to the Veranda mock's notifications.
+const themeQml=file("quickshell/services/ThemePreferences.qml");
+const themePolicySource=file("quickshell/themes/ThemePolicy.js");
+const themePolicy=new Function(themePolicySource+"\nreturn {decodePreferences,validIndex,encodePreference};")();
+const themeFactory=new Function("service","Policy","Themes","stateFile","Qt","console","initializationDeadline","Quickshell",
+    themeQml.slice(themeQml.indexOf("    function startInitialization("),themeQml.indexOf("    Component.onCompleted:"))+
+    "\nreturn {startInitialization,noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed};");
+for(const selected of [null,0,2]){
+    const v=mockService("loaded",raw);v.themeReady=false;v.loadAll();
+    const theme={ready:false,initializationStarted:false,readStatus:"pending",writable:false,userSelected:false,savedIndex:-1,writingIndex:-1,warning:""};
+    const Themes={Theme:{index:1}}, callbacks=[],themeWrites=[],timer={running:false,start(){this.running=true},stop(){this.running=false}};
+    Object.assign(theme,themeFactory(theme,themePolicy,Themes,
+        {path:"",text(){return themePolicy.encodePreference(0)},setText(value){themeWrites.push(value);theme.writeSucceeded()}},
+        {callLater(fn){callbacks.push(fn)}},{warn(){}},timer,{statePath(p){return p}}));
+    theme.startInitialization();if(selected!==null)theme.select(selected);
+    assert.equal(v.applies,0);assert.equal(theme.ready,false);
+    // Simulate absent theme callback, timeout then stale success.
+    assert.equal(timer.running,true);theme.noteRead("timeout");theme.noteRead("loaded");
+    while(callbacks.length)callbacks.shift()();
+    assert.equal(theme.ready,true);assert.equal(theme.writable,false);assert.equal(themeWrites.length,0);
+    v.themeName=["evening","twilight","midnight"][Themes.Theme.index];v.onThemeNameChanged();
+    v.themeReady=theme.ready;v.onThemeReadyChanged();v.drain();
+    assert.equal(v.applies,1);assert.equal(v.pending.theme,["evening","twilight","midnight"][selected===null?1:selected]);
+    v.backendExit(0,0);v.onThemeNameChanged();v.drain();assert.equal(v.applies,1);
+}
+assert.equal((svc.match(/blockLoading: false/g)||[]).length,2);
+assert.match(svc,/onTriggered: service\.expireInitialization\(\)/);
+assert.match(svc,/if \(themeReady\) Qt\.callLater\(service\.finishInitialization\)/);
+assert.match(gui,/DAILY: MANUAL/);
+assert.match(gui,/wallpaperService\.initialized && !veranda\.wallpaperService\.manualOnly/);
+console.log("PASS AUD-22 Veranda terminal reads, deadline, manual-only fallback, linked theme readiness and failed-write latch (mocked callbacks).");
 console.log("PASS Veranda mocked service: guarded writes, paused manual apply, in-flight toggles, failure/retry and deferred initialization.");

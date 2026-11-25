@@ -7,18 +7,20 @@ const file = rel => fs.readFileSync(path.join(__dirname, "..", rel), "utf8");
 const policySource = file("quickshell/themes/ThemePolicy.js");
 const Policy = new Function(policySource + "\nreturn {validIndex,decodePreferences,encodePreference};")();
 const qml = file("quickshell/services/ThemePreferences.qml");
-const start = qml.indexOf("    function noteRead(");
+const start = qml.indexOf("    function startInitialization(");
 const end = qml.indexOf("    Component.onCompleted:");
 assert.ok(start >= 0 && end > start);
-const factory = new Function("service", "Policy", "Themes", "stateFile", "Qt", "console",
-    qml.slice(start,end) + "\nreturn {noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed};");
+const factory = new Function("service", "Policy", "Themes", "stateFile", "Qt", "console", "initializationDeadline", "Quickshell",
+    qml.slice(start,end) + "\nreturn {startInitialization,noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed};");
 function mock(raw, failWrite = false, throwRead = false) {
     const Themes = {Theme:{index:1}}, queue = [], writes = [], warnings = [];
-    const service = {ready:false,readStatus:"pending",writable:false,userSelected:false,
+    const service = {ready:false,initializationStarted:false,readStatus:"pending",writable:false,userSelected:false,
         savedIndex:-1,writingIndex:-1,warning:""};
-    let text = raw;
+    let text = raw, reads=0, pathSets=0;
+    const timer={running:false,start(){this.running=true},stop(){this.running=false}};
     const stateFile = {
-        text(){if(throwRead)throw Error("read failed");return text;},
+        set path(value){pathSets++},
+        text(){reads++;if(throwRead)throw Error("read failed");return text;},
         setText(value){
             writes.push(value);
             if(failWrite === "throw")throw Error("write failed");
@@ -27,8 +29,11 @@ function mock(raw, failWrite = false, throwRead = false) {
         }
     };
     Object.assign(service,factory(service,Policy,Themes,stateFile,
-        {callLater(fn){queue.push(fn);}}, {warn(msg){warnings.push(msg);}}));
-    return {service,Themes,writes,warnings,raw:()=>text,
+        {callLater(fn){queue.push(fn);}}, {warn(msg){warnings.push(msg);}},
+        timer,{statePath(name){return "/synthetic/"+name;}}));
+    service.startInitialization();
+    return {service,Themes,writes,warnings,raw:()=>text,timer,reads:()=>reads,pathSets:()=>pathSets,
+        expire(){if(timer.running){timer.running=false;service.noteRead("timeout");}},
         drain(){while(queue.length)queue.shift()();}};
 }
 for (const i of [0,1,2]) {
@@ -120,4 +125,28 @@ assert.match(capsule,/onClicked: capsule\.themeRequested\(/);
 assert.ok(!/Themes\.Theme\.index\s*=/.test(capsule));
 assert.match(file("quickshell/services/VerandaService.qml"),/if \(!themeReady \|\| !manifestReady/);
 assert.ok(!/import Quickshell|FileView/.test(file("quickshell/themes/Theme.qml")));
+// AUD-22: real extracted start/completion functions, simulated timer.
+for(const selection of [null,0,2]){
+    const m=mock(Policy.encodePreference(0));
+    m.service.startInitialization();
+    assert.equal(m.pathSets(),1);assert.equal(m.reads(),0);assert.equal(m.timer.running,true);
+    assert.equal(m.service.ready,false);
+    if(selection!==null)m.service.select(selection);
+    m.expire();m.service.noteRead("loaded");m.drain();
+    assert.equal(m.service.readStatus,"timeout");assert.equal(m.service.ready,true);
+    assert.equal(m.service.writable,false);assert.equal(m.Themes.Theme.index,selection===null?1:selection);
+    assert.equal(m.reads(),0);assert.equal(m.writes.length,0);
+    assert.match(m.service.warning,/timed out/);assert.equal(m.timer.running,false);
+    m.service.noteRead("missing");m.service.select(1);m.drain();
+    assert.equal(m.service.readStatus,"timeout");assert.equal(m.writes.length,0);
+    assert.equal(m.raw(),Policy.encodePreference(0));
+}
+const onTime=mock(Policy.encodePreference(2));
+onTime.service.noteRead("loaded");onTime.expire();onTime.service.noteRead("missing");onTime.drain();
+assert.equal(onTime.service.readStatus,"loaded");assert.equal(onTime.service.ready,true);
+assert.equal(onTime.Themes.Theme.index,2);assert.equal(onTime.reads(),1);
+assert.equal(onTime.writes.length,0);assert.equal(onTime.timer.running,false);
+assert.match(qml,/preload:\s*true/);assert.match(qml,/blockLoading:\s*false/);
+assert.match(qml,/onTriggered: service\.noteRead\("timeout"\)/);
+console.log("PASS AUD-22 theme deadline, pending intent and first-result guard (mocked callbacks).");
 console.log("PASS Theme policy and mocked production adapter: valid/invalid values, recovery, write failure, explicit selection, late callbacks and startup ordering.");
