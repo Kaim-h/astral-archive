@@ -44,10 +44,10 @@ These are symbolic 2D illustrations chosen from small curated pools, not content
 - A file represented as framed artwork is not automatically a Celestial Gallery artwork or Veranda wallpaper. Gallery registration remains explicit and separate.
 - Object shape does not grant filesystem capabilities. It is a symbolic representation, not a security or execution boundary.
 
-## B7-C implementation candidate
+## B7-C asset contract and historical implementation direction
 
 See [representation asset contract](REPRESENTATION_ASSETS.md). P10 parcel baseline accepted to proceed. Scientific data describes purpose rather than format; proposed simplification is ordinary format-based mapping with scroll fallback, leaving scientific instruments optional research/decorative candidates. Owner explicitly decided to leave instruments out of development, retaining the [B7p4 design study](../research/prototypes/2026-11-24/Astral_Archive_Parcel_Instrument_Study_B7p4.html) as historical design evidence. No instrument mapping or native renderer; decorative use would require a later decision.
 
 ## Universal portable form — owner decision November 24
 
-The Scroll Case represents every carried file as a scroll, regardless of original visual family. Preserve file identity, preferred family/variant and metadata; compatible placement restores the ordinary representation. Confirmed fixture deletion transfers all affected files (including recursively nested contents) into the Case, never deletes disk data; preview count, exact Cancel and Undo. Existing application books are distinct application identities. See [physical fixture contract](PHYSICAL_FIXTURES_AND_SCROLL_BEHAVIOR.md). N3r1 supports rack scrolls now; populated non-scroll fixture ownership and conversion remain B7 work.
+The Scroll Case represents every carried file as a scroll, regardless of original visual family. Preserve file identity, preferred family/variant and metadata; compatible placement restores the ordinary representation. Confirmed fixture deletion transfers all affected files (including recursively nested contents) into the Case, never deletes disk data; preview count, exact Cancel and Undo. Existing application books are distinct application identities. See [physical fixture contract](PHYSICAL_FIXTURES_AND_SCROLL_BEHAVIOR.md). B7-N2 implements populated non-scroll fixture ownership and conversion in the isolated synthetic study; no real file bytes, indexing or disk actions are involved. See [mixed cubbies](../development/B7_N2_MIXED_CUBBIES.md).

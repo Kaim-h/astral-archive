@@ -2,12 +2,18 @@
 
 ## Integrated baseline and verification status
 
-The preserved technical baseline is historical main `4366c5cae25d949ea7d21c8c595de8132893d6b4` (November 24, 2026). Historical PR #16 (B7-N2) merged at `17fecd7cf3161ecd324645ffb4608541b404d818`; historical PR #15 (independent stable-main fixes) subsequently merged at the baseline. B7-N2 is implemented as an isolated synthetic study, not a production filesystem interface. Its four agreed checkpoints were completed at tested implementation `e04c1e4bbb1b52f32fd91ee22336d23f3f2c1cf7`. Historical CI run 45479039959 passed offline-js, browser-cubby-studies and native-archive-qt for that implementation. Later integration changed independent desktop shell/service source and tests; this is not a claim that the complete migrated tree has passed those checks.
+The selected original technical main is `4366c5cae25d949ea7d21c8c595de8132893d6b4` (November 24, 2026; original tree `d1bec3d22728f7b841f420b34833feab6660517c`). Historical PRs #10, #11, #13, #14, #15 and #16 integrated B7 assets, native B6 editing, B7-N1 and B7-N2, and fixes AUD-01–15. The B7-N2 Archive is an **isolated synthetic Qt Quick study**, with recursive cubbies, mixed fixtures, universal Scroll Case, identity-preserving arrangement, explicit Save/Load and v1/v2 checkpoint handling. It is not imported by the production shell. Application books remain separate identities; scientific instruments are excluded from B7. See [mixed cubbies](B7_N2_MIXED_CUBBIES.md), [representation assets](../product/REPRESENTATION_ASSETS.md) and [component map](../architecture/COMPONENT_MAP.md).
 
-N4 target-environment validation remains mandatory before production integration. Native desktop validation remains outstanding. Real filesystem indexing/actions, production Archive shell wiring, complete Map Room/Shelf architecture and derivative packaging remain later work. Do not infer a validated production Archive from synthetic studies.
+| Evidence | Exact original revision | Outcome / boundary |
+|---|---|---|
+| B7-N2 implementation CI 45479039959 | `e04c1e4bbb1b52f32fd91ee22336d23f3f2c1cf7` | offline-js, browser-cubby-studies and native-archive-qt passed; bounded native synthetic study. |
+| Integrated-main CI 45480799164 | `4366c5cae25d949ea7d21c8c595de8132893d6b4` | All three jobs passed, including mixed cubby scene/transaction tests and separate checkpoint restart checks. |
+| Clean migration baseline | This repository's reviewed revision | Historical results do not validate the migrated tree; no fresh runtime verification claimed. |
+| Target desktop N4 | Outstanding | Actual Fedora/Hyprland/Quickshell validation remains mandatory before production integration. |
 
-The sections below are retained historical checkpoints, not current assignments or live PR state. All old PR, CI, artifact and commit identifiers are historical provenance. This clean baseline has not yet been runtime-tested. Ordinary development must not resume before baseline integration and explicit authorization.
+AUD-16–20 corrective work and B8 design remain separate unfinished topics, not integrated in this baseline. See [active work](ACTIVE_WORK.md) for current topics and blockers and [roadmap](../archive-roadmap.md) for dependencies. Real filesystem indexing/actions, production Archive shell wiring, full Map Room/Shelf architecture and derivative packaging remain future work. No automatic production persistence or real file manager functionality is claimed.
 
+Ordinary development remains paused pending baseline integration and explicit authorization. The entries below are historical checkpoints only; original PR, CI, artifact and commit IDs are provenance, not live assignments or current repository links.
 
 ## Historical final acceptance — PR #16 (before integration)
 
@@ -19,7 +25,7 @@ Run the standalone mixed study via `qml -f quickshell/tests/ArchiveB7MixedWindow
 
 At acceptance main is `3a58c83bb876a7822055ced3c4bc8208bcd49309`; PR #16 mergeable, eight implementation commits ahead, zero behind before this documentation-only commit. PR #15 remains unmerged and independent; if main changes, inspect actual overlap and verify integrated tree before owner merge. No merge, branch deletion or new topic authorized here. Final documentation commit may trigger another CI run; evidence above is for the exact unchanged implementation, not a claimed new-head run.
 
-After owner merges: verify main head and post-merge checks. Consult roadmap and product contracts for next coherent topic; do not invent scope. B7-N2 is a bounded isolated native study, not full Archive completion. N4 target-environment validation remains mandatory before production integration; real indexing/filesystem operations, production entry points and derivative packaging remain later work. Earlier checkpoint entries below are historical.
+Historical next action at that checkpoint: verify main head and post-merge checks. Consult roadmap and product contracts for next coherent topic; do not invent scope. B7-N2 is a bounded isolated native study, not full Archive completion. N4 target-environment validation remains mandatory before production integration; real indexing/filesystem operations, production entry points and derivative packaging remain later work. Earlier checkpoint entries below are historical.
 
 ---
 
@@ -31,7 +37,7 @@ PR #14 merged at `3a58c83bb876a7822055ced3c4bc8208bcd49309`. Branch `development
 ---
 
 
-## Current B7 checkpoint — PR #14
+## Historical Current B7 checkpoint — PR #14
 
 PR #11 merged at 31ef241380338b695993d29ee6d363873430923b; PR #13 merged, main now `0a1f52e1e2c428944ca4a9a2c21dae2ddd6ac316`. PR #14 (`development/archive-native-b7-n1`) brings those exact bug-fix changes into its topic history without replacing their source. See [B7 handoff](B7_NATIVE_REPRESENTATION_WORK.md).
 
@@ -42,7 +48,7 @@ Native symbolic representation components, supported fixture variants, shared up
 ---
 
 
-## Active checkpoint — PR #13
+## Historical Active checkpoint — PR #13
 
 Owner merged PR #11 at `31ef241380338b695993d29ee6d363873430923b`; post-merge main CI 45456281521 (historical `actions/runs/45456281521`) passed all three jobs. PR #13 incorporated that exact baseline without conflicting files, preserving all seven Gallery fixes (previous CI 45447023810 (historical `actions/runs/45447023810`) passed). AUD-02 was reproduced on merged main: `-1:3`, empty, null pigment and depth 20, lost stable ID `hc5` when resizing 500×400 to 400×320, with no review. Fix checkpoint `3c725f5f8f7efe13715ad4a6679c2c0f85dab510` treats pigment or positive recess as customization, reserves retained customized destinations, requires explicit relocation/discard of disappeared empty customized cells, keeps existing `paint:` decision keys, and clones full metadata on relocation. Zero/absent depth remains the default. The recess control and physical geometry/physics are unchanged. Historical B6r12b3 browser source remains frozen; pigment-only plan behavior is retained for historical parity checks. 83 focused assertions executed against candidate core passed, including consent, relocation/discard, conflicts, ownership, reset, Cancel/Undo and stale replies. Added Node and Qt WorkerScript regressions plus native study review-control coverage. Verify CI at the final PR head; no target hardware validation or merge requested. All eight audit findings are implemented in PR #13 source, not yet accepted or merged.
 

@@ -1,13 +1,19 @@
 # Active work and historical checkpoints
 
-## Integrated baseline and verification status
+## Current topics and blockers — migration checkpoint
 
-The preserved technical baseline is historical main `4366c5cae25d949ea7d21c8c595de8132893d6b4` (November 24, 2026). Historical PR #16 (B7-N2) merged at `17fecd7cf3161ecd324645ffb4608541b404d818`; historical PR #15 (independent stable-main fixes) subsequently merged at the baseline. B7-N2 is implemented as an isolated synthetic study, not a production filesystem interface. Its four agreed checkpoints were completed at tested implementation `e04c1e4bbb1b52f32fd91ee22336d23f3f2c1cf7`. Historical CI run 45479039959 passed offline-js, browser-cubby-studies and native-archive-qt for that implementation. Later integration changed independent desktop shell/service source and tests; this is not a claim that the complete migrated tree has passed those checks.
+The [current-state summary](CURRENT_STATE.md) is authoritative for integrated implementation and recorded checks. The [roadmap](../archive-roadmap.md) records dependencies, not new assignments. No ordinary development is authorized while baseline preparation is in progress.
 
-N4 target-environment validation remains mandatory before production integration. Native desktop validation remains outstanding. Real filesystem indexing/actions, production Archive shell wiring, complete Map Room/Shelf architecture and derivative packaging remain later work. Do not infer a validated production Archive from synthetic studies.
+| Topic | Status at the selected technical baseline |
+|---|---|
+| B7-N2 mixed cubbies and independent AUD-01–15 fixes | Integrated in original technical main; no continuation of merged branches by default. |
+| Continuing stable-main audit | Separate documentation topic; retain audit IDs and evidence. |
+| AUD-16–20 corrective work | Separate unfinished draft topic. Earlier checks passed; a later native pixel assertion actually failed; the latest correction remains unverified because subsequent jobs were blocked before tests ran. Do not treat earlier checks as acceptance of that correction. |
+| B8 Shelf, Room and Map Room design | Separate unfinished design topic; no native implementation or final visual acceptance implied. |
+| Architecture review | Separate advisory documentation topic; proposals do not establish implementation scope. |
+| Clean baseline and target validation | Baseline review/integration and explicit resumption authorization pending; fresh relevant verification when available, N4 before production integration. |
 
-The sections below are retained historical checkpoints, not current assignments or live PR state. All old PR, CI, artifact and commit identifiers are historical provenance. This clean baseline has not yet been runtime-tested. Ordinary development must not resume before baseline integration and explicit authorization.
-
+Original open topics are not part of the selected integrated source. Verify actual destination branches and PRs before acting; historical PR numbers are not destination identifiers. No new topic or merge authorized here. Historical checkpoints below are retained for evidence only.
 
 ## Historical final acceptance — PR #16 (before integration)
 
@@ -19,7 +25,7 @@ Run the standalone mixed study via `qml -f quickshell/tests/ArchiveB7MixedWindow
 
 At acceptance main is `3a58c83bb876a7822055ced3c4bc8208bcd49309`; PR #16 mergeable, eight implementation commits ahead, zero behind before this documentation-only commit. PR #15 remains unmerged and independent; if main changes, inspect actual overlap and verify integrated tree before owner merge. No merge, branch deletion or new topic authorized here. Final documentation commit may trigger another CI run; evidence above is for the exact unchanged implementation, not a claimed new-head run.
 
-After owner merges: verify main head and post-merge checks. Consult roadmap and product contracts for next coherent topic; do not invent scope. B7-N2 is a bounded isolated native study, not full Archive completion. N4 target-environment validation remains mandatory before production integration; real indexing/filesystem operations, production entry points and derivative packaging remain later work. Earlier checkpoint entries below are historical.
+Historical next action at that checkpoint: verify main head and post-merge checks. Consult roadmap and product contracts for next coherent topic; do not invent scope. B7-N2 is a bounded isolated native study, not full Archive completion. N4 target-environment validation remains mandatory before production integration; real indexing/filesystem operations, production entry points and derivative packaging remain later work. Earlier checkpoint entries below are historical.
 
 ---
 
@@ -31,7 +37,7 @@ PR #14 merged at `3a58c83bb876a7822055ced3c4bc8208bcd49309`. Branch `development
 ---
 
 
-## Current B7 checkpoint — PR #14
+## Historical Current B7 checkpoint — PR #14
 
 PR #11 merged at 31ef241380338b695993d29ee6d363873430923b; PR #13 merged, main now `0a1f52e1e2c428944ca4a9a2c21dae2ddd6ac316`. PR #14 (`development/archive-native-b7-n1`) brings those exact bug-fix changes into its topic history without replacing their source. See [B7 handoff](B7_NATIVE_REPRESENTATION_WORK.md).
 
@@ -42,7 +48,7 @@ Native symbolic representation components, supported fixture variants, shared up
 ---
 
 
-## Active checkpoint — PR #13
+## Historical Active checkpoint — PR #13
 
 Owner merged PR #11 at `31ef241380338b695993d29ee6d363873430923b`; post-merge main CI 45456281521 (historical `actions/runs/45456281521`) passed all three jobs. PR #13 incorporated that exact baseline without conflicting files, preserving all seven Gallery fixes (previous CI 45447023810 (historical `actions/runs/45447023810`) passed). AUD-02 was reproduced on merged main: `-1:3`, empty, null pigment and depth 20, lost stable ID `hc5` when resizing 500×400 to 400×320, with no review. Fix checkpoint `3c725f5f8f7efe13715ad4a6679c2c0f85dab510` treats pigment or positive recess as customization, reserves retained customized destinations, requires explicit relocation/discard of disappeared empty customized cells, keeps existing `paint:` decision keys, and clones full metadata on relocation. Zero/absent depth remains the default. The recess control and physical geometry/physics are unchanged. Historical B6r12b3 browser source remains frozen; pigment-only plan behavior is retained for historical parity checks. 83 focused assertions executed against candidate core passed, including consent, relocation/discard, conflicts, ownership, reset, Cancel/Undo and stale replies. Added Node and Qt WorkerScript regressions plus native study review-control coverage. Verify CI at the final PR head; no target hardware validation or merge requested. All eight audit findings are implemented in PR #13 source, not yet accepted or merged.
 

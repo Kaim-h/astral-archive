@@ -1,16 +1,19 @@
 # Astral Archive roadmap
 
-## Integrated baseline and verification status
+## Current dependency roadmap
 
-The preserved technical baseline is historical main `4366c5cae25d949ea7d21c8c595de8132893d6b4` (November 24, 2026). Historical PR #16 (B7-N2) merged at `17fecd7cf3161ecd324645ffb4608541b404d818`; historical PR #15 (independent stable-main fixes) subsequently merged at the baseline. B7-N2 is implemented as an isolated synthetic study, not a production filesystem interface. Its four agreed checkpoints were completed at tested implementation `e04c1e4bbb1b52f32fd91ee22336d23f3f2c1cf7`. Historical CI run 45479039959 passed offline-js, browser-cubby-studies and native-archive-qt for that implementation. Later integration changed independent desktop shell/service source and tests; this is not a claim that the complete migrated tree has passed those checks.
+See [current state](development/CURRENT_STATE.md) for the integrated B6–B7-N2 synthetic source and exact verification evidence, [active work](development/ACTIVE_WORK.md) for current topics, and [product specifications](product/) for accepted requirements. This roadmap describes dependencies, not authorization or a fixed schedule.
 
-N4 target-environment validation remains mandatory before production integration. Native desktop validation remains outstanding. Real filesystem indexing/actions, production Archive shell wiring, complete Map Room/Shelf architecture and derivative packaging remain later work. Do not infer a validated production Archive from synthetic studies.
+1. Complete reviewed baseline migration and obtain explicit resumption authorization. Preserve all relevant regression gates and verify the migrated tree when compute is available.
+2. Reconcile unfinished corrective and design topics independently. Preserve accepted B6r12b3 and B7r3/S11/U3/P10 contracts. B8 Shelf/Room/Map Room design needs a reviewed technical handoff before dependent native implementation.
+3. Continue isolated synthetic Archive development only within approved milestones. Review hierarchy, support dependencies, identity, placement and reversible transactions before higher-level implementation; no new backend is implied.
+4. N4 actual target Fedora/Hyprland/Quickshell validation is mandatory before production integration. Retain KDE/TTY recovery and manual launch; browser and offscreen Qt tests are not target evidence. See [environment](development/ENVIRONMENT.md) and [bring-up](bringup.md).
+5. Later authorized work: production layout persistence, Map Room and Index integration, explicit-root indexing/reconciliation and safe file operations. The goal is a feasible, safe file-manager replacement; real filesystem changes must be distinct from visual arrangement. Exact identity service, storage backend and destructive-operation policy remain undecided.
+6. Optional discovery, performance optimization and distribution follow demonstrated need and validation. No language migration, production deployment or autostart is implied.
 
-The sections below are retained historical checkpoints, not current assignments or live PR state. All old PR, CI, artifact and commit identifiers are historical provenance. This clean baseline has not yet been runtime-tested. Ordinary development must not resume before baseline integration and explicit authorization.
+## Historical roadmap records (superseded status and next actions)
 
-
-
-This is a dependency roadmap, not a promise that every planned component is implemented or scheduled. The current native application and future file Archive are distinct scopes. Consult `docs/development/CURRENT_STATE.md` for the commit-specific implementation / verification snapshot and `docs/product/` for approved product behavior.
+All sections below describe earlier checkpoints, not the current implementation or outstanding assignments. Preserve their evidence and design history; use the current dependency roadmap above for present planning.
 
 ## Historical roadmap — Batch 13 base (Batch 11)
 
@@ -74,17 +77,17 @@ The preceding Batch 13 roadmap is historical. Browser studies through B6r12a are
 
 B6r12b3 is the accepted browser behavior reference for the next native step; its full CI run 45392280473 passed. Begin B6-N1 with reusable geometry, physical solver, placement identity, explicit split plans and atomic transactions, plus isolated QML model and Qt WorkerScript. Next N2 visual components, N3 native interaction parity, N4 target validation. Only then B7 adds the other file-object families. No real filesystem actions, production shell wiring, or new object families in N1. Native desktop validation remains outstanding. See [environment](development/ENVIRONMENT.md). Keep historical browser gate and run relevant scenarios on native code; separate pure logic, offscreen Qt and target desktop evidence.
 
-## B6-N2 checkpoint
+## Historical B6-N2 checkpoint
 
 N1 Qt/Node passed (run 45394196420); N2 visual candidate is added to draft PR #8. The next dependency is N3 input and active-cell scheduling parity, then N4 real target validation and B7 other object families. Retain the browser reference and the existing shell. Native desktop validation remains outstanding.
 
-## B6-N3 interactive comparison
+## Historical B6-N3 interactive comparison
 N3 candidate is on PR #8. Actual Qt pointer tests and direct browser/native numerical comparison are necessary, but not sufficient for native target acceptance. Capture matched real renders and record gaps; retain N4 and the historical stress matrix as prerequisites for B7.
 
 ## November 24 — B7 parallel research clarification
 
 Owner authorized standalone visual studies of other file representations before B6 target validation, starting with framed artwork. This is a research-only track, not removal of the B6 native/stress acceptance gate for production integration. See [B7 study index](research/prototypes/2026-11-24/README.md).
 
-## B6-N3r1 continuation
+## Historical B6-N3r1 continuation
 
 PR #10 merged. PR #11 starts native editor/persistence parity with structural transactions and a versioned synthetic checkpoint codec/controller. Continue on one branch; durable storage and editor UI remain next. See current state and active work. B7-C extraction is integrated but no new native representation renderer exists; target validation remains required.
