@@ -27,6 +27,8 @@ Reuse `quickshell/widgets/Book.qml` and `quickshell/shelves/Shelf.qml` rather th
 
 ## Scroll cell geometry
 
+**Owner-confirmed shared fixture contract (B8 review):** a rack is the same fixture in a Shelf or in a Cubby. Parent determines placement and available space, not scroll interaction capabilities. Reuse the existing B7 ownership, bounded cell geometry/physics, contextual customization, insertion, overflow and Case behavior; do not create a divergent Shelf-only rack. Rack exterior dimensions, cell geometry and individual scroll radii are separate properties; preserve file identities and scroll sizes, explicitly preview cell/rack resize and reject unresolved capacity without silent loss, shrink or transfer. The B8 Shelf browser studies deliberately omit live scroll manipulation; this is a prototype scope limitation, not a product requirement or implementation claim.
+
 - A rack contains connected tiled cells. Diamond / square / triangular / hex methods may be explored, but the cells must form a genuine shared tessellation, not independent polygons touching only at corners.
 - Cell boundaries and scroll centers/radii must be validated. Scrolls remain within the cell polygon and do not overlap beyond the chosen tolerance.
 - Scroll size uses roughly four or five logarithmic / compressed tiers based on file size, with slight repeatable variation.
