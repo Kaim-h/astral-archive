@@ -1,9 +1,6 @@
 # Native Linux bring-up guide
 
-Nothing in this project has been run natively yet. The offline Node checks only
-test pure logic and file structure; they are **not** QML tests. This page is the
-plan for the first real run, and a list of everything the code assumes about
-Quickshell that has not been confirmed.
+The target Quickshell/Hyprland desktop has not been validated (N4). Offline Node checks test pure logic and file structure; separate offscreen Qt Quick checks exercise QML and rendering, not actual shell/service integration. This page is the plan for the first real target run and retains the original Quickshell assumptions; see [current state](development/CURRENT_STATE.md) for exact verification.
 
 Plain-words glossary:
 
@@ -64,8 +61,9 @@ Do these in order and stop at the first failure. Copy the exact error text.
 
 1. [ ] Make sure a plain terminal / KDE login still works as a fallback.
 2. [ ] `qs --version` prints a version. The code targets **Quickshell v0.3.1**.
-3. [ ] Normalize line endings first (`git add --renormalize .`, see CHANGES.md).
-       Then `head -1 scripts/compile-gallery-shader.sh | od -c` must end in `\n`, not `\r \n`.
+3. [ ] Check shell-script line endings first: `head -1 scripts/compile-gallery-shader.sh | od -c`
+       must end in `\n`, not `\r \n`. Inspect `git ls-files --eol scripts/compile-gallery-shader.sh`
+       and the repository's [attributes](../.gitattributes) if the checkout has CRLF. Correct only affected tracked scripts in an authorized clean worktree; inspect the diff. `git add --renormalize` stages normalization and is not a repair of checkout bytes; do not indiscriminately stage unrelated work.
 4. [ ] `which qsb` finds Qt Shader Tools. Then `bash scripts/compile-gallery-effects.sh`
        and `bash scripts/compile-vista-shader.sh`. (Without them the shell still
        runs, with a plain fallback instead of shader effects.)

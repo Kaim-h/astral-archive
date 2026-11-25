@@ -14,7 +14,8 @@ Current source establishes implementation, accepted product requirements establi
 
 ## Technical index
 
-- [Current state](development/CURRENT_STATE.md) and [active work](development/ACTIVE_WORK.md) — integrated implementation and historical checkpoint evidence.
+- [Current state](development/CURRENT_STATE.md) and [active work](development/ACTIVE_WORK.md) — integrated implementation and active topics.
+- [Development history and relocation map](development/history/README.md) — completed milestones, decisions and exact checkpoint evidence; retrieve on demand.
 - [Roadmap](archive-roadmap.md) — milestones and dependencies.
 - [Architecture](architecture.md) and [component map](architecture/COMPONENT_MAP.md).
 - [Design decisions](design-decisions.md) and [product specifications](product/) — intended behavior and design boundaries.
