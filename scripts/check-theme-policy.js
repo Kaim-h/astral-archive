@@ -10,29 +10,47 @@ const qml = file("quickshell/services/ThemePreferences.qml");
 const start = qml.indexOf("    function startInitialization(");
 const end = qml.indexOf("    Component.onCompleted:");
 assert.ok(start >= 0 && end > start);
-const factory = new Function("service", "Policy", "Themes", "stateFile", "Qt", "console", "initializationDeadline", "Quickshell",
-    qml.slice(start,end) + "\nreturn {startInitialization,noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed};");
-function mock(raw, failWrite = false, throwRead = false) {
+const factory = new Function("service", "Policy", "Themes", "stateFile", "Qt", "console", "initializationDeadline", "Quickshell", "verifyFile",
+    qml.slice(start,end) + "\nreturn {startInitialization,noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed,noteVerify};");
+function mock(raw, failWrite = false, throwRead = false, path = "/synthetic/theme.json") {
     const Themes = {Theme:{index:1}}, queue = [], writes = [], warnings = [];
     const service = {ready:false,initializationStarted:false,readStatus:"pending",writable:false,userSelected:false,
-        savedIndex:-1,writingIndex:-1,warning:""};
-    let text = raw, reads=0, pathSets=0;
+        savedIndex:-1,writingIndex:-1,writeReportedSaved:false,verifyStatus:"idle",warning:""};
+    // Distinguish cached text from persisted bytes and startup from readback.
+    let disk=raw,cached=raw,reads=0,pathSets=0,readbacks=0,verifyPending=false,activePath="";
     const timer={running:false,start(){this.running=true},stop(){this.running=false}};
     const stateFile = {
-        set path(value){pathSets++},
-        text(){reads++;if(throwRead)throw Error("read failed");return text;},
+        get path(){return activePath;},
+        set path(value){activePath=value;pathSets++;},
+        text(){reads++;if(throwRead)throw Error("read failed");return cached;},
         setText(value){
             writes.push(value);
-            if(failWrite === "throw")throw Error("write failed");
-            if(failWrite) service.writeFailed();
-            else {text=value;service.writeSucceeded();}
+            if(failWrite==="throw")throw Error("write failed");
+            if(failWrite===true){service.writeFailed();return;}
+            if(failWrite==="silent")return;
+            cached=value;
+            if(failWrite!=="false-success")disk=value;
+            service.writeSucceeded();
+        }
+    };
+    const verifyFile={
+        path:"",
+        reload(){readbacks++;verifyPending=true;},
+        text(){
+            assert.equal(this.path,activePath);assert.equal(verifyPending,true);verifyPending=false;
+            if(failWrite==="verify-throw")throw Error("readback failed");
+            // A contradictory startup notification cannot confirm readback.
+            service.noteRead("loaded");
+            if(failWrite==="verify-failed")service.noteVerify("failed");
+            else if(failWrite!=="verify-silent")service.noteVerify("loaded");
+            return disk;
         }
     };
     Object.assign(service,factory(service,Policy,Themes,stateFile,
         {callLater(fn){queue.push(fn);}}, {warn(msg){warnings.push(msg);}},
-        timer,{statePath(name){return "/synthetic/"+name;}}));
+        timer,{statePath(){return path;}},verifyFile));
     service.startInitialization();
-    return {service,Themes,writes,warnings,raw:()=>text,timer,reads:()=>reads,pathSets:()=>pathSets,
+    return {service,Themes,writes,warnings,raw:()=>disk,timer,reads:()=>reads,pathSets:()=>pathSets,readbacks:()=>readbacks,
         expire(){if(timer.running){timer.running=false;service.noteRead("timeout");}},
         drain(){while(queue.length)queue.shift()();}};
 }
@@ -49,7 +67,8 @@ for (const i of [0,1,2]) {
     m.service.select(i);assert.equal(m.writes.length,0);
     m.service.select((i+1)%3);assert.equal(m.writes.length,1);
     assert.equal(JSON.parse(m.raw()).index,(i+1)%3);
-    m.service.select((i+1)%3);assert.equal(m.writes.length,1);
+    assert.equal(m.readbacks(),1);assert.equal(m.service.savedIndex,(i+1)%3);
+    m.service.select((i+1)%3);assert.equal(m.writes.length,1);assert.equal(m.readbacks(),1);
     m.service.noteRead("failed");m.service.finishInitialization();m.drain();
     assert.equal(m.Themes.Theme.index,(i+1)%3);
     assert.equal(m.service.writable,true);
@@ -146,7 +165,30 @@ onTime.service.noteRead("loaded");onTime.expire();onTime.service.noteRead("missi
 assert.equal(onTime.service.readStatus,"loaded");assert.equal(onTime.service.ready,true);
 assert.equal(onTime.Themes.Theme.index,2);assert.equal(onTime.reads(),1);
 assert.equal(onTime.writes.length,0);assert.equal(onTime.timer.running,false);
-assert.match(qml,/preload:\s*true/);assert.match(qml,/blockLoading:\s*false/);
+// WP-01: missing synchronous save completion and false saved signal.
+for(const mode of ["silent","false-success","verify-failed","verify-silent","verify-throw"]){
+    const m=mock(Policy.encodePreference(0),mode);
+    m.service.noteRead("loaded");m.drain();m.service.select(2);
+    assert.equal(m.Themes.Theme.index,2);assert.equal(m.service.savedIndex,0);
+    assert.equal(m.service.writingIndex,-1);assert.equal(m.service.verifyStatus,"idle");
+    assert.equal(m.service.writable,false);assert.ok(m.service.warning);
+    assert.equal(m.readbacks(),mode==="silent"?0:1);
+    assert.equal(JSON.parse(m.raw()).index,mode==="silent"||mode==="false-success"?0:2);
+    m.service.writeSucceeded();m.service.noteVerify("loaded");m.service.noteRead("loaded");
+    m.service.select(1);m.drain();
+    assert.equal(m.service.savedIndex,0);assert.equal(m.Themes.Theme.index,1);
+    assert.equal(m.writes.length,1);
+}
+for(const path of ["","relative/theme.json",null]){
+    const m=mock("untouched",false,false,path);m.drain();m.service.select(2);
+    assert.equal(m.service.ready,true);assert.equal(m.service.writable,false);
+    assert.equal(m.service.readStatus,"failed");assert.equal(m.pathSets(),0);
+    assert.equal(m.reads(),0);assert.equal(m.writes.length,0);assert.equal(m.raw(),"untouched");
+}
+assert.match(qml,/id: stateFile\s*[\s\S]*?preload: true\s*blockLoading: false\s*blockAllReads: false/);
+assert.match(qml,/id: verifyFile\s*preload: false\s*blockLoading: true\s*blockAllReads: true/);
+assert.match(qml,/verifyFile\.reload\(\);/);
+assert.match(qml,/onLoaded: service\.noteVerify\("loaded"\)/);
 assert.match(qml,/onTriggered: service\.noteRead\("timeout"\)/);
 console.log("PASS AUD-22 theme deadline, pending intent and first-result guard (mocked callbacks).");
-console.log("PASS Theme policy and mocked production adapter: valid/invalid values, recovery, write failure, explicit selection, late callbacks and startup ordering.");
+console.log("PASS Theme policy and mocked production adapter: valid/invalid values, recovery, absent save completion, separate fresh readback, false success, explicit selection and late callbacks.");

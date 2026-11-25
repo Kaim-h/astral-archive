@@ -301,16 +301,16 @@ for(const failure of [true,"throw"]){
 const themeQml=file("quickshell/services/ThemePreferences.qml");
 const themePolicySource=file("quickshell/themes/ThemePolicy.js");
 const themePolicy=new Function(themePolicySource+"\nreturn {decodePreferences,validIndex,encodePreference};")();
-const themeFactory=new Function("service","Policy","Themes","stateFile","Qt","console","initializationDeadline","Quickshell",
+const themeFactory=new Function("service","Policy","Themes","stateFile","Qt","console","initializationDeadline","Quickshell","verifyFile",
     themeQml.slice(themeQml.indexOf("    function startInitialization("),themeQml.indexOf("    Component.onCompleted:"))+
-    "\nreturn {startInitialization,noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed};");
+    "\nreturn {startInitialization,noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed,noteVerify};");
 for(const selected of [null,0,2]){
     const v=mockService("loaded",raw);v.themeReady=false;v.loadAll();
-    const theme={ready:false,initializationStarted:false,readStatus:"pending",writable:false,userSelected:false,savedIndex:-1,writingIndex:-1,warning:""};
+    const theme={ready:false,initializationStarted:false,readStatus:"pending",writable:false,userSelected:false,savedIndex:-1,writingIndex:-1,writeReportedSaved:false,verifyStatus:"idle",warning:""};
     const Themes={Theme:{index:1}}, callbacks=[],themeWrites=[],timer={running:false,start(){this.running=true},stop(){this.running=false}};
     Object.assign(theme,themeFactory(theme,themePolicy,Themes,
         {path:"",text(){return themePolicy.encodePreference(0)},setText(value){themeWrites.push(value);theme.writeSucceeded()}},
-        {callLater(fn){callbacks.push(fn)}},{warn(){}},timer,{statePath(p){return p}}));
+        {callLater(fn){callbacks.push(fn)}},{warn(){}},timer,{statePath(p){return "/synthetic/"+p}},{}));
     theme.startInitialization();if(selected!==null)theme.select(selected);
     assert.equal(v.applies,0);assert.equal(theme.ready,false);
     // Simulate absent theme callback, timeout then stale success.
@@ -320,6 +320,27 @@ for(const selected of [null,0,2]){
     v.themeName=["evening","twilight","midnight"][Themes.Theme.index];v.onThemeNameChanged();
     v.themeReady=theme.ready;v.onThemeReadyChanged();v.drain();
     assert.equal(v.applies,1);assert.equal(v.pending.theme,["evening","twilight","midnight"][selected===null?1:selected]);
+    v.backendExit(0,0);v.onThemeNameChanged();v.drain();assert.equal(v.applies,1);
+}
+for(const falseSuccess of [false,true]){
+    const v=mockService("loaded",raw);v.themeReady=false;v.loadAll();
+    const theme={ready:false,initializationStarted:false,readStatus:"pending",writable:false,userSelected:false,
+        savedIndex:-1,writingIndex:-1,writeReportedSaved:false,verifyStatus:"idle",warning:""};
+    const Themes={Theme:{index:1}},callbacks=[],themeWrites=[],timer={running:false,start(){this.running=true},stop(){this.running=false}};
+    let disk=themePolicy.encodePreference(0),cached=disk,readbacks=0;
+    const stateFile={path:"",text(){return cached;},setText(value){
+        themeWrites.push(value);cached=value;if(!falseSuccess)disk=value;theme.writeSucceeded();
+    }};
+    const verifyFile={path:"",reload(){readbacks++;},text(){theme.noteVerify("loaded");return disk;}};
+    Object.assign(theme,themeFactory(theme,themePolicy,Themes,stateFile,
+        {callLater(fn){callbacks.push(fn)}},{warn(){}},timer,{statePath(p){return "/synthetic/"+p}},verifyFile));
+    theme.startInitialization();theme.select(2);theme.noteRead("loaded");
+    while(callbacks.length)callbacks.shift()();
+    assert.equal(theme.ready,true);assert.equal(theme.writable,!falseSuccess);
+    assert.equal(Themes.Theme.index,2);assert.equal(themeWrites.length,1);assert.equal(readbacks,1);
+    assert.equal(theme.savedIndex,falseSuccess?0:2);
+    v.themeName="midnight";v.onThemeNameChanged();v.themeReady=theme.ready;v.onThemeReadyChanged();v.drain();
+    assert.equal(v.applies,1);assert.equal(v.pending.theme,"midnight");
     v.backendExit(0,0);v.onThemeNameChanged();v.drain();assert.equal(v.applies,1);
 }
 assert.equal((svc.match(/blockLoading: false/g)||[]).length,2);
