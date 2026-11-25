@@ -2,7 +2,7 @@
 
 **Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
-**Status:** approved product direction consolidated from the November 17 handoff. The wider Map Room is not implemented; B6-N1–N3 supplies an isolated synthetic recursive cubby study. Mixed fixtures and real directory binding remain future work. See current state.
+**Status:** approved product direction consolidated from the November 17 handoff. The wider Map Room is not implemented; B6 through B7-N2 supply an isolated synthetic recursive cubby study with mixed fixtures and universal Case transport. Higher-level Shelf/Room/Map Room implementation and real directory binding remain future work. See current state.
 
 ## Normal hierarchy
 
@@ -46,13 +46,13 @@ These modes are strictly separate:
 
 - Routine navigation uses a short, understated fade / crossfade (approximately 180–250 ms is a suggested direction, not a hard timing contract).
 - The outer window/frame stays fixed. The opened container face/view may be uniformly scaled for comfortable inspection while retaining its own shape, divider and fixture arrangement.
-- Context-sensitive creation: Map → Room; Room → Shelf; Shelf → Cubby; Cubby → nested cubby / divider / fixture.
+- Context-sensitive creation: Map → Room; Room → Shelf; Shelf → Cubby or compatible fixtures; Cubby → nested cubby / divider / fixture. The higher-level Shelf direction is described below; exact controls remain subject to B8 design acceptance.
 - Inside a cubby, physical “Divide Space” must be distinct from creating a real filesystem folder and from creating a virtual cubby.
 - Real disk operations must be explicit and clearly labelled. Purely visual arrangement must never silently move, rename or delete files.
 
 ## Superseded prototype guidance
 
-Map Room v1 was useful as a navigation outline. Map Room v2 explored themes, grid / snap, recursion and symbolic file objects, but its scattered furniture and unsupported floating objects were rejected. Do not port v1/v2 layouts as the future visual blueprint. The annotated user sketch and latest product handoff take precedence.
+Map Room v1 was useful as a navigation outline. Map Room v2 explored themes, grid / snap, recursion and symbolic file objects, but its scattered furniture and unsupported floating objects were rejected. Do not port v1/v2 layouts as the future visual blueprint. The accepted product requirements and accepted design references take precedence; no private sketch or handoff is required to interpret this specification.
 
 ## Engineering questions still open
 
@@ -71,3 +71,7 @@ Room and higher-level Shelf character with coherent shared motif is a supported 
 ## Owner-confirmed cubby sizing priority
 
 Growth is the common case: interior width/height may increase independently of a nested cubby's parent footprint, retaining furniture dimensions, positions, identities and contents. A proportions lock is optional and explicit. Shrink must preserve furniture; block an invalid reduction with a minimum-size explanation. A separately previewed suggested rearrangement is approved as a later option, not automatic repositioning or scaling. No proportional furniture resizing without a future decision. Fixed window, uniformly fitted inspection view, explicit Apply/Cancel and Undo; no actual file operation.
+
+## Later B8 design direction — not implemented
+
+The accepted direction is a higher-order recursive Shelf containing compatible mixed furniture and supported representations directly, not only named cubbies. Suitable module tops may act as support surfaces where clearance permits; ornament is primarily additive outside the usable rectangular envelope. Manual dimensions remain authoritative, with any expansion explicitly previewed. Exact support eligibility, dependent movement/resize/removal, contact and clearance rules, and final visual treatment remain open for the separate B8 design handoff. These are not claims of completed B8 implementation or approval of a specific prototype. The existing B7 cubby board-support contract remains the implemented baseline; broader support generalization requires review.

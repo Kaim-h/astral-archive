@@ -61,7 +61,7 @@ Classify evidence accurately:
 - **Quickshell runtime check:** actual Quickshell process and installed module behavior, distinct from generic Qt Quick.
 - **Native desktop check:** actual Fedora/KDE/Hyprland/Wayland session, hardware and service integration.
 
-Run the checks relevant to the change and report exact commands and outcomes. Do not say "tests pass" without saying which tests ran. A successful offline check is not a native runtime sign-off.
+Run the checks relevant to the change when authorized and available; report exact revision, commands and outcomes. Distinguish a test that actually failed from a check that was not run, was canceled, or was blocked by infrastructure or compute limits. Do not say "tests pass" without saying which tests ran. A successful historical run is not evidence for a changed head; a successful offline check is not a native runtime sign-off. Do not weaken or omit regression checks to manufacture a pass.
 
 For risky desktop/session changes, preserve the KDE/TTY recovery path, a known-good Git state and a manual terminal launch route. Avoid changing autostart/boot/system services as a cosmetic convenience.
 

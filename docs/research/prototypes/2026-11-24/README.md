@@ -30,7 +30,7 @@ Next: solicit owner feedback on motifs, frame proportions, material, physical ba
 ## B7r2 and B7r3 — owner feedback refinements
 
 - [B7r2](Astral_Archive_Artwork_Study_B7r2.html): darker stone uses the existing background role, visible mounting handle removed, lower-right file-family icon and symbolic name plaque with hover expansion. Preserved as a separate checkpoint.
-- [B7r3 (current candidate)](Astral_Archive_Artwork_Study_B7r3.html): remove bottom cast shadow, use an angled side-only trapezoid ending at the frame bottom; enlarge compact plaque, replace squiggles with readable filename, type, size and synthetic added date when hovered. Expanded register is an upper SVG layer anchored to the original plaque; hover updates only that layer, not the full scene. No physics or native changes.
+- [B7r3 (accepted baseline; historical revision notes)](Astral_Archive_Artwork_Study_B7r3.html): remove bottom cast shadow, use an angled side-only trapezoid ending at the frame bottom; enlarge compact plaque, replace squiggles with readable filename, type, size and synthetic added date when hovered. Expanded register is an upper SVG layer anchored to the original plaque; hover updates only that layer, not the full scene. No physics or native changes.
 
 Local Chromium via Playwright and system Chromium executable, exact B7r3 HTML loaded with set_content, 1366×768: 18 plaque hover cases (six normal wall, twelve compact ledge), all expanded text bounds fit, movement within expanded plaque remains open, outside movement dismisses, theme/profile changes and keyboard selection pass; zero page errors. Actual ledge and expanded plaque screenshot inspected. Owner review pending. Fixed arrangement and synthetic metadata remain deliberate limits.
 
