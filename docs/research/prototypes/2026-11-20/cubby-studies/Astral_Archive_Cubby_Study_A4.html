@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astral Archive · Cubby Study A4</title>
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#101718; --aside:#182223; --panel:#1f2d2e; --line:#334643; --text:#e6ece8; --muted:#aab8b2;
+  --stone:#66756f; --interior:#162022; --accent:#b9ad86; --focus:#d9d3b5; --plaque:#8f8161; --plaque-line:#d8ccab;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button{background:#293938;color:var(--text);border:1px solid #435752;border-radius:8px;padding:8px 11px;cursor:pointer}
+button:hover{background:#314644}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #d8cdaa;outline-offset:2px}
+input[type=color]{width:38px;height:32px;background:transparent;border:1px solid #55665e;border-radius:6px;padding:2px;cursor:pointer}
+input[type=number], select, input[type=text]{background:#121b1c;border:1px solid #45554f;border-radius:7px;color:var(--text);padding:7px 8px;width:100%}
+input[type=range]{width:100%;accent-color:#bbc6bc}
+label{font-size:12px;color:var(--muted)}
+small{color:var(--muted)}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}
+aside{background:var(--aside);border-right:1px solid var(--line);padding:20px 18px 26px;overflow-y:auto}
+h1{margin:2px 0 7px;font-size:18px;font-weight:650;letter-spacing:.02em}
+.byline{font-size:12px;line-height:1.55;color:var(--muted);margin:0 0 20px}
+.group{padding:16px 0;border-top:1px solid #30413d}
+h2{margin:0 0 10px;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:#b4c0b8;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stack > * + *{margin-top:8px}
+.field{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;margin-bottom:9px}
+.field.range{grid-template-columns:1fr minmax(0,1fr) 44px}
+.checkboxrow{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-top:8px}
+main{display:flex;flex-direction:column;min-width:0}
+.top{padding:18px 22px 0}
+.title{font-size:18px;font-weight:650;margin-bottom:5px}
+.note{font-size:13px;line-height:1.55;color:var(--muted);max-width:900px}
+.stageWrap{padding:16px 22px 22px;flex:1;display:flex}
+.stage{position:relative;flex:1;min-height:720px;border:1px solid rgba(255,255,255,.08);border-radius:24px;background:linear-gradient(180deg,#0f1718,#0d1315);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 18px 60px rgba(0,0,0,.22)}
+#scene{width:100%;height:100%;display:block}
+.toolbar{position:absolute;right:16px;top:16px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:420px}
+.toolbar button{background:rgba(33,46,47,.9);backdrop-filter:blur(10px)}
+.statusbar{position:absolute;left:16px;bottom:16px;right:16px;display:flex;justify-content:space-between;gap:12px;align-items:center;background:rgba(16,23,24,.82);border:1px solid rgba(255,255,255,.08);padding:10px 12px;border-radius:12px;color:var(--muted);font-size:12px;backdrop-filter:blur(10px)}
+.context{position:fixed;z-index:30;background:#182223;border:1px solid #445752;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:8px;display:none;min-width:210px}
+.context button{display:block;width:100%;text-align:left;background:transparent;border:none;border-radius:7px;padding:9px 10px}
+.context button:hover{background:#2c3f3d}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:40;background:#152120;border:1px solid #48605a;color:var(--text);padding:10px 14px;border-radius:12px;display:none;box-shadow:0 18px 50px rgba(0,0,0,.35);max-width:680px}
+.modal{position:fixed;inset:0;background:rgba(5,8,9,.7);display:none;align-items:center;justify-content:center;z-index:35;padding:26px}
+.modalCard{background:#132022;border:1px solid #415651;border-radius:18px;width:min(980px,100%);padding:16px 16px 14px;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.modalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.modalHeader h3{margin:0;font-size:16px}
+.modalHeader p{margin:3px 0 0;color:var(--muted);font-size:12px}
+#focusScene{width:100%;height:680px;display:block;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0f1718}
+@media (max-width:1080px){.layout{grid-template-columns:1fr}aside{border-right:none;border-bottom:1px solid var(--line)}.stage{min-height:620px}}
+/* Exact flat-board geometry and ornament from
+   docs/research/handoffs/2026-11-17/prototypes/Astral_Archive_Book_Lighting_Lab.html
+   (the .board rules, with the .shelf-scene.flat background override).
+   The original asset is 15 px high. Only background color is exposed as a user override. */
+.lab-flat-board{position:relative;width:100%;height:15px;background:var(--shelf-color,#263c37);border:1px solid #927c59;border-radius:2px 2px 5px 5px;box-shadow:none;pointer-events:none}
+.lab-flat-board::before{content:"";position:absolute;left:6px;right:6px;top:3px;height:1px;background:#b3a27b77}
+.lab-flat-board::after{content:"◇ · ✧ · ◇";position:absolute;left:50%;transform:translateX(-50%);top:3px;font:6px monospace;color:#c2aa78;letter-spacing:2px;background:#263b37;padding:0 5px;white-space:nowrap}
+.rangeRow{display:grid;grid-template-columns:40px minmax(0,1fr) 42px;align-items:center;gap:8px;margin:9px 0}
+.rangeRow output{font-size:12px;font-variant-numeric:tabular-nums;text-align:right;color:#e6ece8}
+.rangeRow input{accent-color:#adbbac;min-width:0}
+.quickTune{margin-top:14px;padding:12px 10px;border:1px solid #3d514a;border-radius:9px;background:#132120}
+.miniLegend{font-size:11px;color:#b2c1b8;line-height:1.4;margin:2px 0 10px}
+.nudgeGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:11px 0 0}
+.nudgeGrid button{padding:7px 0}
+.connectionStatus{display:block;font-size:12px;color:#d8d5c4;padding:7px 8px;border-radius:6px;background:#20312e;border:1px solid #435951}
+.shelf-anchor{opacity:0;transition:opacity .12s;pointer-events:none}
+[data-module]:hover .shelf-anchor,[data-module].selected .shelf-anchor{opacity:.9}
+#scene.show-anchors .shelf-anchor{opacity:.9}
+.shelf-unattached{stroke:#be8f79;stroke-width:1.5;stroke-dasharray:4 4;fill:rgba(192,129,102,.07);pointer-events:none}
+.resize-handle{fill:#d9d3b5;stroke:#24312e;stroke-width:2;cursor:nwse-resize}
+.resize-handle.line{cursor:ew-resize}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <h1>Cubby Study A4</h1>
+    <p class="byline">An empty cubby first. Racks and nested cubbies are boxed; shelves reuse the <strong>flat board from the repository’s Book Lighting Lab</strong>. A shelf must meet a real wall or module.</p>
+
+    <div class="group stack">
+      <h2>Outer cubby</h2>
+      <div class="field"><label for="cubbyName">Cubby name</label><input id="cubbyName" type="text" value="Manuscripts"></div>
+      <div class="field"><label for="outerWidth">Width</label><input id="outerWidth" type="number" min="260" max="980" step="10" value="740"></div>
+      <div class="field"><label for="outerHeight">Height</label><input id="outerHeight" type="number" min="240" max="700" step="10" value="500"></div>
+      <div class="field"><label for="borderSize">Border</label><input id="borderSize" type="number" min="10" max="28" step="1" value="15"></div>
+      <div class="field"><label for="outerColor">Color</label><input id="outerColor" type="color" value="#67756f"></div>
+      <div class="grid2">
+        <button id="expandWidth">Expand width</button>
+        <button id="expandHeight">Expand height</button>
+      </div>
+    </div>
+
+    <div class="group stack">
+      <h2>Samples</h2>
+      <div class="grid2">
+        <button id="emptySample">Empty</button>
+        <button id="codeSample">Code cubby</button>
+      </div>
+      <button class="wide" id="appSample">Application cubby</button>
+    </div>
+
+    <div class="group stack">
+      <h2>Create module</h2>
+      <div class="grid2">
+        <button id="addRack">Add rack</button>
+        <button id="addShelf">Add shelf</button>
+        <button id="addCubby">Add cubby</button>
+        <button id="clearAll">Clear all</button>
+      </div>
+      <label class="checkboxrow"><input id="snap" type="checkbox" checked> Snap modules to walls and each other</label>
+      <label class="checkboxrow"><input id="showGuides" type="checkbox"> Show alignment guides</label>
+      <label class="checkboxrow"><input id="showAnchors" type="checkbox"> Keep actual shelf anchors visible in edit mode</label>
+    </div>
+
+    <div class="group stack">
+      <h2>Selected module</h2>
+      <div id="selectionEmpty"><small>No module selected.</small></div>
+      <div id="selectionPanel" style="display:none">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px" id="moduleHeading"></div>
+        <div class="field"><label for="modX">X</label><input id="modX" type="number" step="1"></div>
+        <div class="field"><label for="modY">Y</label><input id="modY" type="number" step="1"></div>
+        <div class="field"><label for="modW">Width</label><input id="modW" type="number" step="1"></div>
+        <div class="field"><label for="modH">Height</label><input id="modH" type="number" step="1"></div>
+        <div class="field"><label for="modColor">Color</label><input id="modColor" type="color"></div>
+        <div class="field range" id="hexField"><label for="hexSize">Hex radius</label><input id="hexSize" type="range" min="38" max="76" step="1"><output id="hexOut"></output></div>
+        <div class="field" id="shelfAttachField"><label for="shelfAttach">Actual support</label><span class="connectionStatus" id="shelfAttachStatus">—</span></div>
+        <div class="quickTune">
+          <div class="miniLegend">Quick adjustment · drag the controls or use the exact values above</div>
+          <div class="rangeRow"><label for="slideX">X</label><input id="slideX" type="range" min="0" max="740" step="1"><output id="outX">0</output></div>
+          <div class="rangeRow"><label for="slideY">Y</label><input id="slideY" type="range" min="0" max="500" step="1"><output id="outY">0</output></div>
+          <div class="rangeRow"><label for="slideW">Width</label><input id="slideW" type="range" min="120" max="740" step="1"><output id="outW">0</output></div>
+          <div class="rangeRow" id="slideHRow"><label for="slideH">Height</label><input id="slideH" type="range" min="120" max="500" step="1"><output id="outH">0</output></div>
+          <div class="nudgeGrid"><button id="nudgeLeft" title="Nudge one unit left">←</button><button id="nudgeUp" title="Nudge one unit up">↑</button><button id="nudgeDown" title="Nudge one unit down">↓</button><button id="nudgeRight" title="Nudge one unit right">→</button></div>
+        </div>
+        <button id="removeModule">Delete selected</button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div class="title">Astral Archive — Cubby Study A4</div>
+      <div class="note">One structure, several views. The focused rack is a scale-only view of the original grid, with the very same stored radius and cell positions. Borders and anchors reveal themselves only while editing.</div>
+    </div>
+    <div class="stageWrap">
+      <div class="stage">
+        <div class="toolbar">
+          <button id="focusSelected">Focus selected</button>
+          <button id="helpBtn">Usage</button>
+        </div>
+        <svg id="scene" viewBox="0 0 1120 810" role="img" aria-label="Interactive cubby study."></svg>
+        <div class="statusbar"><div id="status">Empty cubby. Right-click inside it to create rack, shelf, or nested cubby modules.</div><div id="selSummary">Selection: none</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="context" class="context" role="menu"></div>
+<div id="toast" class="toast"></div>
+<div id="focusModal" class="modal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalHeader">
+      <div>
+        <h3 id="focusTitle">Focused module</h3>
+        <p id="focusSubtitle">Larger view for judging scale and possible tooltip space.</p>
+      </div>
+      <button id="closeFocus">Close</button>
+    </div>
+    <svg id="focusScene" viewBox="0 0 920 680"></svg>
+  </div>
+</div>
+<script>
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const scene=document.getElementById('scene');
+const focusScene=document.getElementById('focusScene');
+const $=id=>document.getElementById(id);
+const defaults={name:'Manuscripts',w:740,h:500,b:15,color:'#67756f'};
+const state={...defaults,mods:[],selected:null,next:1,snap:true,guides:false,anchors:false};
+let grab=null, menuOpen=false, toastTimer=null;
+const label={rack:'Hex rack',shelf:'Shelf',cubby:'Nested cubby'};
+const minSizes={rack:[180,160], shelf:[120,15], cubby:[130,120]};
+function svg(tag,attr={},text){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attr))if(v!==undefined&&v!==null)n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;}
+function rect(x,y,w,h,fill,extra={}){return svg('rect',{x,y,width:w,height:h,fill,...extra});}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function colorMix(hex,m=1){const t=hex.replace('#','');const r=parseInt(t.slice(0,2),16),g=parseInt(t.slice(2,4),16),b=parseInt(t.slice(4,6),16);return `rgb(${clamp(Math.round(r*m),0,255)},${clamp(Math.round(g*m),0,255)},${clamp(Math.round(b*m),0,255)})`;}
+function boxOrigin(){return {x:(1120-state.w-2*state.b)/2+state.b,y:(810-state.h-2*state.b)/2+state.b};}
+function moduleTypeDefaults(type){
+  return ({
+    rack:{w:430,h:300,color:'#788678',r:52,attach:'auto'},
+    shelf:{w:280,h:15,color:'#263c37',r:0,attach:'auto'},
+    cubby:{w:220,h:180,color:'#6d7d78',r:0,attach:'auto'}
+  })[type];
+}
+function moduleBBox(m){
+  return {x:m.x,y:m.y,w:m.w,h:m.type==='shelf'?15:m.h};
+}
+function overlap(a,b){const A=moduleBBox(a),B=moduleBBox(b);return A.x < B.x+B.w-0.001 && A.x+A.w > B.x+0.001 && A.y < B.y+B.h-0.001 && A.y+A.h > B.y+0.001;}
+function clearPlacement(candidate,ignore=null){
+  const c=moduleBBox(candidate);
+  if(c.x<-.001||c.y<-.001||c.x+c.w>state.w+.001||c.y+c.h>state.h+.001)return false;
+  return !state.mods.some(m=>m.id!==ignore&&overlap(candidate,m));
+}
+function valid(candidate,ignore=null){
+  return clearPlacement(candidate,ignore) && (candidate.type!=='shelf' || shelfAttachComputed(candidate)!=='none');
+}
+function quietStatus(msg){$('status').textContent=msg;}
+function toast(msg,dur=3400){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',dur);} 
+function nearestSnap(value,targets,tolerance=12){let best=value,err=tolerance;for(const target of targets){const d=Math.abs(value-target);if(d<err){err=d;best=target;}}return best;}
+function snappedPosition(x,y,m){
+  const box=moduleBBox(m); const maxX=state.w-box.w, maxY=state.h-box.h;
+  x=clamp(x,0,maxX); y=clamp(y,0,maxY);
+  if(state.snap){
+    const xs=[0,maxX], ys=[0,maxY];
+    for(const q of state.mods) if(q.id!==m.id){const b=moduleBBox(q); xs.push(b.x-box.w,b.x+b.w,b.x,b.x+b.w-box.w); ys.push(b.y-box.h,b.y+b.h,b.y,b.y+b.h-box.h);} 
+    x=nearestSnap(x,xs); y=nearestSnap(y,ys);
+  }
+  return {x:Math.round(x), y:Math.round(y)};
+}
+function snapResize(x2,y2,m){
+  const min=minSizes[m.type];
+  let w=clamp(x2-m.x,min[0],state.w-m.x), h=clamp(y2-m.y,min[1],state.h-m.y);
+  if(state.snap){
+    const xs=[state.w-m.x], ys=[state.h-m.y];
+    for(const q of state.mods) if(q.id!==m.id){const b=moduleBBox(q); xs.push(b.x-m.x,b.x+b.w-m.x); ys.push(b.y-m.y,b.y+b.h-m.y);} 
+    w=nearestSnap(w,xs); h=nearestSnap(h,ys);
+  }
+  return {w:Math.round(w),h:Math.round(h)};
+}
+function fitCandidate(type,x,y){const d=moduleTypeDefaults(type),m={id:state.next++,type,...d,x:0,y:0};
+  const points=[]; if(Number.isFinite(x)&&Number.isFinite(y)) points.push([x,y]);
+  for(let row=0; row<=Math.ceil(state.h/10); row++) for(let col=0; col<=Math.ceil(state.w/10); col++) points.push([col*10,row*10]);
+  if(type==='shelf') {for(let yy=0;yy<=state.h-15;yy+=10){points.push([0,yy],[state.w-m.w,yy]);for(const q of state.mods){if(q.type!=='shelf'){points.push([q.x+q.w,yy],[q.x-m.w,yy]);}}}}
+  points.sort((a,b)=>{if(!Number.isFinite(x)||!Number.isFinite(y)) return a[1]-b[1]||a[0]-b[0]; return Math.hypot(a[0]-x,a[1]-y)-Math.hypot(b[0]-x,b[1]-y)});
+  for(const [px,py] of points){m.x=clamp(Math.round(px/5)*5,0,Math.max(0,state.w-moduleBBox(m).w));m.y=clamp(Math.round(py/5)*5,0,Math.max(0,state.h-moduleBBox(m).h));if(valid(m)) return m;}
+  return null;
+}
+function addModule(type,point){hideMenu(); const m=fitCandidate(type,point?.x,point?.y); if(!m){toast('No free space. Expand the cubby or resize existing modules.'); quietStatus('No free space for another '+label[type].toLowerCase()+'.'); return false;} state.mods.push(m); state.selected=m.id; syncInspector(); render(); quietStatus(label[type]+' added. Drag it, resize it, or edit values on the left.'); return true;}
+function setSelected(id){state.selected=id;syncInspector();render();}
+function selected(){return state.mods.find(m=>m.id===state.selected)||null;}
+function removeSelected(){
+  if(state.selected==null)return;
+  const victim=selected(),backup=state.mods;
+  state.mods=backup.filter(m=>m.id!==state.selected);
+  if(state.mods.some(m=>!valid(m,m.id))){state.mods=backup;toast('Cannot remove this support while a shelf still relies on it. Move that shelf first.');return;}
+  state.selected=null; syncInspector(); render(); quietStatus('Module removed.');
+}
+function editOuter(prop,val){let n=Number(val); if(!Number.isFinite(n)) return; const lim={w:[260,980],h:[240,700],b:[10,28]}; n=clamp(Math.round(n),...lim[prop]); if((prop==='w'||prop==='h') && state.mods.some(m=>{const b=moduleBBox(m); return (prop==='w'?b.x+b.w:b.y+b.h)>n+0.001;})){toast('Cannot shrink: a module would lie outside the cubby.'); syncInspector(); return;} const previous=state[prop]; state[prop]=n; if(state.mods.some(m=>!valid(m,m.id))){state[prop]=previous;toast('Resize would leave a shelf unsupported or place a module outside.'); syncInspector();return;} syncInspector(); render();}
+function expand(prop,delta){editOuter(prop,state[prop]+delta); quietStatus('Cubby '+(prop==='w'?'width':'height')+' increased.');}
+function updateModule(id,changes){const m=state.mods.find(q=>q.id===id); if(!m) return false; const p={...m,...changes}; p.w=clamp(Number(p.w),minSizes[m.type][0],state.w); p.h=m.type==='shelf'?15:clamp(Number(p.h),minSizes[m.type][1],state.h); if(!valid(p,id)) return false;
+  const old={...m};Object.assign(m,p);
+  if(state.mods.some(q=>!valid(q,q.id))){Object.assign(m,old);return false;}
+  syncInspector(); render(); return true;}
+function worldPos(ev,target=scene){const p=target.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY; const pt=p.matrixTransform(target.getScreenCTM().inverse()), o=boxOrigin(); return {x:pt.x-o.x,y:pt.y-o.y};}
+// Actual structural contact. Unlike A3, a dropdown never invents a physical anchor.
+function shelfConnections(m){
+  const tolerance=0.65;
+  const left = Math.abs(m.x)<=tolerance || state.mods.some(q=>q.id!==m.id && q.type!=='shelf' && (()=>{const b=moduleBBox(q); return Math.abs(b.x+b.w-m.x)<=tolerance && m.y < b.y+b.h-0.2 && m.y+15 > b.y+0.2;})());
+  const right = Math.abs(m.x+m.w-state.w)<=tolerance || state.mods.some(q=>q.id!==m.id && q.type!=='shelf' && (()=>{const b=moduleBBox(q); return Math.abs(m.x+m.w-b.x)<=tolerance && m.y < b.y+b.h-0.2 && m.y+15 > b.y+0.2;})());
+  return {left,right};
+}
+function shelfAttachComputed(m){const {left,right}=shelfConnections(m);return left&&right?'both':left?'left':right?'right':'none';}
+function hexPoints(cx,cy,r){const pts=[]; for(let i=0;i<6;i++){const a=Math.PI/6 + i*Math.PI/3; pts.push((cx+Math.cos(a)*r).toFixed(2)+','+(cy+Math.sin(a)*r).toFixed(2));} return pts.join(' ');}
+function drawHexGrid(group,box,r,ident){
+  const x=box.x,y=box.y,w=box.w,h=box.h,clipId='hexclip-'+ident;
+  const defs=svg('defs'),cl=svg('clipPath',{id:clipId}); cl.appendChild(rect(x,y,w,h,'white')); defs.appendChild(cl); group.appendChild(defs);
+  group.appendChild(rect(x,y,w,h,'#172123',{'stroke':'rgba(255,255,255,.06)','stroke-width':1}));
+  const grid=svg('g',{'clip-path':`url(#${clipId})`});
+  const sx=Math.sqrt(3)*r, sy=1.5*r;
+  const edgeMap=new Map();
+  function storeEdge(a,b){const k1=a[0].toFixed(4)+','+a[1].toFixed(4),k2=b[0].toFixed(4)+','+b[1].toFixed(4);const key=k1<k2?k1+'|'+k2:k2+'|'+k1; edgeMap.set(key,[a,b]);}
+  for(let row=-3; row<=Math.ceil(h/sy)+3; row++){
+    const offset=(row%2===0?0:0.5)*sx;
+    for(let col=-3; col<=Math.ceil(w/sx)+3; col++){
+      const cx=x+offset+col*sx+r, cy=y+row*sy+r;
+      const poly=svg('polygon',{points:hexPoints(cx,cy,r),fill:'rgba(158,190,183,.16)','data-hex-cell':ident,'data-cell-row':row,'data-cell-col':col});
+      grid.appendChild(poly);
+      const verts=[]; for(let i=0;i<6;i++){const a=Math.PI/6 + i*Math.PI/3; verts.push([cx+Math.cos(a)*r, cy+Math.sin(a)*r]);}
+      for(let i=0;i<6;i++) storeEdge(verts[i],verts[(i+1)%6]);
+    }
+  }
+  for(const [, [a,b]] of edgeMap){grid.appendChild(svg('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'rgba(183,215,208,.75)','stroke-width':1.8,'stroke-linecap':'square'}));}
+  group.appendChild(grid);
+}
+function drawModule(layer,m,originX,originY,focus=false){
+  const x=originX+m.x, y=originY+m.y; const g=svg('g',{'data-module':m.id,class:m.id===state.selected&&!focus?'selected':''});
+  if(m.type==='rack'){
+    g.appendChild(rect(x,y,m.w,m.h,colorMix(m.color,.9),{rx:5,stroke:'rgba(255,255,255,.15)','stroke-width':1.2}));
+    const pad=14; drawHexGrid(g,{x:x+pad,y:y+pad,w:m.w-pad*2,h:m.h-pad*2},m.r,m.id+(focus?"-focus":"-scene"));
+    g.appendChild(svg('rect',{x:x,y:y,width:m.w,height:m.h,fill:'transparent','data-drag':m.id}));
+    g.appendChild(svg('rect',{x:x+m.w-16,y:y+m.h-16,width:16,height:16,fill:'transparent','data-resize':m.id,style:'cursor:nwse-resize'}));
+  } else if(m.type==='cubby'){
+    const b=11;
+    g.appendChild(rect(x,y,m.w,m.h,m.color,{rx:2,stroke:'#b1c1b9','stroke-opacity':.62,'stroke-width':1,'data-nested-frame':m.id}));
+    g.appendChild(rect(x+b,y+b,m.w-b*2,m.h-b*2,'#162022',{rx:0,stroke:'#334d47','stroke-width':1}));
+    const plaqueW=Math.min(112,m.w*.45), plaqueH=16;
+    g.appendChild(rect(x+(m.w-plaqueW)/2,y+m.h-14,plaqueW,plaqueH,'#8d8062',{rx:7,stroke:'rgba(232,221,187,.45)','stroke-width':1}));
+    g.appendChild(svg('text',{x:x+m.w/2,y:y+m.h-2,'text-anchor':'middle','font-size':10,fill:'#f0e6c8','font-weight':'600'},'sub-cubby'));
+    g.appendChild(svg('rect',{x:x,y:y,width:m.w,height:m.h,fill:'transparent','data-drag':m.id}));
+    g.appendChild(svg('rect',{x:x+m.w-16,y:y+m.h-16,width:16,height:16,fill:'transparent','data-resize':m.id,style:'cursor:nwse-resize'}));
+  } else if(m.type==='shelf'){
+    const attach=shelfAttachComputed(m);
+    const boardH=15;
+    // This is the actual flat-mode .board asset from the repository Lighting Lab,
+    // rendered through a foreignObject rather than approximated with new SVG artwork.
+    const fo=svg('foreignObject',{x,y,width:m.w,height:boardH});
+    const board=document.createElement('div');
+    board.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+    board.className='lab-flat-board';
+    board.style.setProperty('--shelf-color',m.color);
+    fo.appendChild(board);g.appendChild(fo);
+    // No permanent shelf-anchor ornaments. Real junction dots only appear on
+    // hover / selection or when the user enables the explicit edit guide.
+    for(const [side,shown,xx] of [['left',attach==='left'||attach==='both',x],['right',attach==='right'||attach==='both',x+m.w]]){
+      if(!shown)continue;
+      g.appendChild(svg('circle',{cx:xx,cy:y+7.5,r:4.2,fill:'#bea77b',stroke:'#263b37','stroke-width':1.5,class:'shelf-anchor','data-anchor':side}));
+    }
+    if(attach==='none') g.appendChild(rect(x,y,m.w,boardH,'transparent',{class:'shelf-unattached'}));
+    // Thin editable selection line and visible right-edge width handle.
+    if(m.id===state.selected && !focus){
+      g.appendChild(rect(x-2,y-4,m.w+4,boardH+8,'rgba(217,211,181,.03)',{stroke:'rgba(217,211,181,.52)','stroke-dasharray':'5 4','stroke-width':1,rx:2,'pointer-events':'none'}));
+    }
+    g.appendChild(svg('rect',{x,y:y-6,width:m.w,height:boardH+12,fill:'transparent','data-drag':m.id,style:'cursor:grab'}));
+    // Resize handle comes after the drag surface to win hit testing.
+    if(m.id===state.selected&&!focus)g.appendChild(rect(x+m.w-7,y+1,14,14,'#d9d3b5',{rx:3,stroke:'#24312e','stroke-width':2,class:'resize-handle line','data-resize':m.id}));
+  }
+  if(m.id===state.selected && m.type!=='shelf' && !focus){
+    g.appendChild(rect(x-2,y-2,m.w+4,m.h+4,'transparent',{stroke:'rgba(217,211,181,.7)','stroke-width':1.5,rx:3,'pointer-events':'none'}));
+    g.appendChild(rect(x+m.w-13,y+m.h-13,13,13,'#d9d3b5',{rx:2,stroke:'#24312e','stroke-width':1.5,class:'resize-handle','data-resize':m.id}));
+  }
+  return g;
+}
+function render(){
+  scene.innerHTML='';
+  scene.classList.toggle('show-anchors',state.anchors);
+  const o=boxOrigin();
+  // defs / gradients
+  const defs=svg('defs');
+  defs.appendChild(svg('linearGradient',{id:'outerFill',x1:'0',y1:'0',x2:'0',y2:'1'}));
+  scene.appendChild(defs);
+  if(state.guides){const gg=svg('g',{'stroke':'rgba(255,255,255,.045)','stroke-width':1}); for(let x=o.x; x<=o.x+state.w; x+=20) gg.appendChild(svg('line',{x1:x,y1:o.y,x2:x,y2:o.y+state.h})); for(let y=o.y; y<=o.y+state.h; y+=20) gg.appendChild(svg('line',{x1:o.x,y1:y,x2:o.x+state.w,y2:y})); scene.appendChild(gg);}  
+  // outer cubby
+  scene.appendChild(rect(o.x-state.b,o.y-state.b,state.w+state.b*2,state.h+state.b*2,state.color,{rx:4,stroke:'rgba(255,255,255,.14)','stroke-width':1.2,'data-shell':'border'}));
+  scene.appendChild(rect(o.x,o.y,state.w,state.h,'#152022',{rx:1,stroke:'rgba(255,255,255,.05)','stroke-width':1,'data-shell':'interior'}));
+  // plaque
+  const plaqueW=Math.min(170, Math.max(88, state.name.length*8.2));
+  const plaqueH=18; const px=o.x + (state.w-plaqueW)/2; const py=o.y + state.h + state.b - plaqueH - 2;
+  scene.appendChild(rect(px,py,plaqueW,plaqueH,'#8c7f62',{rx:8,stroke:'rgba(232,222,188,.46)','stroke-width':1}));
+  scene.appendChild(svg('text',{x:px+plaqueW/2,y:py+12,'text-anchor':'middle','font-size':11,fill:'#efe5c7','font-weight':'600'},state.name || 'Cubby'));
+  // modules
+  for(const m of state.mods) scene.appendChild(drawModule(scene,m,o.x,o.y,false));
+  $('selSummary').textContent='Selection: '+(selected()?label[selected().type]+' · '+selected().id:'none');
+}
+function syncInspector(){
+  $('cubbyName').value=state.name; $('outerWidth').value=state.w; $('outerHeight').value=state.h; $('borderSize').value=state.b; $('outerColor').value=state.color;
+  const m=selected();
+  $('selectionPanel').style.display=m?'block':'none'; $('selectionEmpty').style.display=m?'none':'block';
+  if(!m) return;
+  $('moduleHeading').textContent=label[m.type]+' · '+m.id;
+  $('modX').value=m.x; $('modY').value=m.y; $('modW').value=m.w; $('modH').value=m.h; $('modColor').value=m.color;
+  $('hexField').style.display=m.type==='rack'?'grid':'none'; $('shelfAttachField').style.display=m.type==='shelf'?'grid':'none';
+  $('hexSize').value=m.r||52; $('hexOut').textContent=m.r||52;
+  $('shelfAttachStatus').textContent=m.type==='shelf'?({left:'Left endpoint',right:'Right endpoint',both:'Both endpoints',none:'Unsupported (edit only)'})[shelfAttachComputed(m)]:'—';
+  $('modH').disabled=m.type==='shelf';
+  $('slideHRow').style.display=m.type==='shelf'?'none':'grid';
+  for(const [axis,range,out,min,max] of [
+    ['x','slideX','outX',0,state.w-m.w], ['y','slideY','outY',0,state.h-m.h],
+    ['w','slideW','outW',minSizes[m.type][0],state.w-m.x],
+    ['h','slideH','outH',minSizes[m.type][1],state.h-m.y]
+  ]) {const control=$(range);control.min=min;control.max=Math.max(min,max);control.value=m[axis];$(out).textContent=m[axis];}
+
+}
+function onDown(ev){hideMenu(); if(ev.button!==0) return; const drag=ev.target.closest('[data-drag]'), resize=ev.target.closest('[data-resize]');
+  if(drag||resize){const id=Number((drag||resize).dataset.drag || (drag||resize).dataset.resize); const m=state.mods.find(q=>q.id===id); if(!m) return; state.selected=id; syncInspector(); render(); const pt=worldPos(ev); grab={mode:resize?'resize':'move',id,start:pt,orig:{...m}}; scene.setPointerCapture(ev.pointerId); ev.preventDefault(); return;}
+  if(ev.target.dataset.shell==='interior') setSelected(null);
+}
+function onMove(ev){if(!grab) return; const m=state.mods.find(q=>q.id===grab.id); if(!m) return; const pos=worldPos(ev), dx=pos.x-grab.start.x, dy=pos.y-grab.start.y; if(grab.mode==='move'){const v=snappedPosition(grab.orig.x+dx,grab.orig.y+dy,m); const p={...m,...v}; if(clearPlacement(p,m.id)){m.x=p.x; m.y=p.y; syncInspector(); render(); quietStatus(m.type==='shelf'&&shelfAttachComputed(p)==='none'?'Unattached during edit — release only at a real support.':'Moving '+label[m.type]+'.');}} else {const v=snapResize(grab.orig.x+grab.orig.w+dx,grab.orig.y+grab.orig.h+dy,m); const p={...m,...v}; if(clearPlacement(p,m.id)){m.w=p.w; m.h=m.type==='shelf'?15:p.h; syncInspector(); render(); quietStatus(m.type==='shelf'&&shelfAttachComputed(p)==='none'?'Unattached during edit — release only at a real support.':'Resizing '+label[m.type]+'.');}} ev.preventDefault();}
+function onUp(ev){if(grab){
+  const m=state.mods.find(q=>q.id===grab.id);
+  if(m&&state.mods.some(q=>!valid(q,q.id))){
+    Object.assign(m,grab.orig);
+    toast('A shelf must remain attached to a wall or boxed module. Restored the previous arrangement.');
+    quietStatus('Unsupported rearrangement rejected; structure restored.');syncInspector();render();
+  }
+  try{scene.releasePointerCapture(ev.pointerId)}catch(_){} grab=null;
+}}
+scene.addEventListener('pointerdown',onDown); scene.addEventListener('pointermove',onMove); scene.addEventListener('pointerup',onUp); scene.addEventListener('pointercancel',onUp);
+function hideMenu(){ if(menuOpen){$('context').style.display='none'; menuOpen=false;}}
+function showMenu(x,y,actions){const c=$('context'); c.replaceChildren(); for(const [title,fn] of actions){const b=document.createElement('button'); b.textContent=title; b.onclick=()=>{hideMenu(); fn();}; c.appendChild(b);} c.style.display='block'; c.style.left=Math.min(x, innerWidth-230)+'px'; c.style.top=Math.min(y, innerHeight - (actions.length*36+28))+'px'; menuOpen=true;}
+scene.addEventListener('contextmenu',ev=>{ev.preventDefault(); const pt=worldPos(ev); const moduleNode=ev.target.closest('[data-module]'); let actions; if(moduleNode){const id=Number(moduleNode.dataset.module); state.selected=id; syncInspector(); render(); actions=[['Delete module',removeSelected],['Focus selected',openFocus]];} else if(ev.target.dataset.shell==='border'||pt.x<0||pt.y<0||pt.x>state.w||pt.y>state.h){actions=[['Expand width +100',()=>expand('w',100)],['Expand height +80',()=>expand('h',80)],['Rename cubby',()=>{$('cubbyName').focus();}]];} else {actions=[['Create hex rack',()=>addModule('rack',pt)],['Create shelf',()=>addModule('shelf',pt)],['Create nested cubby',()=>addModule('cubby',pt)]];} showMenu(ev.clientX,ev.clientY,actions);});
+document.addEventListener('pointerdown',ev=>{if(!ev.target.closest('#context')&&!ev.target.closest('#scene')) hideMenu();});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){hideMenu(); closeFocus(); setSelected(null);} if(ev.key==='Delete'&&document.activeElement.tagName!=='INPUT') removeSelected();});
+// controls
+$('cubbyName').addEventListener('input',e=>{state.name=e.target.value; render();});
+$('outerWidth').addEventListener('change',e=>editOuter('w',e.target.value)); $('outerHeight').addEventListener('change',e=>editOuter('h',e.target.value)); $('borderSize').addEventListener('change',e=>editOuter('b',e.target.value)); $('outerColor').addEventListener('input',e=>{state.color=e.target.value; render();});
+$('expandWidth').onclick=()=>expand('w',100); $('expandHeight').onclick=()=>expand('h',80);
+$('addRack').onclick=()=>addModule('rack'); $('addShelf').onclick=()=>addModule('shelf'); $('addCubby').onclick=()=>addModule('cubby'); $('clearAll').onclick=()=>{if(state.mods.length&&!confirm('Remove all modules?')) return; reset();};
+$('snap').onchange=e=>state.snap=e.target.checked; $('showGuides').onchange=e=>{state.guides=e.target.checked; render();}; $('showAnchors').onchange=e=>{state.anchors=e.target.checked;render();};
+for(const [id,key] of [['modX','x'],['modY','y'],['modW','w'],['modH','h']]) $(id).addEventListener('change',e=>{if(state.selected==null) return; if(!updateModule(state.selected,{[key]:Number(e.target.value)})){syncInspector(); toast('That would leave the cubby or overlap another module.');}});
+$('modColor').addEventListener('input',e=>{const m=selected(); if(m){m.color=e.target.value; render();}});
+$('hexSize').addEventListener('input',e=>{const m=selected(); if(m&&m.type==='rack'){m.r=+e.target.value; $('hexOut').textContent=m.r; render();}});
+for(const [id,key] of [['slideX','x'],['slideY','y'],['slideW','w'],['slideH','h']]){
+  $(id).addEventListener('input',e=>{const m=selected();if(!m)return;const target=Number(e.target.value);if(!updateModule(m.id,{[key]:target})){syncInspector();quietStatus('Blocked: module collision, cubby boundary or unsupported shelf.');}});
+}
+for(const [id,axis,delta] of [['nudgeLeft','x',-1],['nudgeRight','x',1],['nudgeUp','y',-1],['nudgeDown','y',1]]){
+  $(id).onclick=()=>{const m=selected();if(m&&!updateModule(m.id,{[axis]:m[axis]+delta}))quietStatus('Nudge blocked by a boundary or unsupported shelf.');};
+}
+$('removeModule').onclick=removeSelected;
+function reset(){state.name=defaults.name; state.w=defaults.w; state.h=defaults.h; state.b=defaults.b; state.color=defaults.color; state.mods=[]; state.selected=null; state.next=1; syncInspector(); render(); quietStatus('Empty cubby. Add shelf, rack, or nested cubby modules as needed.');}
+function setSample(which){reset(); if(which==='code'){state.name='Code'; state.mods=[
+  {id:state.next++,type:'rack',x:0,y:0,w:500,h:500,color:'#778377',r:52,attach:'auto'},
+  {id:state.next++,type:'cubby',x:510,y:0,w:230,h:155,color:'#6b7a76',r:0,attach:'auto'},
+  {id:state.next++,type:'cubby',x:510,y:165,w:230,h:155,color:'#73837a',r:0,attach:'auto'},
+  {id:state.next++,type:'cubby',x:510,y:330,w:230,h:170,color:'#667772',r:0,attach:'auto'}
+]; quietStatus('Code sample: one large rack with a right-side column of smaller cubbies.');}
+ else {state.name='Applications'; state.mods=[
+  {id:state.next++,type:'shelf',x:0,y:240,w:420,h:15,color:'#263c37',r:0,attach:'auto'},
+  {id:state.next++,type:'cubby',x:525,y:110,w:170,h:155,color:'#71807a',r:0,attach:'auto'}
+ ]; quietStatus('Application sample: a floating shelf for a book and loose scroll, plus one nested cubby.');}
+ syncInspector(); render();}
+$('emptySample').onclick=()=>reset(); $('codeSample').onclick=()=>setSample('code'); $('appSample').onclick=()=>setSample('app');
+function openFocus(){const m=selected(); if(!m){toast('Select a module first.'); return;} $('focusModal').style.display='flex'; $('focusModal').setAttribute('aria-hidden','false'); $('focusTitle').textContent=label[m.type]+' · '+m.id; $('focusSubtitle').textContent=m.type==='rack' ? 'Large view for judging scroll-end scale and future tooltip readability.' : 'Focused view of the selected structural module.'; drawFocus(m);}
+function closeFocus(){$('focusModal').style.display='none'; $('focusModal').setAttribute('aria-hidden','true');}
+function drawFocus(m){
+  focusScene.innerHTML='';
+  // This is the original module drawn again in its unscaled, stored coordinates.
+  // Only the enclosing camera/view transform changes; radius, clipping, cell IDs,
+  // row/column lattice, dimensions and shelf asset never change.
+  const margin=34;
+  const s=Math.min((920-margin*2)/m.w,(680-margin*2)/m.h);
+  const tx=(920-m.w*s)/2,ty=(680-m.h*s)/2;
+  const camera=svg('g',{transform:`translate(${tx} ${ty}) scale(${s})`,'data-focus-zoom':s.toFixed(6)});
+  camera.appendChild(drawModule(focusScene,m,-m.x,-m.y,true));
+  focusScene.appendChild(camera);
+  $('focusSubtitle').textContent=(m.type==='rack' ? `Same grid and ${m.r}-unit cell radius · ${s.toFixed(2)}× camera zoom. No retiling.` :
+      m.type==='shelf' ? `The very same flat Lighting Lab board · ${s.toFixed(2)}× camera zoom.` :
+      `Same 11 px nested-cubby frame · ${s.toFixed(2)}× camera zoom.`);
+}
+$('focusSelected').onclick=openFocus; $('closeFocus').onclick=closeFocus; $('focusModal').addEventListener('click',e=>{if(e.target.id==='focusModal') closeFocus();});
+$('helpBtn').onclick=()=>toast('Right-click to add or expand. Drag modules or use quick sliders. Resize with the visible corner/end handle after selection. Shelves must touch a real wall or boxed module. Focus zooms the exact same geometry.');
+reset();
+window.__cubbyA4={state,valid,clearPlacement,drawHexGrid,openFocus,shelfConnections,drawFocus};
+</script>
+</body>
+</html>
