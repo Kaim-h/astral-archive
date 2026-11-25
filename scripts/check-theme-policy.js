@@ -11,24 +11,45 @@ const start = qml.indexOf("    function noteRead(");
 const end = qml.indexOf("    Component.onCompleted:");
 assert.ok(start >= 0 && end > start);
 const factory = new Function("service", "Policy", "Themes", "stateFile", "Qt", "console",
-    qml.slice(start,end) + "\nreturn {noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed};");
-function mock(raw, failWrite = false, throwRead = false) {
+    qml.slice(start,end) + "\nreturn {noteRead,finishInitialization,select,persistSelection,writeSucceeded,writeFailed,startInitialization};");
+function mock(raw, failWrite = false, throwRead = false, startup = null) {
     const Themes = {Theme:{index:1}}, queue = [], writes = [], warnings = [];
     const service = {ready:false,readStatus:"pending",writable:false,userSelected:false,
-        savedIndex:-1,writingIndex:-1,warning:""};
-    let text = raw;
+        savedIndex:-1,writingIndex:-1,writeReportedSaved:false,verifyStatus:"idle",warning:""};
+    // Separate cached and persistent bytes: FileView may report saved after
+    // a failed atomic commit while exposing new cached text.
+    let disk = raw, cached = raw, reloadPending = false, startPending = true, reloads = 0;
     const stateFile = {
-        text(){if(throwRead)throw Error("read failed");return text;},
+        path:"",
+        text(){
+            if(throwRead)throw Error("read failed");
+            if(reloadPending){
+                reloadPending=false;
+                if(failWrite==="verify-throw")throw Error("readback failed");
+                cached=disk;
+                if(failWrite==="verify-failed")service.noteRead("failed");
+                else if(failWrite!=="verify-silent")service.noteRead("loaded");
+            }else if(startup && startPending){
+                startPending=false;
+                if(startup==="throw")throw Error("startup read failed");
+                if(startup!=="silent")service.noteRead(startup);
+            }
+            return cached;
+        },
+        reload(){reloads++;reloadPending=true;},
         setText(value){
             writes.push(value);
             if(failWrite === "throw")throw Error("write failed");
-            if(failWrite) service.writeFailed();
-            else {text=value;service.writeSucceeded();}
+            if(failWrite === true){service.writeFailed();return;}
+            if(failWrite === "silent")return;
+            cached=value;
+            if(failWrite !== "false-success")disk=value;
+            service.writeSucceeded();
         }
     };
     Object.assign(service,factory(service,Policy,Themes,stateFile,
         {callLater(fn){queue.push(fn);}}, {warn(msg){warnings.push(msg);}}));
-    return {service,Themes,writes,warnings,raw:()=>text,
+    return {service,Themes,writes,warnings,raw:()=>disk,reloads:()=>reloads,
         drain(){while(queue.length)queue.shift()();}};
 }
 for (const i of [0,1,2]) {
@@ -44,7 +65,8 @@ for (const i of [0,1,2]) {
     m.service.select(i);assert.equal(m.writes.length,0);
     m.service.select((i+1)%3);assert.equal(m.writes.length,1);
     assert.equal(JSON.parse(m.raw()).index,(i+1)%3);
-    m.service.select((i+1)%3);assert.equal(m.writes.length,1);
+    assert.equal(m.reloads(),1);assert.equal(m.service.savedIndex,(i+1)%3);
+    m.service.select((i+1)%3);assert.equal(m.writes.length,1);assert.equal(m.reloads(),1);
     m.service.noteRead("failed");m.service.finishInitialization();m.drain();
     assert.equal(m.Themes.Theme.index,(i+1)%3);
     assert.equal(m.service.writable,true);
@@ -104,10 +126,56 @@ for(const [status,raw,writable] of [["loaded",Policy.encodePreference(0),true],
     m.service.finishInitialization();m.service.noteRead("loaded");m.drain();
     assert.equal(m.writes.length,writable?1:0);
 }
+// Execute actual production startup entry, not just manually delivered callbacks.
+for(const [status,raw,writable,index] of [
+    ["loaded",Policy.encodePreference(2),true,2],
+    ["missing","",true,1],["failed","unreadable",false,1],
+    ["silent",Policy.encodePreference(0),false,1],["throw","untouched",false,1]
+]){
+    const m=mock(raw,false,false,status);
+    m.service.startInitialization("/disposable/theme.json");m.drain();
+    assert.equal(m.service.ready,true);assert.equal(m.service.writable,writable);
+    assert.equal(m.Themes.Theme.index,index);assert.equal(m.writes.length,0);
+    m.service.noteRead("loaded");m.service.finishInitialization();m.drain();
+    assert.equal(m.Themes.Theme.index,index);assert.equal(m.service.writable,writable);
+    m.service.select((index+1)%3);
+    assert.equal(m.writes.length,writable?1:0);
+    if(!writable)assert.equal(m.raw(),raw);
+}
+for(const path of ["","relative/theme.json",null]){
+    const m=mock("untouched",false,false,"missing");
+    m.service.startInitialization(path);m.drain();m.service.select(2);
+    assert.equal(m.service.ready,true);assert.equal(m.service.writable,false);
+    assert.equal(m.Themes.Theme.index,2);assert.equal(m.raw(),"untouched");
+    assert.equal(m.writes.length,0);
+}
+const silent=mock(Policy.encodePreference(2),false,false,"silent");
+silent.service.select(0);silent.service.startInitialization("/disposable/theme.json");
+silent.service.noteRead("loaded");silent.drain();
+assert.equal(silent.service.ready,true);assert.equal(silent.Themes.Theme.index,0);
+assert.equal(silent.service.writable,false);assert.equal(silent.writes.length,0);
+assert.equal(JSON.parse(silent.raw()).index,2);
+// Unverifiable success clears the guard and protects further writes.
+// Readback failure does not establish whether bytes were written.
+for(const mode of ["silent","false-success","verify-failed","verify-silent","verify-throw"]){
+    const m=mock(Policy.encodePreference(0),mode);
+    m.service.noteRead("loaded");m.drain();m.service.select(2);
+    assert.equal(m.Themes.Theme.index,2);assert.equal(m.service.savedIndex,0);
+    assert.equal(m.service.writingIndex,-1);assert.equal(m.service.verifyStatus,"idle");
+    assert.equal(m.service.writable,false);assert.ok(m.service.warning);
+    assert.equal(m.reloads(),mode==="silent"?0:1);
+    assert.equal(JSON.parse(m.raw()).index,mode==="silent"||mode==="false-success"?0:2);
+    m.service.writeSucceeded();m.service.noteRead("loaded");m.service.select(1);m.drain();
+    assert.equal(m.service.savedIndex,0);assert.equal(m.Themes.Theme.index,1);
+    assert.equal(m.writes.length,1);
+}
 const same=mock(Policy.encodePreference(2));same.service.select(2);
 same.service.noteRead("loaded");same.drain();assert.equal(same.writes.length,0);
 assert.equal(Policy.decodePreferences("pending","").writable,false);
 assert.match(qml,/atomicWrites:\s*true/);assert.match(qml,/blockWrites:\s*true/);
+assert.match(qml,/preload:\s*false/);assert.match(qml,/blockAllReads:\s*true/);
+assert.match(qml,/stateFile\.reload\(\);/);
+assert.match(qml,/service\.startInitialization\(Quickshell\.statePath\("theme\.json"\)\)/);
 assert.match(qml,/FileViewError\.FileNotFound \? "missing" : "failed"/);
 assert.match(qml,/onSaveFailed: service\.writeFailed\(\)/);
 assert.match(qml,/onSaved: service\.writeSucceeded\(\)/);
@@ -120,4 +188,4 @@ assert.match(capsule,/onClicked: capsule\.themeRequested\(/);
 assert.ok(!/Themes\.Theme\.index\s*=/.test(capsule));
 assert.match(file("quickshell/services/VerandaService.qml"),/if \(!themeReady \|\| !manifestReady/);
 assert.ok(!/import Quickshell|FileView/.test(file("quickshell/themes/Theme.qml")));
-console.log("PASS Theme policy and mocked production adapter: valid/invalid values, recovery, write failure, explicit selection, late callbacks and startup ordering.");
+console.log("PASS Theme policy and mocked production adapter: valid/invalid values, recovery, actual startup entry, absent completion, fresh readback, write failure, explicit selection and late callbacks.");

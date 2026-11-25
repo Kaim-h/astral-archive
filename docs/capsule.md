@@ -103,12 +103,22 @@ written only if the read authorizes writes. Initialization alone never writes.
 The sole production writer is the capsule's explicit theme selection. Repeated
 selection of the already persisted value does not write.
 
-The adapter uses FileView atomic writes and a tiny synchronous write on an
-explicit selection (no animation/frame/slider writes), so completion cannot
-race a later choice. Write failure preserves the old file under FileView's
-atomic-write contract, keeps the chosen session theme, and disables further
-writes until restart. A small ! on the theme glyph and a log warning distinguish
-session-only changes. Back up and repair the file or move it aside explicitly
+The adapter uses explicit synchronous FileView reads (no async preload) and
+atomic writes on deliberate selection, not on animation/frame/slider updates.
+A returned startup read without a terminal signal is treated as an unreadable
+preference, never as a missing file; readiness resolves without writing and
+late startup callbacks cannot reverse that decision. This is a returned-call
+guard, not a timeout for a blocked filesystem call.
+
+After a reported successful write the adapter explicitly reloads and checks
+the persisted bytes, rather than trusting FileView's in-memory cache. The
+[target v0.3.1 implementation](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/src/io/fileview.cpp#L287-L290)
+logs an atomic commit failure without setting the error field used to emit
+the saved signal. A missing completion, explicit failure or unconfirmed
+readback clears the write guard, keeps the chosen session theme and disables
+further writes until restart. Atomic failure should preserve the original
+file; an unconfirmed readback does not establish whether the write succeeded.
+A small ! on the theme glyph and a log warning distinguish session-only changes. Back up and repair the file or move it aside explicitly
 while Quickshell is stopped; never automatically replace an unreadable or
 incompatible file. Restart to retry after a storage failure. Concurrent external
 edits/multiple production shell instances are not supported by this single-owner
@@ -116,8 +126,10 @@ preference adapter.
 
 Regression: `node scripts/check-theme-policy.js` exercises pure policy and
 actual adapter functions against mocked FileView callbacks, and
-`node scripts/check-veranda.js` covers the startup gate. These do not establish
-actual Quickshell file I/O or target-session restart behavior. During N4, use
+`node scripts/check-veranda.js` covers the startup gate. The adapter regression includes returned reads/writes without notifications,
+false success with stale on-disk bytes, and fresh readback failures. These
+do not establish actual Quickshell file I/O, bounded GUI responsiveness during
+blocking storage calls or target-session restart behavior. During N4, use
 disposable state storage: cycle all three themes, restart the actual shell,
 confirm the first wallpaper corresponds to the restored theme, check missing,
 malformed, unsupported and unreadable preferences, atomic write failure and

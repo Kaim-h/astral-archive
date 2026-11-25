@@ -18,12 +18,17 @@ Item {
     property bool userSelected: false
     property int savedIndex: -1
     property int writingIndex: -1
+    property bool writeReportedSaved: false
+    property string verifyStatus: "idle"
     property string warning: ""
 
     FileView {
         id: stateFile
-        // Set path after construction so no initial result is missed.
+        // Explicit synchronous reads only: startup and post-write reload.
+        // No async preload or watch can deliver an unrelated completion.
+        preload: false
         blockLoading: true
+        blockAllReads: true
         atomicWrites: true
         // Tiny explicit preference writes, not animation/slider I/O.
         // Synchronous completion avoids competing writes and late save results.
@@ -39,6 +44,11 @@ Item {
     }
 
     function noteRead(status) {
+        // Fresh readback has its own terminal decision, not startup recovery.
+        if (service.verifyStatus !== "idle") {
+            if (service.verifyStatus === "pending") service.verifyStatus = status;
+            return;
+        }
         if (service.ready || service.readStatus !== "pending") return;
         service.readStatus = status;
         // Never write from inside a FileView load callback.
@@ -75,33 +85,72 @@ Item {
         if (!service.ready || !service.writable || service.writingIndex !== -1 ||
             !Policy.validIndex(index) || service.savedIndex === index) return;
         service.writingIndex = index;
+        service.writeReportedSaved = false;
         try {
-            stateFile.setText(Policy.encodePreference(index));
+            var expected = Policy.encodePreference(index);
+            stateFile.setText(expected);
+            // blockWrites is synchronous. Missing completion is not success.
+            if (service.writingIndex === -1) return;
+            if (!service.writeReportedSaved) {
+                service.writeFailed();
+                return;
+            }
+            // v0.3.1 FileView may report saved even when QSaveFile::commit
+            // fails. Its cached text is not disk evidence. Reload explicitly.
+            service.verifyStatus = "pending";
+            stateFile.reload();
+            var actual = stateFile.text();
+            var confirmed = service.verifyStatus === "loaded" && actual === expected;
+            service.verifyStatus = "idle";
+            if (!confirmed) {
+                service.writeFailed();
+                return;
+            }
+            service.savedIndex = index;
+            service.writingIndex = -1;
+            service.writeReportedSaved = false;
         } catch (error) {
             service.writeFailed();
         }
     }
     function writeSucceeded() {
         if (service.writingIndex === -1) return;
-        service.savedIndex = service.writingIndex;
-        service.writingIndex = -1;
+        service.writeReportedSaved = true;
     }
     function writeFailed() {
         if (service.writingIndex === -1) return;
         service.writingIndex = -1;
+        service.writeReportedSaved = false;
+        service.verifyStatus = "idle";
         // Fail closed for the session; do not retry against an unknown file.
         service.writable = false;
-        service.warning = "Theme preference not saved — session-only changes.";
+        service.warning = "Theme preference not confirmed — session-only changes.";
         console.warn(service.warning + " Check state storage and restart.");
+    }
+    function startInitialization(path) {
+        if (service.ready || service.readStatus !== "pending") return;
+        try {
+            // Quickshell statePath is a local absolute path on the target.
+            // Empty/unusable paths are failures, not confirmed missing files.
+            if (typeof path !== "string" || path.charAt(0) !== "/")
+                throw Error("Theme state path unavailable");
+            stateFile.path = path;
+            stateFile.text(); // small explicit blocking read before shell windows
+        } catch (error) {
+            service.noteRead("failed");
+        }
+        // Normal blocking FileView reads signal completion before returning.
+        // A returned read without a decision is protected, not a missing file.
+        if (service.readStatus === "pending") service.noteRead("failed");
+        service.finishInitialization();
     }
 
     Component.onCompleted: {
         try {
-            stateFile.path = Quickshell.statePath("theme.json");
-            stateFile.text(); // small blocking startup read, before shell windows
+            service.startInitialization(Quickshell.statePath("theme.json"));
         } catch (error) {
             service.noteRead("failed");
+            service.finishInitialization();
         }
-        service.finishInitialization();
     }
 }
