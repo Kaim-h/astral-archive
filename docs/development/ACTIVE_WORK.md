@@ -1,19 +1,20 @@
 # Active work and historical checkpoints
 
-## Current topics and blockers — migration checkpoint
+## Current public topics and blockers — November 25, 2026
 
-The [current-state summary](CURRENT_STATE.md) is authoritative for integrated implementation and recorded checks. The [roadmap](../archive-roadmap.md) records dependencies, not new assignments. No ordinary development is authorized while baseline preparation is in progress.
+The [current-state summary](CURRENT_STATE.md) records integrated implementation and exact checks; verify live source, PR heads and results before acting. The [roadmap](../archive-roadmap.md) records dependencies, not new assignments. Current public main `c7323c8a2ab8ea4ac63f4ed81cfb7e400e74abf1` passed [CI 45614308923](https://github.com/Kaim-h/astral-archive/actions/runs/45614308923). The [publication preflight policy](../PUBLICATION_PREFLIGHT.md) (PR #8), AUD-16–21 corrections (PR #4) and [regression verification guidance](REGRESSION_VERIFICATION.md) (PR #10) are integrated. Ordinary development remains paused unless explicitly authorized.
 
-| Topic | Status at the selected technical baseline |
-|---|---|
-| B7-N2 mixed cubbies and independent AUD-01–15 fixes | Integrated in original technical main; no continuation of merged branches by default. |
-| Continuing stable-main audit | Separate documentation topic; retain audit IDs and evidence. |
-| AUD-16–20 corrective work | Separate unfinished draft topic. Earlier checks passed; a later native pixel assertion actually failed; the latest correction remains unverified because subsequent jobs were blocked before tests ran. Do not treat earlier checks as acceptance of that correction. |
-| B8 Shelf, Room and Map Room design | Separate unfinished design topic; no native implementation or final visual acceptance implied. |
-| Architecture review | Separate advisory documentation topic; proposals do not establish implementation scope. |
-| Clean baseline and target validation | Baseline review/integration and explicit resumption authorization pending; fresh relevant verification when available, N4 before production integration. |
+| Topic | Public PR / branch / exact head at this snapshot | Status and remaining obligation |
+|---|---|---|
+| B7-N2 and AUD-01–15 | Integrated public main | Isolated synthetic mixed cubbies; no new implementation topic automatically assigned. |
+| Stable-main audit | [#3](https://github.com/Kaim-h/astral-archive/pull/3) · `docs/stable-main-bug-audit-2026-11-24` · `1a4f317b7a9e59e8fa56d5923c398a60363896b4` | Open documentation draft; retain audit IDs and reconcile integrated corrective evidence. |
+| AUD-16–21 corrective work | [#4](https://github.com/Kaim-h/astral-archive/pull/4) · merged `966728ecce8aae6039cea60f7c1cec38746a832d` | Final corrective and post-merge workflows passed all three jobs; see [correction record](STABLE_MAIN_BUGFIXES_3.md). Target validation remains separate; AUD-21 original intermittent cause not conclusively reproduced. |
+| B8 Shelf, Room and Map Room design | [#5](https://github.com/Kaim-h/astral-archive/pull/5) · `design/archive-b8-architecture` · `7daf0d21d587cee3f9c2dca3c8ec1f2ea2219049` | Open design draft; public B8s3 and comparative B8s4 studies remain candidates, alongside earlier studies. No final visual acceptance or native implementation implied; review exact design evidence and support/placement/interaction contracts before dependent implementation. |
+| Architecture review | [#6](https://github.com/Kaim-h/astral-archive/pull/6) · `docs/archive-architecture-stewardship` · `aa353e373f1c5493853bffd01a181435867eb70c` | Open advisory documentation draft; recommendations are not accepted architecture or implementation scope. |
+| Regression lessons | [#10](https://github.com/Kaim-h/astral-archive/pull/10) · merged `c7323c8a2ab8ea4ac63f4ed81cfb7e400e74abf1` | Integrated technical guidance; no new product or architecture requirements. |
+| Target validation | N4, outstanding | Actual Fedora/Hyprland/Quickshell validation mandatory before production integration. |
 
-Original open topics are not part of the selected integrated source. Verify actual destination branches and PRs before acting; historical PR numbers are not destination identifiers. No new topic or merge authorized here. Historical checkpoints below are retained for evidence only.
+Keep continuing drafts independent; verify current heads and changed paths before publishing or merging, and reconcile shared documentation changes without overwriting concurrent work. Current-main CI is not exact-head verification of unmerged drafts. No new implementation scope or merge is authorized by this status snapshot. Historical checkpoints below are retained as evidence, not current assignments; historical PR numbers do not denote live public PRs.
 
 ## Historical final acceptance — PR #16 (before integration)
 

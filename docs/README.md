@@ -2,13 +2,14 @@
 
 Current source establishes implementation, accepted product requirements establish intended behavior, and named checks establish verification. Technical decisions, constraints and reproducible evidence must be recoverable from this repository without relying on private conversations.
 
-## Available at this checkpoint
+## Contributor entry points
 
 - [Contribution requirements](../CONTRIBUTING.md) — engineering, design, verification, documentation and review.
 - [Contributor entry point](../AGENTS.md) — startup instructions.
 - [Topic workflow](development/TOPIC_WORKFLOW_AND_HANDOFF.md) — branch continuity, checkpoints and review.
 - [Regression verification](development/REGRESSION_VERIFICATION.md) — asynchronous input, rendered output, identity domains, external contracts, geometry and CI evidence.
 - [Asset guidance](assets.md) — redistribution and local-resource boundaries.
+- [Publication preflight](PUBLICATION_PREFLIGHT.md) — checks before public writes, metadata and disclosure review, and escalation of uncertain material.
 - [Licensing scope](../LICENSING.md) and [attribution](../ATTRIBUTION.md) — software, artwork, documentation and external terms.
 
 ## Technical index
@@ -22,7 +23,7 @@ Current source establishes implementation, accepted product requirements establi
 - [Capsule](capsule.md), [utility shelf](utility-shelf.md), [Veranda](veranda-of-vistas.md), [Gallery](celestial-gallery-qml.md) and [Gallery customization](gallery-customization.md).
 - [Research index](research/README.md) — standalone studies, accepted baselines and historical evidence.
 
-Historical status entries are not live assignments. Baseline review is ongoing; no new runtime validation is claimed.
+Historical status entries are not live assignments. Public baseline integration and its offline, browser and offscreen Qt verification are complete at the revision recorded in [current state](development/CURRENT_STATE.md). See [active work](development/ACTIVE_WORK.md) for continuing public PRs and outstanding checks. N4 remains outstanding; ordinary development remains paused until explicitly authorized.
 
 ## Status vocabulary
 

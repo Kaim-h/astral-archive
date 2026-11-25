@@ -4,8 +4,8 @@ These technical and review requirements apply equally to human contributors, AI 
 
 ## Start here
 
-1. Read `README.md` and `docs/README.md`.
-2. Read `docs/development/CURRENT_STATE.md` and `docs/development/ACTIVE_WORK.md` when present; during baseline preparation consult the checkpoint status in the README. Do not start implementation against an incomplete baseline.
+1. Read `README.md`, `docs/README.md` and [publication preflight](docs/PUBLICATION_PREFLIGHT.md). Apply the preflight before any public write, not only before integration.
+2. Read `docs/development/CURRENT_STATE.md` and `docs/development/ACTIVE_WORK.md` for the recorded integrated revision, named verification, active topics and remaining dependencies. Confirm live refs and checks before working; do not infer implementation authorization from a verified baseline.
 3. For representation work read `docs/product/REPRESENTATION_ASSETS.md` and the asset manifest; consult only the relevant accepted prototype if needed. Identify the requested subsystem and read only its relevant specification, existing documentation, source files, tests, and applicable ADRs.
 4. Check the current Git branch/head and inspect the working tree before editing. Never assume an older handoff's commit is still current.
 
