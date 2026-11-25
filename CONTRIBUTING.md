@@ -48,6 +48,7 @@ Do not turn a candidate or prototype shortcut into an approved requirement. Do n
 - Treat filesystem identity, virtual organization and visual placement as separate concepts. A visual rearrangement must not silently move, rename or delete real files.
 - Use mature Quickshell/Linux APIs and services; report unavailable dependencies honestly rather than presenting fake controls.
 - Preserve licenses and attribution for adapted code and assets. Never commit personal wallpapers, fonts, gallery artwork, private paths or third-party reference images without checking permission and intended repository visibility.
+- See [LICENSING.md](LICENSING.md) and [ATTRIBUTION.md](ATTRIBUTION.md). Contributions offered for inclusion use the applicable project license unless explicitly agreed otherwise. Contribute only material you have permission to share; identify third-party sources, licenses, changes and material AI assistance where relevant. Do not present unknown provenance as confirmed or strip existing notices. Keep uncertain material out of public-bound history until reviewed. This is not a copyright assignment or an extra license restriction.
 - Never expose credentials, tokens, personal databases or machine-specific secrets.
 
 ## Validation requirements
