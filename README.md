@@ -6,7 +6,9 @@ The design combines a quiet storybook-library / observatory metaphor with ordina
 
 ## Implementation status
 
-The tracked shell includes the illustrated launcher, Archive Capsule, utility controls, Veranda wallpaper selector and Celestial Gallery. The separate Archive study includes B6 native geometry/interaction foundations and B7 symbolic representations and mixed furnished cubbies. Its records and file operations are synthetic; it is not a production file manager.
+The tracked shell includes the illustrated launcher, Archive Capsule, utility controls, Veranda wallpaper selector and Celestial Gallery. The separate Archive study includes B6 native geometry/interaction foundations and B7 symbolic representations and mixed furnished cubbies. It includes universal Scroll Case transport and explicit synthetic checkpoint Save/Load; it is not imported by the production shell. Its records and file operations are synthetic; it is not a production file manager.
+
+See the [Archive architecture review and development lessons](docs/architecture/ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md) for the pinned technical source map and advisory recommendations.
 
 Read the [current state](docs/development/CURRENT_STATE.md), [roadmap](docs/archive-roadmap.md) and [native Linux bring-up guide](docs/bringup.md). Baseline preparation is still under review. This is not a release or evidence of successful target desktop validation.
 
