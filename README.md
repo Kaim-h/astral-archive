@@ -44,7 +44,7 @@ The spatial interface is intended to complement efficient, keyboard-accessible f
 
 The desktop shell includes the illustrated launcher, Archive Capsule, utility controls, Veranda wallpaper selector and Celestial Gallery.
 
-The separate Archive study currently includes native geometry and interaction foundations, symbolic file representations and mixed furnished cubbies.
+The separate Archive study currently includes native geometry and interaction foundations, symbolic file representations and mixed furnished cubbies. It includes universal Scroll Case transport and explicit synthetic checkpoint Save/Load, and is not imported by the production shell.
 
 Archive records and file operations remain synthetic. It is not yet a production file manager.
 
@@ -59,6 +59,7 @@ For more detailed information:
 - [Design language](docs/product/VISION_AND_DESIGN_LANGUAGE.md)
 - [Native Linux bring-up guide](docs/bringup.md)
 - [Documentation index](docs/README.md)
+- [Archive architecture review](docs/architecture/ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md) — technical background and advisory recommendations.
 
 ## Contributing
 
