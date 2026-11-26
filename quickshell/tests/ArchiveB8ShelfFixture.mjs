@@ -80,3 +80,27 @@ export function inventoryFixture(){
  const error=Core.validate(s);if(error)throw Error(error);
  return s;
 }
+
+
+// C02/C04: real furnished roots in one Room, distinct cardinal orientations
+// and a shared opening. All construction goes through normal validation.
+export function roomFixture(){
+ let state=Core.session(populatedFixture(2));
+ const roomId=state.snapshot.spatial.shelves.root.roomId;
+ const other=Object.keys(state.snapshot.spatial.shelves).find(k=>k!=="root"&&k!=="sample-1-root");
+ const east=state.snapshot.spatial.shelves[other].roomId;
+ function edit(cmd){state=Core.editStructure(state,cmd);if(state.error)throw Error(cmd.kind+": "+state.error);}
+ edit({kind:"spatialAdoptProfiles"});
+ edit({kind:"spatialRoomEdit",roomId,patch:{w:1800,h:2000}});
+ edit({kind:"spatialRoomEdit",roomId:east,patch:{x:1800}});
+ edit({kind:"spatialShelfEdit",containerId:other,patch:{roomId,x:1000,y:850,depth:250,orientation:90}});
+ edit({kind:"spatialShelfEdit",containerId:"sample-1-root",patch:{roomId,x:100,y:350,orientation:270}});
+ edit({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest"}});
+ edit({kind:"spatialAppearance",containerId:other,patch:{profile:"pilaster",palette:0}});
+ edit({kind:"spatialAppearance",containerId:"sample-1-root",patch:{profile:"cornice",palette:2}});
+ edit({kind:"create",type:"shelf",cubbyId:other,patch:{x:560,y:200,w:130,h:15}});
+ const board=state.snapshot.cubbies[other].mods.find(m=>m.type==="shelf").id;
+ edit({kind:"spatialAppPlace",appId:"org.example.Atlas",containerId:other,moduleId:board,patch:{x:50}});
+ edit({kind:"spatialDoorCreate",patch:{a:{roomId,side:"east"},b:{roomId:east,side:"west"},start:300,end:650}});
+ return state.snapshot;
+}

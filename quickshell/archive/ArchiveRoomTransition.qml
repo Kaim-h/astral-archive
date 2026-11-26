@@ -33,8 +33,7 @@ Item {
             var start=Date.now(),ctx=getContext("2d");ctx.reset();ctx.clearRect(0,0,width,height)
             var n=bridge.navigation,p=n.palette
             for(var f of Transition.surfaces(n.geometry,bridge.progress)){
-                var fill=f.role==="backing"?n.backing:View.profilePartColor(f.role,n.frameColor,p)
-                if(f.side!=="front")fill=View.mix(p.background,fill,f.side==="back"?.68:.80)
+                var fill=View.architectureSurfaceColor(f,n.frameColor,n.backing,p)
                 var q=f.points
                 ctx.beginPath();ctx.moveTo(q[0][0],q[0][1])
                 for(var i=1;i<q.length;i++)ctx.lineTo(q[i][0],q[i][1])

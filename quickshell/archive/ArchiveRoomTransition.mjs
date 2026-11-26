@@ -55,7 +55,7 @@ export function surfaces(n,progress){
   let area=0;for(let j=0;j<points.length;j++){const a=points[j],b=points[(j+1)%points.length];area+=a[0]*b[1]-b[0]*a[1];}
   if(area<=1e-8)continue;
   const depth=points.reduce((sum,q)=>sum+q[2],0)/points.length;
-  out.push({index:i,role:face.role,side:face.side,points,depth});
+  out.push({index:i,role:face.role,side:face.side,surface:face.surface,points,depth});
  }
  return out.sort((a,b)=>a.depth-b.depth||a.index-b.index);
 }

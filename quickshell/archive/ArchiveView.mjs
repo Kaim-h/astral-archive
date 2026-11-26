@@ -236,11 +236,18 @@ export function roomPerspectiveHit(scene,x,y){
 export function roomFloorColor(p){return mix(p.background,p.panel,.72);}
 // Paint-only edge color for the same visible surface owner.
 export function roomEdgeColor(fill,p){return mix(fill,p.metal,.34);}
+export function architectureSurfaceColor(face,frame,backing,p){
+    const base=face.role==='backing'?backing:profilePartColor(face.role,frame,p);
+    if(face.side==='front')return base;
+    if(face.side==='back')return mix(p.background,base,.68);
+    if(face.surface==='top')return mix(base,p.metal,.30);
+    if(face.surface==='bottom')return mix(p.background,base,.55);
+    return mix(base,p.metal,.12);
+}
 export function roomPerspectiveColor(s,face,palettes,desktop,roomColors){
-    if(!face.shelfId)return face.side==='north'||face.side==='east'?mix(roomColors.panel,roomColors.metal,.13):mix(roomColors.background,roomColors.metal,.32);
+    if(!face.shelfId)return face.side==='north'||face.side==='east'?mix(roomColors.panel,roomColors.metal,.27):mix(roomColors.background,roomColors.metal,.36);
     const p=spatialPalette(s,face.shelfId,palettes,desktop),c=s.cubbies[face.shelfId];
-    const base=face.role==='backing'?backingColor(c,p,0):profilePartColor(face.role,frameColor(c,p,0),p);
-    return face.side==='front'?base:mix(p.background,base,face.side==='back'?.68:.80);
+    return architectureSurfaceColor(face,frameColor(c,p,0),backingColor(c,p,0),p);
 }
 // Room arrangement is view-local until release. The captured floor mapping
 // is reused for the whole gesture; snap relative deltas, never the old anchor.

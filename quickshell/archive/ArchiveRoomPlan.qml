@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import "ArchiveView.mjs" as View
 import "ArchiveRoomProjection.mjs" as Projection
 
@@ -78,6 +79,11 @@ Item {
     onVisibleChanged:if(!visible)cancelGesture()
     onEnabledChanged:if(!enabled)cancelGesture()
     onArrangingChanged:cancelGesture()
+    onActiveFocusChanged:if(!activeFocus)cancelGesture()
+    Connections {
+        target:plan.Window.window
+        function onActiveChanged(){if(plan.Window.window&&!plan.Window.window.active)plan.cancelGesture()}
+    }
     Keys.onEscapePressed:function(event){if(gesture){cancelGesture();event.accepted=true}}
     Rectangle {anchors.fill:parent;color:plan.colors.background}
     Text {

@@ -236,6 +236,69 @@ Item {
             compare(JSON.stringify(ctl.snapshot),before)
             study.reducedRoomMotion=true
         }
+        function test_room_furnished_arrangement_rejections(){
+            var ctl=study.controller,scene=study.scene
+            ctl.reset(Sample.roomFixture())
+            tryVerify(function(){return scene.physicalFront})
+            var other=Object.keys(ctl.snapshot.spatial.shelves).find(k=>k!=="root"&&k!=="sample-1-root"),roomId=ctl.snapshot.spatial.shelves.root.roomId
+            var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+            var plan=findChild(study,"archive-room-plan")
+            clickNamed("toggle-room-plan")
+            tryVerify(function(){return plan.visible&&plan.planData.shelves.length===3})
+            compare(plan.planData.openings.length,1)
+            for(var perspective=0;perspective<2;perspective++){
+                if(perspective)clickNamed("toggle-room-perspective")
+                tryVerify(function(){return !perspective||!!plan.visibilityRaster})
+                var b=Spatial.footprint(ctl.snapshot,other),g=Spatial.shelfGeometry(ctl.snapshot,other)
+                var pt=plan.pointFor(b.x+b.w/2,b.y+b.h/2)
+                if(perspective){
+                    // Orientation 90: front is west-facing, actual lintel
+                    // center (not chosen by the current hit function).
+                    var q=Projection.project([b.x,b.y+g.w/2,g.h-g.inscription.y-g.inscription.h/2],plan.perspectiveData.frame)
+                    pt=Qt.point(q[0],q[1])
+                }
+                wait(80)
+                grabImage(study).save("archive-b8-native-shelf-furnished-room-"+perspective+".png")
+                mouseDoubleClickSequence(plan,pt.x,pt.y,Qt.LeftButton)
+                tryVerify(function(){return scene.visible&&!plan.visible})
+                compare(scene.cubbyId,other)
+                verify(!!findChild(scene,"archive-book-org.example.Atlas"))
+                clickNamed("toggle-room-plan")
+                tryVerify(function(){return plan.visible&&!scene.visible})
+                compare(plan.selectedShelf,other)
+                study.switchMode("arrange");scene.snapEnabled=true;scene.snapDistance=50
+                for(var delta of [[600,0],[0,-750],[550,-450]]){
+                    var start=plan.floorAt(pt.x,pt.y),end=plan.pointFor(start.x+delta[0],start.y+delta[1])
+                    mousePress(plan,pt.x,pt.y,Qt.LeftButton);tryVerify(function(){return plan.dragging})
+                    mouseMove(plan,end.x,end.y,20,Qt.LeftButton)
+                    tryVerify(function(){return !!plan.dragPatch})
+                    compare(JSON.stringify(ctl.snapshot),before);verify(!ctl.structuralProposal)
+                    mouseRelease(plan,end.x,end.y,Qt.LeftButton)
+                    tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
+                    var patch=ctl.structuralProposal.command.patch
+                    compare(patch.x===undefined?b.x:patch.x,b.x+delta[0])
+                    compare(patch.y===undefined?b.y:patch.y,b.y+delta[1])
+                    verify(!findChild(study,"structure-apply").enabled)
+                    compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                    clickNamed("structure-cancel");verify(!plan.dragging&&!plan.dragPatch)
+                }
+                // Explicit focus loss must cancel the captured mapping;
+                // release after focus transfer cannot publish a late proposal.
+                var start=plan.floorAt(pt.x,pt.y),end=plan.pointFor(start.x+50,start.y)
+                mousePress(plan,pt.x,pt.y,Qt.LeftButton);tryVerify(function(){return plan.dragging})
+                mouseMove(plan,end.x,end.y,20,Qt.LeftButton);tryVerify(function(){return !!plan.dragPatch})
+                scene.forceActiveFocus();tryVerify(function(){return !plan.dragging})
+                mouseRelease(plan,end.x,end.y,Qt.LeftButton)
+                verify(!ctl.structuralProposal);compare(JSON.stringify(ctl.snapshot),before)
+                mousePress(plan,pt.x,pt.y,Qt.LeftButton);tryVerify(function(){return plan.dragging})
+                mouseMove(plan,end.x,end.y,20,Qt.LeftButton);mouseRelease(plan,end.x,end.y,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                clickNamed("structure-cancel")
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                study.switchMode("browse")
+            }
+            study.roomPlanOpen=false
+        }
         function test_room_arrangement_gestures(){
             var ctl=study.controller,scene=study.scene
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")

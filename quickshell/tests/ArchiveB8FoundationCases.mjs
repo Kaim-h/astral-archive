@@ -852,5 +852,24 @@ export function run(){
   eq(Core.validate(s),null,'depth correction preserves valid model');
  }
  }
+ {
+ const s=ShelfSample.roomFixture(),roomId=s.spatial.shelves.root.roomId,other=Object.keys(s.spatial.shelves).find(k=>k!=='root'&&k!=='sample-1-root');
+ eq(Core.validate(s),null,'representative furnished Room valid');
+ const plan=View.roomPlan(s,roomId),mesh=Projection.roomMesh(s,roomId,plan.openings);
+ eq(plan.shelves.length,3,'three actual shelves');
+ eq(plan.openings.length,1,'one actual shared opening');
+ yes(!mesh.segments.some(v=>v.side==='east'&&v.start<650&&v.end>300),'opening no wall coverage');
+ const b=Spatial.footprint(s,other);
+ eq(b.w,250,'turned depth exact');
+ for(const patch of [{x:1600},{y:100},{x:1550,y:400}]){
+  const state=Core.session(s),before=Core.clone(s),preview=Core.previewStructure(state,{kind:'spatialShelfEdit',containerId:other,patch});
+  yes(!preview.ok,'invalid wall/neighbor/door specimen');
+  eq(state.snapshot,before,'invalid representative transaction isolated');
+ }
+ for(const orientation of [0,90,180,270]){
+  const g=Spatial.shelfGeometry(s,other),surfaces=Projection.shelfSurfaces(g,{x:0,y:0,orientation},other);
+  yes(surfaces.some(v=>v.surface==='top')&&surfaces.some(v=>v.surface==='side')&&surfaces.some(v=>v.surface==='bottom'),'actual solid face roles across cardinals');
+ }
+ }
  return checks;
 }

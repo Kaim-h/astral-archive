@@ -57,7 +57,13 @@ export function wallSegments(room,openings){
 // and a recessed aperture backing. No invented interior file thumbnails.
 export function shelfSurfaces(g,p,id){
  const out=[],point=(q,d)=>{const xy=Architecture.planPoint(g,p,q[0],d);return [xy[0],xy[1],g.floorY-q[1]];};
- const add=(role,side,points)=>out.push({shelfId:id,role,side,points});
+ const add=(role,side,points)=>{
+  const n=normal(points),length=Math.hypot(...n);
+  // Flat role classification derives from the actual solid face, not a
+  // lighting gradient or a second geometry model.
+  const surface=side!=='return'?side:length&&n[2]/length>.65?'top':length&&n[2]/length<-.65?'bottom':'side';
+  out.push({shelfId:id,role,side,surface,points});
+ };
  function prism(role,poly,back,front){
   const A=poly.map(q=>point(q,front)),B=poly.map(q=>point(q,back));
   add(role,'front',A);add(role,'back',B.slice().reverse());
@@ -136,7 +142,7 @@ export function projectedScene(mesh,width,height,tilt=22){
   const points=face.points.map(q=>project(q,f));
   if(points.some(q=>!q))continue;
   const depth=points.reduce((sum,q)=>sum+q[2],0)/points.length;
-  const plane=depthPlane(points);if(plane)faces.push({index:i,shelfId:face.shelfId,role:face.role,side:face.side,points,depth,plane});
+  const plane=depthPlane(points);if(plane)faces.push({index:i,shelfId:face.shelfId,role:face.role,side:face.side,surface:face.surface,points,depth,plane});
  }
  faces.sort((a,b)=>a.depth-b.depth||a.index-b.index);
  return {frame:f,floor,faces};
