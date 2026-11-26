@@ -1,6 +1,6 @@
 # Historical development records
 
-Load only when relevant. [Current state](../CURRENT_STATE.md) and [active work](../ACTIVE_WORK.md) are routine snapshots. Historical evidence, rejected alternatives and superseded next steps are not live assignments or current verification. Accepted requirements remain in [product specifications](../../product/), [design decisions](../../design-decisions.md) and subsystem contracts.
+For a readable retrospective of major phases and public PRs, see [development history](../DEVELOPMENT_HISTORY.md). Load these detailed records only when relevant. [Current state](../CURRENT_STATE.md) and [active work](../ACTIVE_WORK.md) are routine snapshots. Historical evidence, rejected alternatives and superseded next steps are not live assignments or current verification. Accepted requirements remain in [product specifications](../../product/), [design decisions](../../design-decisions.md) and subsystem contracts.
 
 ## Relocation map — November 25, 2026
 

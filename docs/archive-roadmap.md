@@ -2,7 +2,7 @@
 
 ## Current dependency roadmap
 
-This is a milestone dependency sequence, not a release schedule or authorization. See [current state](development/CURRENT_STATE.md) for integrated source and exact evidence, [active work](development/ACTIVE_WORK.md) for live topics, and [product specifications](product/) for accepted requirements.
+This is a milestone dependency sequence, not a release schedule or authorization. For the retrospective, see [development history](development/DEVELOPMENT_HISTORY.md). See [current state](development/CURRENT_STATE.md) for integrated source and exact evidence, [active work](development/ACTIVE_WORK.md) for live topics, and [product specifications](product/) for accepted requirements.
 
 | Stage | Status / dependency |
 |---|---|

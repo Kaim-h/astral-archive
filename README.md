@@ -22,7 +22,7 @@ The public main branch contains the desktop shell and isolated native Archive st
 
 The B8 Shelf, Room and Map Room design is integrated as a specification. Its native implementation is in progress in [PR #19](https://github.com/Kaim-h/astral-archive/pull/19); experimental branch features are not released features. The integrated baseline has passed JavaScript, Chromium and offscreen Qt Quick checks; actual target Linux desktop validation remains outstanding.
 
-[Current implementation](docs/development/CURRENT_STATE.md) · [Active development](docs/development/ACTIVE_WORK.md) · [Roadmap](docs/archive-roadmap.md) · [Documentation](docs/README.md)
+[Current implementation](docs/development/CURRENT_STATE.md) · [Active development](docs/development/ACTIVE_WORK.md) · [Roadmap](docs/archive-roadmap.md) · [Development history](docs/development/DEVELOPMENT_HISTORY.md) · [Documentation](docs/README.md)
 
 ## Features
 

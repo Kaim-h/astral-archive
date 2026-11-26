@@ -17,7 +17,8 @@ Current source establishes implementation, accepted product requirements establi
 
 - [B8 documentation consolidation plan](development/B8_DOCUMENTATION_CONSOLIDATION.md) — preparation and post-integration evidence gates.
 - [Current state](development/CURRENT_STATE.md) and [active work](development/ACTIVE_WORK.md) — integrated implementation and active topics.
-- [Development history and relocation map](development/history/README.md) — completed milestones, decisions and exact checkpoint evidence; retrieve on demand.
+- [Development history](development/DEVELOPMENT_HISTORY.md) — readable retrospective of major milestones and public PRs.
+- [Engineering history and relocation map](development/history/README.md) — detailed decisions and exact checkpoint evidence; retrieve on demand.
 - [Roadmap](archive-roadmap.md) — milestones and dependencies.
 - [Architecture](architecture.md) and [component map](architecture/COMPONENT_MAP.md).
 - [Design decisions](design-decisions.md) and [product specifications](product/) — intended behavior and design boundaries.
