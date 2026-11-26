@@ -381,6 +381,64 @@ Item {
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),initial);compare(ctl.archiveState.history.length,history)
             }finally{study.mapEnabled=false;study.switchMode("browse");scene.snapEnabled=oldSnap}
         }
+        function test_map_chart_arrange_isolation(){
+            var ctl=study.controller,scene=study.scene
+            study.mapEnabled=true
+            var map=findChild(study,"archive-map-room"),oldTitle=map.chartTitle
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                study.switchMode("arrange")
+                var door=Object.values(ctl.snapshot.spatial.doors)[0],g=Spatial.doorGeometry(ctl.snapshot,door.id)
+                var before=JSON.stringify(ctl.snapshot),revision=ctl.archiveState.revision,history=JSON.stringify(ctl.archiveState.history)
+                function unchanged(){
+                    compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,revision)
+                    compare(JSON.stringify(ctl.archiveState.history),history)
+                    verify(!ctl.structuralProposal&&!map.dragging&&!map.dragPatch)
+                }
+                var pt=map.pointFor(g.line,(g.start+g.end)/2)
+                mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
+                var handle=findChild(map,"map-door-end-handle");verify(handle.visible&&handle.enabled)
+                var hp=handle.mapToItem(map,handle.width/2,handle.height/2)
+                clickNamed("map-chart")
+                var panel=findChild(map,"map-chart-panel")
+                tryVerify(function(){return map.appearanceOpen&&panel.activeFocus})
+                verify(!handle.visible&&!handle.enabled)
+                verify(!findChild(map,"map-door-delete").enabled&&!findChild(study,"archive-undo").enabled)
+                keyClick(Qt.Key_Delete);keyClick(Qt.Key_Backspace);unchanged()
+                // Former endpoint hit location must be inert.
+                mousePress(map,hp.x,hp.y,Qt.LeftButton);mouseMove(map,hp.x,hp.y+40,20,Qt.LeftButton);mouseRelease(map,hp.x,hp.y+40,Qt.LeftButton)
+                unchanged()
+                // Explicit entry guards independently of pointer routing.
+                verify(!map.removeSelectedDoor());verify(!map.startDoorGesture(door.id,"end",hp.x,hp.y))
+                study.startMapDoorEdit("spatialDoorDelete",door.id,{})
+                study.startMapRoomEdit("spatialRoomEdit",door.a.roomId,{w:1900})
+                unchanged()
+                var input=findChild(map,"map-chart-title")
+                mouseClick(input,input.width/2,input.height/2);verify(input.activeFocus)
+                keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
+                compare(map.chartTitle,"")
+                keyClick("A");keyClick("B");keyClick(Qt.Key_Left);keyClick(Qt.Key_Delete)
+                compare(map.chartTitle,"A");unchanged()
+                keyClick(Qt.Key_Escape);tryVerify(function(){return !map.appearanceOpen&&map.activeFocus})
+                verify(handle.visible&&handle.enabled)
+                // Also isolate actual Room resize handles.
+                var room=ctl.snapshot.spatial.rooms[door.b.roomId]
+                pt=map.pointFor(room.x+room.w/2,room.y+room.h/2)
+                mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,room.id);compare(map.selectedDoor,"")
+                var rh=findChild(map,"map-room-resize-handle");verify(rh.visible&&rh.enabled)
+                hp=rh.mapToItem(map,rh.width/2,rh.height/2)
+                clickNamed("map-chart");verify(!rh.visible&&!rh.enabled)
+                mousePress(map,hp.x,hp.y,Qt.LeftButton);mouseMove(map,hp.x-40,hp.y,20,Qt.LeftButton);mouseRelease(map,hp.x-40,hp.y,Qt.LeftButton)
+                verify(!map.startGesture(room.id,"resize",hp.x,hp.y));unchanged()
+                clickNamed("map-chart-close");tryVerify(function(){return !map.appearanceOpen&&map.activeFocus})
+                verify(rh.visible&&rh.enabled)
+                pt=map.pointFor(g.line,(g.start+g.end)/2);mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
+                keyClick(Qt.Key_Delete);verify(!ctl.snapshot.spatial.doors[door.id]);verify(!ctl.structuralProposal)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+            }finally{map.chartTitle=oldTitle;study.mapEnabled=false;study.switchMode("browse")}
+        }
         function test_map_cartography(){
             var ctl=study.controller,original=Themes.Theme.index
             study.mapEnabled=true

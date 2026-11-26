@@ -204,7 +204,7 @@ Rectangle {
     }
     property var mapDoorEditText:({})
     function startMapDoorEdit(kind,id,patch){
-        if(!showMap||!viewSwitchReady||checkpointLoadPending||mapView.dragging||mapView.panning||sceneView.mode!=="arrange")return
+        if(!showMap||!viewSwitchReady||checkpointLoadPending||mapView.appearanceOpen||mapView.dragging||mapView.panning||sceneView.mode!=="arrange")return
         var d=kind==="spatialDoorCreate"?patch:archive.snapshot.spatial.doors[id];if(!d)return
         var cmd={kind:kind,patch:patch||{}};if(kind!=="spatialDoorCreate")cmd.doorId=id
         if(kind==="spatialDoorDelete"){
@@ -229,7 +229,7 @@ Rectangle {
     property var mapRoomEditText:({})
     function startMapRoomEdit(kind,id,patch){
         if(mapNavigationDiagnostics)console.log("B8 map arrangement entered",JSON.stringify({kind:kind,id:id,patch:patch,showMap:showMap,ready:viewSwitchReady,checkpoint:checkpointLoadPending,pan:mapView.panning,drag:mapView.dragging,mode:sceneView.mode}))
-        if(!showMap||!viewSwitchReady||checkpointLoadPending||(mapView.panning||mapView.dragging)||sceneView.mode!=="arrange")return
+        if(!showMap||!viewSwitchReady||checkpointLoadPending||mapView.appearanceOpen||(mapView.panning||mapView.dragging)||sceneView.mode!=="arrange")return
         var r=kind==="spatialRoomCreate"?View.mapRoomDraft(mapView.dataModel):archive.snapshot.spatial.rooms[id]
         if(!r)return
         var cmd={kind:kind,patch:kind==="spatialRoomCreate"?r:patch||{}}
@@ -726,7 +726,7 @@ Rectangle {
 
     Column {
         id:heading
-        enabled:!study.roomNavigating&&!study.mapNavigating&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
+        enabled:!study.roomNavigating&&!study.mapNavigating&&!roomPlan.dragging&&!mapView.appearanceOpen&&!(mapView.panning||mapView.dragging)&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
         anchors.top:parent.top
         anchors.left:parent.left
         anchors.right:parent.right
@@ -797,7 +797,7 @@ Rectangle {
                 Archive.ArchiveButton {id:zoomInTool; colors:study.colors; label:"+"; hint:"Zoom in"; visible:parent.layerShown; onClicked:sceneView.setZoom(sceneView.zoom*1.15) }
             }
             Archive.ArchiveButton { colors:study.colors; label:study.colors.name; onClicked:Themes.Theme.index=(Themes.Theme.index+1)%3 }
-            Archive.ArchiveButton { colors:study.colors; label:"Undo"; enabled:!sceneView.busy&&!archive.draft&&!archive.structuralProposal&&archive.archiveState.history.length>0; onClicked:archive.undo() }
+            Archive.ArchiveButton { objectName:"archive-undo";colors:study.colors; label:"Undo"; enabled:!sceneView.busy&&!archive.draft&&!archive.structuralProposal&&archive.archiveState.history.length>0; onClicked:archive.undo() }
             Archive.ArchiveButton {
                 objectName:Spatial.physicalProfiles(archive.snapshot)?"adopt-independent-profiles":"adopt-physical-profiles"
                 colors:study.colors;label:Spatial.physicalProfiles(archive.snapshot)?"Adopt refined profiles…":"Adopt physical profiles…";width:154

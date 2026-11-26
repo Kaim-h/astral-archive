@@ -27,7 +27,9 @@ Item {
     readonly property int contourMaxBuildMs:art.maxBuildMs
     readonly property int mapLastPaintMs:art.lastPaintMs
     function roomColors(room){return room.palette!==null&&palettes[room.palette]?palettes[room.palette]:colors}
-    function closeAppearance(){appearanceOpen=false;forceActiveFocus()}
+    function openAppearance(){if(!enabled||!visible||appearanceOpen)return;cancelGesture();appearanceOpen=true;chartPanel.forceActiveFocus()}
+    function closeAppearance(){appearanceOpen=false;if(enabled&&visible)forceActiveFocus()}
+    onAppearanceOpenChanged:if(appearanceOpen)cancelGesture()
     property string selectedRoom:""
     property string selectedDoor:""
     property int suggestionIndex:0
@@ -86,23 +88,25 @@ Item {
         return true
     }
     function startDoorGesture(id,kind,x,y){
-        if(!arranging||!enabled||gesture)return false
+        if(appearanceOpen||!arranging||!enabled||gesture)return false
         var g=View.mapDoorGesture(snapshot,id,kind,camera,x,y);if(!g)return false
         selectDoor(id);forceActiveFocus();gesture={door:true,data:g,x:x,y:y,snap:snapEnabled,interval:snapDistance};dragPatch=null;return true
     }
-    function removeSelectedDoor(){if(arranging&&enabled&&!dragging&&selectedOpening){var id=selectedDoor;deleteDoor(id);return true}return false}
+    function removeSelectedDoor(){if(!appearanceOpen&&arranging&&enabled&&!dragging&&selectedOpening){var id=selectedDoor;deleteDoor(id);return true}return false}
     function cancelGesture(){gesture=null;dragPatch=null;press=null;moved=false}
     function startGesture(id,kind,x,y){
-        if(!arranging||!enabled||gesture)return false
+        if(appearanceOpen||!arranging||!enabled||gesture)return false
         var g=View.mapRoomGesture(dataModel,id,kind,camera,x,y);if(!g)return false
         selectedDoor="";selectedRoom=id;forceActiveFocus();gesture={door:false,data:g,x:x,y:y,snap:snapEnabled,interval:snapDistance,magnet:magnetic};dragPatch=null;return true
     }
     function updateGesture(x,y){
+        if(appearanceOpen){cancelGesture();return}
         if(!gesture)return
         var g=gesture;if(!dragPatch&&Math.hypot(x-g.x,y-g.y)<4)return
         dragPatch=g.door?View.mapDoorGesturePatch(g.data,x,y,g.snap,g.interval):View.mapRoomGesturePatch(g.data,x,y,g.snap,g.interval,g.magnet)
     }
     function finishGesture(x,y){
+        if(appearanceOpen){cancelGesture();return}
         if(!gesture)return
         updateGesture(x,y);var g=gesture,p=dragPatch;cancelGesture()
         if(p&&Object.keys(p).length){
@@ -150,8 +154,8 @@ Item {
     onActiveFocusChanged:if(!activeFocus)cancelGesture()
     Connections {target:map.Window.window;function onActiveChanged(){if(map.Window.window&&!map.Window.window.active)map.cancelGesture()}}
     Keys.onEscapePressed:function(event){if(appearanceOpen){closeAppearance();event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(focusState){restoreOverview();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
-    Keys.onDeletePressed:function(event){if(activeFocus&&removeSelectedDoor())event.accepted=true}
-    Keys.onPressed:function(event){if(event.key===Qt.Key_Backspace&&activeFocus&&removeSelectedDoor())event.accepted=true}
+    Keys.onDeletePressed:function(event){if(appearanceOpen||activeFocus&&removeSelectedDoor())event.accepted=true}
+    Keys.onPressed:function(event){if(event.key===Qt.Key_Backspace&&(appearanceOpen||activeFocus&&removeSelectedDoor()))event.accepted=true}
     Rectangle {anchors.fill:parent;color:map.colors.background}
     Canvas {
         id:art
@@ -325,7 +329,8 @@ Item {
             required property var modelData
             objectName:modelData.key==="se"?"map-room-resize-handle":"map-room-resize-"+modelData.key
             width:22;height:22;radius:3
-            visible:map.arranging&&!!map.selectedBox&&!map.selectedDoor&&!map.proposalCommand&&!map.doorProposalCommand&&
+            enabled:!map.appearanceOpen
+            visible:!map.appearanceOpen&&map.arranging&&!!map.selectedBox&&!map.selectedDoor&&!map.proposalCommand&&!map.doorProposalCommand&&
                 (modelData.key==="se"||map.camera&&Math.min(map.selectedBox.w,map.selectedBox.h)*map.camera.scale>=70)
             readonly property point corner:map.selectedBox?map.pointFor(map.selectedBox.x+map.selectedBox.w*modelData.x,map.selectedBox.y+map.selectedBox.h*modelData.y):Qt.point(0,0)
             x:corner.x-width/2;y:corner.y-height/2;color:map.colors.background;border.color:map.colors.engraving;border.width:2
@@ -346,7 +351,8 @@ Item {
             id:doorHandle
             required property string modelData
             objectName:"map-door-"+modelData+"-handle"
-            visible:map.arranging&&!!map.selectedOpening&&!map.doorProposalCommand
+            enabled:!map.appearanceOpen
+            visible:!map.appearanceOpen&&map.arranging&&!!map.selectedOpening&&!map.doorProposalCommand
             width:20;height:20;radius:3
             readonly property var opening:map.selectedOpening
             readonly property point endpoint:opening?map.pointFor(opening.vertical?opening.line:opening[modelData],opening.vertical?opening[modelData]:opening.line):Qt.point(0,0)
@@ -383,12 +389,13 @@ Item {
         Text {x:20;y:0;text:"N";color:map.colors.engraving;font.pixelSize:9;visible:map.chartOrnament==="compass"}
         Image {anchors.fill:parent;anchors.margins:5;visible:map.chartOrnament==="family";source:visible?View.ornamentAsset(map.chartFamily,map.colors.name):"";fillMode:Image.PreserveAspectFit}
     }
-    ArchiveButton {objectName:"map-chart";anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:map.colors;label:"Chart…";enabled:!map.dragging&&!map.panning;onClicked:map.appearanceOpen=!map.appearanceOpen}
+    ArchiveButton {objectName:"map-chart";anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:map.colors;label:"Chart…";enabled:!map.dragging&&!map.panning;onClicked:if(map.appearanceOpen)map.closeAppearance();else map.openAppearance()}
     Rectangle {
         id:chartPanel;objectName:"map-chart-panel";z:6
         anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;anchors.topMargin:42
         width:238;height:252;radius:5;color:map.colors.panel;border.color:map.colors.metal
         visible:map.appearanceOpen
+        Keys.onEscapePressed:function(event){map.closeAppearance();event.accepted=true}
         MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons;onWheel:function(wheel){wheel.accepted=true}}
         Column {
             anchors.fill:parent;anchors.margins:8;spacing:4
