@@ -99,7 +99,12 @@ Item {
     property var pinnedRecord: null
     property var hoveredRecord: null
     property point tipPoint: Qt.point(0,0)
-    readonly property var camera: View.camera(displayCubby,width,Math.max(1,height-42),zoom,pan)
+    // Valid appearance and interior previews only; refused proposals retain
+    // committed geometry. Legacy Cubby and unadopted Shelf remain unchanged.
+    readonly property var frontSnapshot:interiorPreviewSnapshot||appearanceSnapshot||controller.snapshot
+    readonly property var frontEnvelope:View.frontEnvelope(frontSnapshot,cubbyId,displayCubby)
+    readonly property bool physicalFront:!!frontEnvelope.parts
+    readonly property var camera: View.fitEnvelope(frontEnvelope,width,Math.max(1,height-42),zoom,pan)
     readonly property alias caseDock: caseView
     readonly property alias tooltip: tooltipView
     readonly property alias worldItem: world
@@ -455,12 +460,13 @@ Item {
     Item {
         id: world
         x:scene.camera.x; y:scene.camera.y
-        width:scene.displayCubby.w+2*(Number(scene.displayCubby.b)||11)
-        height:scene.displayCubby.h+2*(Number(scene.displayCubby.b)||11)
+        width:scene.frontEnvelope.w
+        height:scene.frontEnvelope.h
         scale:scene.camera.scale
         transformOrigin:Item.TopLeft
         Rectangle {
             anchors.fill:parent
+            visible:!scene.physicalFront
             radius:2
             color:View.frameColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
             border.color:View.mix(scene.colors.metal,scene.colors.text,.20)
@@ -470,7 +476,7 @@ Item {
         Item {
             id:frameDetail
             objectName:"architectural-frame-detail"
-            anchors.fill:parent;visible:scene.architectural
+            anchors.fill:parent;visible:scene.architectural&&!scene.physicalFront
             readonly property string profile:scene.architectural?Spatial.shelfProfile(scene.appearanceSnapshot||scene.controller.snapshot,scene.cubbyId):"cornice"
             Repeater {
                 model:frameDetail.visible?View.shelfTrim(scene.displayCubby,frameDetail.profile):[]
@@ -482,11 +488,19 @@ Item {
                 }
             }
         }
+        ArchiveProfileFront {
+            objectName:"physical-shelf-frame"
+            anchors.fill:parent
+            visible:scene.physicalFront
+            profileGeometry:scene.physicalFront?scene.frontEnvelope:null
+            colors:scene.colors
+            frameColor:View.frameColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
+        }
         Item {
             id: interior
             objectName:"cubby-interior"
-            x:Number(scene.displayCubby.b)||11
-            y:x
+            x:scene.frontEnvelope.aperture.x
+            y:scene.frontEnvelope.aperture.y
             width:scene.displayCubby.w
             height:scene.displayCubby.h
             clip:true
@@ -711,6 +725,7 @@ Item {
         }
         Rectangle {
             objectName:"cubby-inscription"
+            visible:!scene.physicalFront
             // Fit the actual font metrics, rather than capping every name
             // at 170 local units. Elide only when the frame really is narrow.
             width:Math.max(0,Math.min(parent.width-20,Math.max(88,cubbyLabel.implicitWidth+20)))
@@ -732,6 +747,18 @@ Item {
                 font.pixelSize:11
                 font.bold:true
             }
+        }
+        Text {
+            objectName:"physical-shelf-inscription"
+            visible:scene.physicalFront
+            readonly property var inscription:scene.frontEnvelope.inscription||{x:0,y:0,w:0,h:0}
+            x:inscription.x+4;y:inscription.y
+            width:Math.max(0,inscription.w-8);height:inscription.h
+            text:scene.displayCubby.name||scene.displayCubby.id
+            color:scene.colors.text
+            font.pixelSize:Math.max(1,Math.min(16,inscription.h*.72))
+            font.bold:true;horizontalAlignment:Text.AlignHCenter;verticalAlignment:Text.AlignVCenter
+            elide:Text.ElideRight;clip:true
         }
     }
     MouseArea {

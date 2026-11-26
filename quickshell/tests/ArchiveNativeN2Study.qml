@@ -16,6 +16,10 @@ Rectangle {
     // Explicit opt-in for mixed study; retain the original B6 reference fixture.
     property var initialSnapshot:null
     property bool spatialEnabled:false
+    property bool physicalProfilesEnabled:false
+    property bool roomPlanOpen:false
+    readonly property bool showRoomPlan:roomPlanOpen&&Spatial.physicalProfiles(archive.snapshot)
+    readonly property bool viewSwitchReady:!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
     // Optional isolated study adapter, injected by the standalone window.
     // No filesystem dependency in the shared scene or model.
     property var checkpointStore:null
@@ -188,6 +192,7 @@ Rectangle {
     property string retainedShape: ""
     Connections {
         target:archive
+        function onSnapshotChanged(){if(!Spatial.physicalProfiles(archive.snapshot))study.roomPlanOpen=false}
         function onStructuralProposalChanged(){
             study.structureApplyError=""
             if(study.materialPanel!==""&&!study.materialProposal)study.closeMaterials()
@@ -213,7 +218,7 @@ Rectangle {
     readonly property var selectedMeta:selectedRack&&sceneView.selectedCell?selectedRack.cellMeta[sceneView.selectedCell]:null
     readonly property var activeIssue: review.length?review[Math.min(reviewIndex,review.length-1)]:null
 
-    Archive.ArchiveModel { id:archive; spatialEnabled:study.spatialEnabled; Component.onCompleted: reset(study.initialSnapshot||View.fixture()) }
+    Archive.ArchiveModel { id:archive; spatialEnabled:study.spatialEnabled; physicalProfilesEnabled:study.physicalProfilesEnabled; Component.onCompleted: reset(study.initialSnapshot||View.fixture()) }
     function edit(patch) {
         if(!selectedRack||sceneView.busy)return
         pickId="";reviewIndex=0;retainedReview=[]
@@ -450,14 +455,16 @@ Rectangle {
             width:parent.width; spacing:5
             Archive.ArchiveButton { colors:study.colors; label:"Browse"; active:sceneView.mode==="browse"; onClicked:study.switchMode("browse") }
             Archive.ArchiveButton { colors:study.colors; label:"Arrange"; active:sceneView.mode==="arrange"; onClicked:study.switchMode("arrange") }
-            Archive.ArchiveButton { colors:study.colors; label:"Back"; enabled:sceneView.viewPath.length>1&&!archive.draft; onClicked:sceneView.back() }
-            Archive.ArchiveButton { colors:study.colors; label:"Enter"; enabled:!archive.draft&&sceneView.cubby.mods.some(function(m){return m.id===sceneView.selectedModuleId&&m.type==="cubby"}); onClicked:sceneView.enterSelected() }
-            Archive.ArchiveButton { colors:study.colors; label:"−"; hint:"Zoom out"; onClicked:sceneView.setZoom(sceneView.zoom/1.15) }
-            Archive.ArchiveButton { colors:study.colors; label:Math.round(sceneView.zoom*100)+"%"; hint:"Reset camera"; onClicked:{sceneView.setZoom(1);sceneView.pan=Qt.point(0,0)} }
-            Archive.ArchiveButton { colors:study.colors; label:"+"; hint:"Zoom in"; onClicked:sceneView.setZoom(sceneView.zoom*1.15) }
+            Archive.ArchiveButton { colors:study.colors; label:"Back"; visible:!study.showRoomPlan; enabled:sceneView.viewPath.length>1&&!archive.draft; onClicked:sceneView.back() }
+            Archive.ArchiveButton { colors:study.colors; label:"Enter"; visible:!study.showRoomPlan; enabled:!archive.draft&&sceneView.cubby.mods.some(function(m){return m.id===sceneView.selectedModuleId&&m.type==="cubby"}); onClicked:sceneView.enterSelected() }
+            Archive.ArchiveButton { colors:study.colors; label:"−"; hint:"Zoom out"; visible:!study.showRoomPlan; onClicked:sceneView.setZoom(sceneView.zoom/1.15) }
+            Archive.ArchiveButton { colors:study.colors; label:Math.round(sceneView.zoom*100)+"%"; visible:!study.showRoomPlan; hint:"Reset camera"; onClicked:{sceneView.setZoom(1);sceneView.pan=Qt.point(0,0)} }
+            Archive.ArchiveButton { colors:study.colors; label:"+"; hint:"Zoom in"; visible:!study.showRoomPlan; onClicked:sceneView.setZoom(sceneView.zoom*1.15) }
             Archive.ArchiveButton { colors:study.colors; label:study.colors.name; onClicked:Themes.Theme.index=(Themes.Theme.index+1)%3 }
             Archive.ArchiveButton { colors:study.colors; label:"Undo"; enabled:!sceneView.busy&&!archive.draft&&!archive.structuralProposal&&archive.archiveState.history.length>0; onClicked:archive.undo() }
-            Archive.ArchiveButton {objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange";enabled:study.structureReady;onClicked:study.openContext(12,12)}
+            Archive.ArchiveButton {objectName:"adopt-physical-profiles";colors:study.colors;label:"Adopt physical profiles…";visible:study.physicalProfilesEnabled&&!Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:archive.proposeStructure({kind:"spatialAdoptProfiles"})}
+            Archive.ArchiveButton {objectName:"toggle-room-plan";colors:study.colors;label:study.showRoomPlan?"Return to Shelf":"Room plan";visible:Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:{study.roomPlanOpen=!study.roomPlanOpen;sceneView.clearSelection()}}
+            Archive.ArchiveButton {objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange"&&!study.showRoomPlan;enabled:study.structureReady;onClicked:study.openContext(12,12)}
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
         }
@@ -473,14 +480,14 @@ Rectangle {
                     label:archive.snapshot.cubbies[modelData].name||modelData
                     active:sceneView.reachableViewPath[0]===modelData
                     enabled:!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!archive.draft&&!archive.structuralProposal
-                    onClicked:sceneView.openShelf(modelData)
+                    onClicked:if(sceneView.openShelf(modelData))study.roomPlanOpen=false
                 }
             }
         }
         Flow {
             width:parent.width;spacing:5
             height:26
-            property bool caseSelected:sceneView.mode==="browse"&&archive.snapshot.caseItems.some(function(s){return s.id===sceneView.selectedScrollId})
+            property bool caseSelected:!study.showRoomPlan&&sceneView.mode==="browse"&&archive.snapshot.caseItems.some(function(s){return s.id===sceneView.selectedScrollId})
             Text {
                 height:26
                 width:Math.min(300,implicitWidth+8)
@@ -498,6 +505,7 @@ Rectangle {
     }
     Archive.ArchiveScene {
         id:sceneView
+        visible:!study.showRoomPlan
         controller:archive
         colors:study.sceneColors
         paletteOptions:Themes.Theme.palettes
@@ -511,6 +519,17 @@ Rectangle {
         onFurnitureContext:function(x,y){study.openContext(x,y)}
         onBookPlacementProposed:function(position){study.bookPositionText=String(position);structurePanel.forceActiveFocus()}
         onDestinationPressed:function(rackId,key){if(archive.draft&&rackId===archive.draft.rackId)study.chooseCell(key)}
+    }
+    Archive.ArchiveRoomPlan {
+        id:roomPlan
+        objectName:"archive-room-plan"
+        anchors.fill:sceneView
+        visible:study.showRoomPlan
+        enabled:study.viewSwitchReady
+        snapshot:archive.snapshot
+        roomId:Spatial.enabled(archive.snapshot)&&archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]]?archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]].roomId:""
+        colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
+        onInspectShelf:function(id){if(study.viewSwitchReady&&sceneView.openShelf(id)){study.roomPlanOpen=false;sceneView.forceActiveFocus()}}
     }
     MouseArea {
         anchors.fill:parent;z:39;visible:study.contextOpen
@@ -924,7 +943,8 @@ Rectangle {
         readonly property bool bookRemove:!!cmd&&cmd.kind==="spatialAppUnplace"
         readonly property bool supportEdit:!!cmd&&cmd.kind==="spatialSupport"
         readonly property bool shelfAppearance:!!cmd&&cmd.kind==="spatialAppearance"
-        readonly property bool spatialConfirmation:!!cmd&&[ "spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
+        readonly property bool adopting:!!cmd&&cmd.kind==="spatialAdoptProfiles"
+        readonly property bool spatialConfirmation:!!cmd&&[ "spatialAdoptProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
@@ -945,7 +965,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:"Cancel fixture adjustment";onClicked:archive.cancelStructure()}
@@ -963,11 +983,31 @@ Rectangle {
                 readonly property var cmd:structurePanel.cmd
                 Text {
                     width:parent.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
-                    text:!structurePanel.proposal?"":structurePanel.removing?
+                    text:!structurePanel.proposal?"":structurePanel.adopting?
+                        "Adopt real outer profiles for every Shelf. Interior, positions and ownership remain unchanged. Review old/new bounds; unresolved conflicts prevent Apply.":structurePanel.removing?
                         (structurePanel.cmd.kind==="spatialShelfDelete"?"Remove this architectural Shelf and its contents? ":"Remove this fixture and its contents? ")+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
                         (study.spatialEnabled&&structurePanel.proposal.appUnplacementCount?" "+structurePanel.proposal.appUnplacementCount+" application book(s) will be unplaced; application identities retained.":"")+" No disk files are deleted.":
-                        structurePanel.shelfAppearance?"Choose a local frame, palette and ornament family. Geometry and contents stay unchanged.":structurePanel.bookEdit?"Place "+structurePanel.cmd.appId+" · choose support-local position. The book retains its size and identity.":structurePanel.bookRemove?"Unplace "+structurePanel.cmd.appId+"? Its application identity is retained.":structurePanel.supportEdit?"Change explicit top support eligibility. Occupied supports cannot be disabled.":structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
+                        structurePanel.shelfAppearance?(Spatial.physicalProfiles(archive.snapshot)?"Choose local profile, palette and family. Profile may change the outer footprint; contents remain unchanged.":"Choose a local frame, palette and ornament family. Geometry and contents stay unchanged."):structurePanel.bookEdit?"Place "+structurePanel.cmd.appId+" · choose support-local position. The book retains its size and identity.":structurePanel.bookRemove?"Unplace "+structurePanel.cmd.appId+"? Its application identity is retained.":structurePanel.supportEdit?"Change explicit top support eligibility. Occupied supports cannot be disabled.":structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
                         structurePanel.cubbyEdit?"Grow the interior without changing furniture or its outer footprint. Apply when ready.":"Drag the preview to move; drag its lower-right handle to resize. Apply when valid."
+                }
+                Repeater {
+                    model:structurePanel.adopting&&structurePanel.proposal.profileAdoption?Object.keys(structurePanel.proposal.profileAdoption.shelves):[]
+                    Text {
+                        required property string modelData
+                        width:contentStructure.width;wrapMode:Text.WordWrap
+                        color:study.colors.engraving;font.pixelSize:11
+                        readonly property var entry:structurePanel.proposal.profileAdoption.shelves[modelData]
+                        text:(archive.snapshot.cubbies[modelData].name||modelData)+": "+
+                            entry.previous.w.toFixed(2)+" × "+entry.previous.h.toFixed(2)+" → "+entry.geometry.w.toFixed(2)+" × "+entry.geometry.h.toFixed(2)
+                    }
+                }
+                Repeater {
+                    model:structurePanel.adopting&&structurePanel.proposal.profileAdoption?structurePanel.proposal.profileAdoption.conflicts:[]
+                    Text {
+                        required property var modelData
+                        width:contentStructure.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
+                        text:"Conflict: "+modelData.kind+" · "+(modelData.shelfId||modelData.doorId||"")
+                    }
                 }
                 Column {
                     visible:structurePanel.shelfAppearance

@@ -666,5 +666,31 @@ export function run(){
  eq(fractional.snapshot.cubbies,fraction.cubbies,'fractional adoption exact');
  eq(Checkpoint.decode(Checkpoint.encode(fractional,view)).snapshot,fractional.snapshot,'fractional v4 roundtrip');
  }
+ {
+ const state=apply(sampleState,{kind:'spatialAdoptProfiles'}),s=state.snapshot;
+ const roomId=s.spatial.shelves.root.roomId;
+ const plan=View.roomPlan(s,roomId),item=plan.shelves.find(v=>v.id==='root');
+ eq(View.roomPlan(sample,roomId),null,'legacy snapshot does not pretend to have active plan');
+ eq(item.box,Spatial.footprint(s,'root'),'plan uses authoritative footprint');
+ const b=item.box;
+ eq(View.roomPlanHit(plan,b.x+b.w/2,b.y+b.h/2),'root','plan hit actual footprint');
+ eq(View.roomPlanHit(plan,b.x+b.w,b.y+b.h/2),'','exclusive far edge');
+ const envelope=View.frontEnvelope(s,'root',s.cubbies.root);
+ eq(envelope,Spatial.shelfGeometry(s,'root'),'front uses actual shared profile');
+ const camera=View.fitEnvelope(envelope,1200,700,1,{x:0,y:0});
+ yes(camera.x>=15.999&&camera.y>=15.999,'shared front fits actual envelope');
+ eq(View.frontEnvelope(sample,'root',sample.cubbies.root).w,Spatial.exterior(sample.cubbies.root).w,'legacy front unchanged');
+ const roomy=apply(state,{kind:'spatialRoomEdit',roomId,patch:{h:2000}});
+ const rotated=apply(roomy,{kind:'spatialShelfTurn',containerId:'root',patch:{orientation:90}});
+ const rp=View.roomPlan(rotated.snapshot,roomId),rb=rp.shelves.find(v=>v.id==='root').box;
+ eq(rb,Spatial.footprint(rotated.snapshot,'root'),'rotated plan authoritative');
+ eq(View.roomPlanHit(rp,rb.x+rb.w/2,rb.y+rb.h/2),'root','rotated glyph hit');
+ const nearDoor=Core.clone(doorway);nearDoor.spatial.shelves.root.x--;
+ const doorsActive=apply(Core.session(nearDoor),{kind:'spatialAdoptProfiles'}).snapshot;
+ for(const opening of Spatial.doorGeometry(doorsActive,d1).openings){
+  const actual=View.roomPlan(doorsActive,opening.roomId).openings.find(o=>o.id===d1);
+  eq(actual,Object.assign({id:d1},opening),'two-sided plan opening shared record');
+ }
+ }
  return checks;
 }

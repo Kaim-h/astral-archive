@@ -2,6 +2,7 @@
 // originate in ArchiveCore; this module never mutates committed snapshots.
 import * as Core from "./ArchiveCore.mjs";
 import * as Spatial from "./ArchiveSpatial.mjs";
+import * as Architecture from "./ArchiveArchitecture.mjs";
 import * as Mixed from "./representation/B7Ownership.mjs";
 
 export function mix(a,b,t) {
@@ -188,11 +189,44 @@ export function reachablePath(snapshot,path){
     }
     return result;
 }
+// Use the same explicit exterior for camera fitting and rendering.
+export function frontEnvelope(s,id,c){
+    if(Spatial.physicalProfiles(s)&&Spatial.kind(s,id)==='shelf'){
+        const p=s.spatial.shelves[id];
+        return Architecture.shelfGeometry(c,Spatial.shelfProfile(s,id),p.depth);
+    }
+    const b=Number(c.b)||11;
+    return {w:c.w+2*b,h:c.h+2*b,aperture:{x:b,y:b,w:c.w,h:c.h}};
+}
+export function fitEnvelope(e,w,h,zoom,pan){
+    const fit=Math.max(.01,Math.min(Math.max(1,w-32)/e.w,Math.max(1,h-32)/e.h));
+    const scale=fit*Math.max(.5,Math.min(2.5,zoom));
+    return {scale,x:(w-e.w*scale)/2+pan.x,y:(h-e.h*scale)/2+pan.y};
+}
 export function camera(cubby,w,h,zoom,pan){
     const b=Number(cubby.b)||11;
-    const fit=Math.max(.01,Math.min(Math.max(1,w-32)/(cubby.w+2*b),Math.max(1,h-32)/(cubby.h+2*b)));
-    const scale=fit*Math.max(.5,Math.min(2.5,zoom));
-    return {scale,x:(w-(cubby.w+2*b)*scale)/2+pan.x,y:(h-(cubby.h+2*b)*scale)/2+pan.y};
+    return fitEnvelope({w:cubby.w+2*b,h:cubby.h+2*b},w,h,zoom,pan);
+}
+// Room-local plan from the same adopted geometry and shared door records.
+// No renderer-specific dimensions or additional arrangement state.
+export function roomPlan(s,roomId){
+    if(!Spatial.physicalProfiles(s)||!Object.prototype.hasOwnProperty.call(s.spatial.rooms,roomId))return null;
+    const room=s.spatial.rooms[roomId],shelves=[],openings=[];
+    for(const id of Object.keys(s.spatial.shelves)){
+        const p=s.spatial.shelves[id];if(p.roomId!==roomId)continue;
+        const g=Spatial.shelfGeometry(s,id);
+        shelves.push({id,name:s.cubbies[id].name||id,box:Spatial.footprint(s,id),glyph:Architecture.planGlyph(g,p)});
+    }
+    for(const id of Object.keys(s.spatial.doors||{})){
+        const g=Spatial.doorGeometry(s,id);
+        for(const o of g.openings)if(o.roomId===roomId)openings.push(Object.assign({id},o));
+    }
+    return {room,shelves,openings};
+}
+export function roomPlanHit(plan,x,y){
+    if(!plan||!Number.isFinite(x)||!Number.isFinite(y))return '';
+    const item=plan.shelves.find(v=>x>=v.box.x&&x<v.box.x+v.box.w&&y>=v.box.y&&y<v.box.y+v.box.h);
+    return item?item.id:'';
 }
 export function displayRack(controller,cubbyId,rack){
     return controller.draft&&controller.preview&&controller.draft.cubbyId===cubbyId&&controller.draft.rackId===rack.id?controller.preview.rack:rack;

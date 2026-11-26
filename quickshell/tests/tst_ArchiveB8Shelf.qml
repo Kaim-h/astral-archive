@@ -4,14 +4,15 @@ import "../themes" as Themes
 import "../archive/ArchiveCore.mjs" as Core
 import "../archive/ArchiveSpatial.mjs" as Spatial
 import "ArchiveB8ShelfFixture.mjs" as Sample
+import "../archive/ArchiveView.mjs" as View
 
 Item {
     width:1366;height:900
-    ArchiveNativeN2Study {id:study;anchors.fill:parent;spatialEnabled:true;initialSnapshot:Sample.fixture()}
+    ArchiveNativeN2Study {id:study;anchors.fill:parent;spatialEnabled:true;physicalProfilesEnabled:true;initialSnapshot:Sample.fixture()}
     TestCase {
         name:"ArchiveB8Shelf"
         when:windowShown
-        function init(){study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
+        function init(){study.roomPlanOpen=false;study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
         function clickNamed(name){
             var item=null,last=""
             tryVerify(function(){
@@ -23,6 +24,66 @@ Item {
                 last=next;return ok
             },3000,name)
             mouseClick(item,item.width/2,item.height/2)
+        }
+        function test_physical_profiles_and_room_plan(){
+            var ctl=study.controller,scene=study.scene,before=JSON.stringify(ctl.snapshot),oldTheme=Themes.Theme.index
+            clickNamed("adopt-physical-profiles")
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+            clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            tryVerify(function(){return scene.physicalFront})
+            var adopted=JSON.stringify(ctl.snapshot),base=JSON.stringify(ctl.snapshot.cubbies)
+            compare(base,JSON.stringify(JSON.parse(before).cubbies))
+            try{
+                for(var i=0;i<3;i++){
+                    Themes.Theme.index=i
+                    var profile=Spatial.shelfProfiles[i]
+                    verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:profile}}))
+                    verify(ctl.applyStructure())
+                    var g=Spatial.shelfGeometry(ctl.snapshot,"root"),interior=findChild(scene,"cubby-interior")
+                    tryVerify(function(){return scene.physicalFront&&scene.frontEnvelope.profile===profile})
+                    compare(scene.worldItem.width,g.w);compare(scene.worldItem.height,g.h)
+                    compare(interior.x,g.aperture.x);compare(interior.y,g.aperture.y)
+                    verify(!!findChild(scene,"archive-book-org.example.Reader"))
+                    var frame=findChild(scene,"physical-shelf-frame")
+                    verify(frame.visible)
+                    var post=g.parts[0].points,inside=frame.mapToItem(study,(post[0][0]+post[1][0])/2,g.aperture.y+g.aperture.h/2)
+                    var outside=frame.mapToItem(study,1,g.aperture.y+g.aperture.h/2)
+                    var shot=null
+                    function pixel(point,c){
+                        var x=Math.floor(point.x*shot.width/study.width),y=Math.floor(point.y*shot.height/study.height),hex=String(c)
+                        return x>=0&&y>=0&&x<shot.width&&y<shot.height&&Math.abs(shot.red(x,y)-parseInt(hex.slice(1,3),16))<10&&Math.abs(shot.green(x,y)-parseInt(hex.slice(3,5),16))<10&&Math.abs(shot.blue(x,y)-parseInt(hex.slice(5,7),16))<10
+                    }
+                    tryVerify(function(){
+                        shot=grabImage(study)
+                        if(!pixel(inside,frame.frameColor)||!pixel(outside,scene.colors.background))return false
+                        if(profile==="crest"){
+                            var center=frame.mapToItem(study,g.w/2,g.inscription.y/2)
+                            var corner=frame.mapToItem(study,4,g.inscription.y/2)
+                            return pixel(center,View.mix(String(frame.frameColor),scene.colors.metal,.16))&&pixel(corner,scene.colors.background)
+                        }
+                        return true
+                    },3000,"Actual profile post, raised crest and open overhang space")
+                    shot.save("archive-b8-native-shelf-profile-"+profile+".png")
+                    clickNamed("toggle-room-plan")
+                    var plan=findChild(study,"archive-room-plan")
+                    tryVerify(function(){return plan.visible&&!scene.visible&&!!plan.planData})
+                    var entry=plan.planData.shelves.find(s=>s.id==="root"),box=entry.box
+                    compare(JSON.stringify(box),JSON.stringify(Spatial.footprint(ctl.snapshot,"root")))
+                    var pos=plan.pointFor(box.x+box.w/2,box.y+box.h/2)
+                    mouseClick(plan,pos.x,pos.y)
+                    tryCompare(plan,"selectedShelf","root")
+                    var rim=plan.mapToItem(study,plan.pointFor(box.x+3,box.y+3).x,plan.pointFor(box.x+3,box.y+3).y)
+                    tryVerify(function(){shot=grabImage(study);return pixel(rim,scene.colors.metal)},3000,"Actual composed H glyph rim")
+                    shot.save("archive-b8-native-shelf-room-"+profile+".png")
+                    clickNamed("plan-inspect-shelf")
+                    tryVerify(function(){return scene.visible&&!plan.visible})
+                    compare(scene.cubbyId,"root")
+                    verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),adopted)
+                }
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                tryVerify(function(){return !scene.physicalFront})
+            }finally{Themes.Theme.index=oldTheme;study.roomPlanOpen=false}
         }
         function test_architectural_removal_and_ready_preview(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
