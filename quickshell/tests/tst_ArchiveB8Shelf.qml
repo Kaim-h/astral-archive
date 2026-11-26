@@ -28,7 +28,10 @@ Item {
                 var ok=last===next&&point.x>=0&&point.x<study.width&&point.y>=0&&point.y<study.height
                 last=next;return ok
             },3000,name)
+            var trace=study.mapNavigationDiagnostics&&(name==="open-map-room"||name==="toggle-room-plan")
+            if(trace)study.traceMapNavigation("before pointer "+name)
             mouseClick(item,item.width/2,item.height/2)
+            if(trace)study.traceMapNavigation("after pointer "+name)
         }
         function test_room_navigation_motion(){
             var ctl=study.controller,scene=study.scene
@@ -116,6 +119,7 @@ Item {
         function test_map_room_navigation(){
             var ctl=study.controller,scene=study.scene,original=study.parent.width
             study.mapEnabled=true
+            study.mapNavigationDiagnostics=true
             try{
                 ctl.reset(Sample.roomFixture())
                 clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
@@ -158,13 +162,18 @@ Item {
                 compare(scene.cubbyId,"root")
                 clickNamed("toggle-room-plan");tryVerify(function(){return plan.visible})
                 compare(plan.roomId,rootRoom);compare(plan.selectedShelf,"root")
-                clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                try{
+                    clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                }finally{
+                    study.traceMapNavigation("final populated Room return")
+                    if(!map.visible)grabImage(study).save("archive-b8-native-shelf-map-return-failure.png")
+                }
                 study.parent.width=740;tryVerify(function(){return map.width===740})
                 grabImage(study).save("archive-b8-native-shelf-map-narrow.png")
                 compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
                 ctl.reset(Sample.fixture())
                 tryVerify(function(){return !map.visible&&!plan.visible&&scene.visible})
-            }finally{study.mapEnabled=false;study.parent.width=original;study.roomPlanOpen=false;study.roomPerspective=false}
+            }finally{study.mapNavigationDiagnostics=false;study.mapEnabled=false;study.parent.width=original;study.roomPlanOpen=false;study.roomPerspective=false}
         }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore

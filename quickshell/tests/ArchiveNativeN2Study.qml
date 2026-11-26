@@ -25,10 +25,40 @@ Rectangle {
     readonly property bool upperView:showMap||showRoomPlan
     readonly property string inspectedRoomId:Spatial.enabled(archive.snapshot)&&archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]]?archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]].roomId:""
     readonly property string currentRoomId:mapEnabled&&activeRoomId?activeRoomId:inspectedRoomId
+    // Opt-in synthetic test trace. No arrangement data or real environment details.
+    property bool mapNavigationDiagnostics:false
+    function traceMapNavigation(stage){
+        if(!mapNavigationDiagnostics)return
+        var buttons=[]
+        for(var i=0;i<primaryTools.children.length;i++){
+            var item=primaryTools.children[i]
+            if(!item||!item.visible)continue
+            var p=item.mapToItem(study,item.width/2,item.height/2)
+            buttons.push({name:item.objectName,label:item.label,x:p.x,y:p.y,w:item.width,h:item.height,enabled:item.enabled})
+        }
+        console.log("B8 map navigation",stage,JSON.stringify({
+            mapEnabled:mapEnabled,physical:Spatial.physicalProfiles(archive.snapshot),
+            ready:viewSwitchReady,checkpointLoad:checkpointLoadPending,materialOpen:materialPanel!=="",
+            planDrag:roomPlan.dragging,mapPan:mapView.panning,headingEnabled:heading.enabled,
+            navigating:roomNavigating,busy:sceneView.busy,pointer:!!sceneView.pointer,
+            prepared:!!sceneView.prepared,furnitureDrag:!!sceneView.furnitureDrag,bookDrag:!!sceneView.bookDrag,
+            draft:!!archive.draft,proposal:!!archive.structuralProposal,context:contextOpen,picker:bookPicker,
+            mapOpen:mapOpen,roomPlanOpen:roomPlanOpen,mapVisible:mapView.visible,planVisible:roomPlan.visible,
+            shelfVisible:sceneView.visible,sceneFocus:sceneView.activeFocus,planFocus:roomPlan.activeFocus,mapFocus:mapView.activeFocus,
+            activeRoom:activeRoomId,currentRoom:currentRoomId,inspectedRoom:inspectedRoomId,selectedShelf:roomPlan.selectedShelf,
+            perspective:roomPerspective,headingHeight:heading.height,sceneY:sceneView.y,toolbar:buttons
+        }))
+    }
     function openMap(){
-        if(!mapEnabled||!Spatial.physicalProfiles(archive.snapshot)||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||roomPlan.dragging||mapView.panning)return false
+        traceMapNavigation("openMap entered")
+        if(!mapEnabled||!Spatial.physicalProfiles(archive.snapshot)||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||roomPlan.dragging||mapView.panning){
+            traceMapNavigation("openMap returned false")
+            return false
+        }
         if(currentRoomId)mapView.selectedRoom=currentRoomId
-        sceneView.clearSelection();roomPlanOpen=false;mapOpen=true;mapView.forceActiveFocus();return true
+        sceneView.clearSelection();roomPlanOpen=false;mapOpen=true;mapView.forceActiveFocus()
+        traceMapNavigation("openMap returned true")
+        return true
     }
     function enterMapRoom(id){
         if(!showMap||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||mapView.panning||sceneView.mode!=="browse"||!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,id))return false
@@ -134,6 +164,7 @@ Rectangle {
         roomPlanOpen=false;roomProgress=1
     }
     function toggleRoom(){
+        traceMapNavigation("toggleRoom entered")
         if(!viewSwitchReady)return
         if(showMap)return
         var id=sceneView.reachableViewPath[0]
