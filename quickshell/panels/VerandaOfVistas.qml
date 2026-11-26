@@ -45,7 +45,7 @@ PanelWindow {
         if (delta===0) applyCurrent(); else step(delta);
     }
     function applyCurrent() {
-        if (activeArt && wallpaperService) wallpaperService.applyManual(activeArt.id);
+        if (activeArt && wallpaperService && wallpaperService.initialized) wallpaperService.applyManual(activeArt.id);
     }
     onEligibleChanged: alignSelection()
     onVisibleChanged: {
@@ -191,12 +191,14 @@ PanelWindow {
                 Widgets.VistaControl {
                     label: veranda.wallpaperService && veranda.wallpaperService.busy ? "APPLYING…" : "✦ APPLY VISTA"
                     palette: veranda.palette
-                    enabled: !!veranda.activeArt && veranda.wallpaperService && !veranda.wallpaperService.busy
+                    enabled: !!veranda.activeArt && veranda.wallpaperService && veranda.wallpaperService.initialized && !veranda.wallpaperService.busy
                     onPressed: veranda.applyCurrent()
                 }
                 Widgets.VistaControl {
-                    label: veranda.wallpaperService && veranda.wallpaperService.rotationEnabled ? "DAILY: ON" : "DAILY: OFF"
+                    label: veranda.wallpaperService && veranda.wallpaperService.manualOnly ? "DAILY: MANUAL"
+                        : (veranda.wallpaperService && veranda.wallpaperService.rotationEnabled ? "DAILY: ON" : "DAILY: OFF")
                     palette: veranda.palette
+                    enabled: !!veranda.wallpaperService && veranda.wallpaperService.initialized && !veranda.wallpaperService.manualOnly
                     onPressed: {
                         if (veranda.wallpaperService)
                             veranda.wallpaperService.setRotationEnabled(!veranda.wallpaperService.rotationEnabled);
@@ -206,7 +208,7 @@ PanelWindow {
                     label: veranda.wallpaperService && veranda.wallpaperService.transitionEnabled
                         ? "ANIMATION: ON" : "ANIMATION: OFF"
                     palette: veranda.palette
-                    enabled: !!veranda.wallpaperService
+                    enabled: !!veranda.wallpaperService && veranda.wallpaperService.initialized
                     onPressed: {
                         if (veranda.wallpaperService)
                             veranda.wallpaperService.setTransitionEnabled(!veranda.wallpaperService.transitionEnabled);

@@ -4,6 +4,7 @@ import "ArchiveMotion.mjs" as Motion
 import "ArchiveCore.mjs" as Core
 import "ArchiveView.mjs" as View
 import "representation/B7Ownership.mjs" as Mixed
+import "representation/B7Layout.mjs" as Layout
 import "representation" as B7
 
 Item {
@@ -67,7 +68,7 @@ Item {
     property var eligibleKeys: []
     property real zoom: 1
     property point pan: Qt.point(0,0)
-    property var cameras: ({})
+    property var cameras: View.copyCameras({})
     // Previous snapshot is used only for camera lifecycle comparison.
     property var cameraSnapshot:null
     Component.onCompleted:cameraSnapshot=controller.snapshot
@@ -155,14 +156,14 @@ Item {
         pinnedRecord=null;hoveredRecord=null;selectedIds=[];anchor=null;cancelInsertion()
     }
     function saveCamera() {
-        var next=Object.assign({},cameras)
+        var next=View.copyCameras(cameras)
         next[cubbyId]={zoom:zoom,x:pan.x,y:pan.y}
         cameras=next
     }
     function restoreCamera() {
-        var c=cameras[cubbyId]
-        zoom=c?c.zoom:1
-        pan=c?Qt.point(c.x,c.y):Qt.point(0,0)
+        var c=View.cameraFor(cameras,cubbyId)
+        zoom=c.zoom
+        pan=Qt.point(c.x,c.y)
     }
     function openChild(id) {
         if(live.busy||controller.draft||controller.structuralProposal||!cubby.mods.some(function(m){return m.type==="cubby"&&m.childId===id}))return false
@@ -357,7 +358,7 @@ Item {
         function onSnapshotChanged() {
             var next=scene.controller.snapshot,previous=scene.cameraSnapshot
             if(scene.controller.resetting){
-                scene.cameras=({});scene.viewPath=["root"];scene.restoreCamera();scene.clearSelection()
+                scene.cameras=View.copyCameras({});scene.viewPath=["root"];scene.restoreCamera();scene.clearSelection()
             }else if(previous){
                 var activeId=scene.viewPath[scene.viewPath.length-1]
                 scene.cameras=View.reconcileCameras(previous,next,scene.controller.archiveState.history,scene.cameras,
@@ -495,6 +496,7 @@ Item {
                             browse:scene.mode==="browse";interactive:scene.mixedInteractive
                             selected:scene.selectedModuleId===module.id
                             selectedRecordId:scene.selectedScrollId
+                            hiddenIds:live.mixedVisuals.hidden
                             onActivated:function(recordId){scene.selectMixed(module.id,recordId)}
                             onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
                         }
@@ -502,6 +504,7 @@ Item {
                     Component {
                         id:artworkComponent
                         B7.B7MountedArtwork {
+                            hiddenIds:live.mixedVisuals.hidden
                             module:scene.materialModule(moduleLoader.modelData)
                             colors:scene.colors;plaqueHost:interior;gestureHost:scene
                             browse:scene.mode==="browse";interactive:scene.mixedInteractive
@@ -525,6 +528,19 @@ Item {
                             }
                         }
                     }
+                }
+            }
+            // A mixed destination is already owned by the private draft, but
+            // its final symbolic delegate is not published until settling ends.
+            // Keep a single scroll cue at the destination, not a second object.
+            Repeater {
+                model:live.mixedVisuals.pending.filter(p=>p.cubbyId===scene.cubbyId)
+                ArchiveScrollEnd {
+                    required property var modelData
+                    objectName:"pending-mixed-"+modelData.record.id
+                    record:modelData.record;colors:scene.colors
+                    visualRadius:Math.min(20,record.r);provisional:true;selected:true
+                    x:modelData.x-width/2;y:modelData.y-height/2;z:9
                 }
             }
             Rectangle {
@@ -554,9 +570,10 @@ Item {
                 property var h:board&&cmd?(board.items||[]).find(e=>e.kind==="holder"&&e.id===cmd.holderId)||null:null
                 visible:!!cmd&&cmd.cubbyId===scene.cubbyId&&!!board&&["holderCreate","holderEdit","holderDelete"].includes(cmd.kind)
                 x:board?board.x+(cmd&&cmd.patch&&cmd.patch.x!==undefined?cmd.patch.x:h?h.x:0):0
-                height:Math.max(87,38+205*(h?h.scale:.86))
+                readonly property var envelope:Layout.holderEnvelope(h?h.scale:.86,cmd&&cmd.patch&&cmd.patch.w!==undefined?cmd.patch.w:h?h.w:160)
+                height:envelope.height
                 y:board?board.y-height:0
-                width:Math.max(1,260+(cmd&&cmd.patch&&cmd.patch.w!==undefined?cmd.patch.w:h?h.w:160))
+                width:Math.max(1,envelope.width)
                 color:q&&q.ok&&cmd&&cmd.kind!=="holderDelete"?"#40568f80":"#40df8585"
                 border.color:q&&q.ok&&cmd&&cmd.kind!=="holderDelete"?"#78c4a7":"#df8585";border.width:2;z:8
             }

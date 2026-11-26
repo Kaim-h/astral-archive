@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Astral Archive — Cubby Study A1</title>
+<style>
+  :root{
+    --bg:#0f1719;
+    --panel:#172224;
+    --panel-2:#1d2a2c;
+    --stone:#5d6a67;
+    --stone-2:#6f7d79;
+    --stone-3:#7c8b86;
+    --trim:#9eb3b1;
+    --trim-soft:#7f9895;
+    --shadow:rgba(0,0,0,.35);
+    --ink:#e5ecea;
+    --muted:#b5c2bf;
+    --accent:#89b6ae;
+    --accent-2:#72928d;
+    --shelf:#7a877f;
+    --shelf-edge:#9fb3ae;
+    --hex:#97b6b1;
+    --hex-soft:rgba(151,182,177,.18);
+    --select:#d9d3b2;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:radial-gradient(circle at top,#132124 0%,#0e1517 55%,#0a1011 100%);
+    color:var(--ink);
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:330px 1fr;
+  }
+  .sidebar{
+    background:linear-gradient(180deg, rgba(20,31,33,.97), rgba(15,24,25,.97));
+    border-right:1px solid rgba(158,179,177,.18);
+    padding:18px;
+    overflow:auto;
+  }
+  h1{
+    margin:0 0 6px;
+    font-size:1.2rem;
+    letter-spacing:.02em;
+    font-weight:700;
+  }
+  .subtitle{color:var(--muted); font-size:.93rem; line-height:1.45; margin-bottom:18px;}
+  .group{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(158,179,177,.14);
+    border-radius:14px;
+    padding:14px;
+    margin-bottom:14px;
+    box-shadow:0 8px 22px rgba(0,0,0,.16);
+  }
+  .group h2{
+    font-size:.92rem; margin:0 0 12px; color:#d4dfdc; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+  }
+  .row{display:flex; gap:10px; align-items:center; margin-bottom:10px;}
+  .row:last-child{margin-bottom:0}
+  .row label{flex:1; color:var(--muted); font-size:.88rem;}
+  .row output{min-width:44px; text-align:right; color:#edf2f1; font-variant-numeric:tabular-nums; font-size:.88rem;}
+  input[type="range"]{flex:1; accent-color:var(--accent);}
+  select, button{
+    background:var(--panel-2);
+    color:var(--ink);
+    border:1px solid rgba(158,179,177,.18);
+    border-radius:10px;
+    padding:8px 10px;
+    font:inherit;
+  }
+  button{cursor:pointer; transition:.18s ease; }
+  button:hover{background:#233234}
+  .button-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .button-grid .wide{grid-column:1/-1}
+  .secondary{color:var(--muted)}
+  .selected-chip{
+    display:inline-block; padding:5px 10px; border-radius:999px; background:rgba(217,211,178,.12); border:1px solid rgba(217,211,178,.28); color:#ece5bf; font-size:.82rem;
+  }
+  .viewport{
+    position:relative; overflow:hidden; padding:26px 28px 24px;
+    display:flex; flex-direction:column;
+  }
+  .topbar{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px;
+  }
+  .topbar .title{font-size:1.08rem; font-weight:700;}
+  .topbar .note{font-size:.9rem; color:var(--muted); max-width:760px; line-height:1.45;}
+  .stage{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:620px;
+    border-radius:24px;
+    border:1px solid rgba(158,179,177,.16);
+    background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 18px 44px rgba(0,0,0,.2);
+    position:relative;
+  }
+  .legend{
+    position:absolute; right:18px; top:18px; display:flex; flex-direction:column; gap:10px; padding:12px 14px; border-radius:14px;
+    background:rgba(13,19,20,.78); border:1px solid rgba(158,179,177,.16); backdrop-filter: blur(10px);
+  }
+  .legend-item{display:flex; align-items:center; gap:10px; color:var(--muted); font-size:.85rem;}
+  .swatch{width:18px; height:18px; border-radius:5px; border:1px solid rgba(255,255,255,.18);}
+  svg{width:min(1050px,95%); height:min(760px,88vh); overflow:visible}
+  .cubby-outer{filter: drop-shadow(0 18px 18px rgba(0,0,0,.28));}
+  .frame-face{fill:url(#frameFill); stroke:rgba(219,235,231,.22); stroke-width:2;}
+  .frame-inner{fill:url(#interiorFill); stroke:rgba(255,255,255,.05); stroke-width:1.5;}
+  .trim-line{stroke:rgba(198,221,216,.2); stroke-width:2; fill:none;}
+  .module-bg{fill:rgba(205,221,217,.03); stroke:rgba(205,221,217,.08); stroke-width:1;}
+  .module-label{fill:#c7d6d3; font-size:13px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;}
+  .module-caption{fill:#93a5a2; font-size:11.5px;}
+  .board{fill:url(#boardFill); stroke:rgba(212,231,226,.25); stroke-width:1;}
+  .board-edge{fill:rgba(220,238,233,.08);}
+  .support{fill:rgba(117,136,132,.45); stroke:rgba(212,231,226,.12); stroke-width:1;}
+  .module-outline{fill:transparent; stroke:rgba(255,255,255,.05); stroke-width:1;}
+  .module-hit{fill:transparent; cursor:pointer;}
+  .module-hit:hover + g .module-highlight,
+  .module.selected .module-highlight{opacity:1}
+  .module-highlight{fill:rgba(217,211,178,.08); stroke:rgba(217,211,178,.72); stroke-width:2; opacity:0;}
+  .hex-cell{fill:var(--hex-soft); stroke:var(--hex); stroke-width:1.7;}
+  .hex-guide{stroke:rgba(255,255,255,.04); stroke-width:1; fill:none;}
+  .nested-frame{fill:rgba(240,248,246,.02); stroke:rgba(158,179,177,.35); stroke-width:2;}
+  .nested-divider{stroke:rgba(158,179,177,.22); stroke-width:1.5;}
+  .floor-zone{fill:rgba(180,205,200,.035)}
+  .footnote{margin-top:14px; font-size:.86rem; color:var(--muted); line-height:1.45;}
+  .minor{font-size:.8rem; color:#93a5a2}
+  @media (max-width: 1100px){
+    body{grid-template-columns:1fr}
+    .sidebar{border-right:none;border-bottom:1px solid rgba(158,179,177,.18)}
+  }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>Study A1 — Cubby Furniture</h1>
+    <div class="subtitle">A small furniture study for a single cubby screen. Focus: the cubby as a physical compartment with <strong>shelves</strong>, <strong>hex scroll racks</strong>, and <strong>nested cubbies</strong> as orderly structural entities.</div>
+
+    <div class="group">
+      <h2>Cubby Structure</h2>
+      <div class="row">
+        <label for="cubbyWidth">Cubby width</label>
+        <input id="cubbyWidth" type="range" min="520" max="820" value="680" />
+        <output id="cubbyWidthOut">680</output>
+      </div>
+      <div class="row">
+        <label for="cubbyHeight">Cubby height</label>
+        <input id="cubbyHeight" type="range" min="430" max="700" value="560" />
+        <output id="cubbyHeightOut">560</output>
+      </div>
+      <div class="row">
+        <label for="frameThickness">Frame thickness</label>
+        <input id="frameThickness" type="range" min="20" max="54" value="34" />
+        <output id="frameThicknessOut">34</output>
+      </div>
+      <div class="row">
+        <label for="ornament">Ornament</label>
+        <input id="ornament" type="range" min="0" max="100" value="22" />
+        <output id="ornamentOut">22</output>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Layout Presets</h2>
+      <div class="button-grid">
+        <button data-preset="library">Library</button>
+        <button data-preset="mixed">Mixed</button>
+        <button data-preset="manuscripts">Manuscripts</button>
+        <button data-preset="open">Open Bay</button>
+        <button class="wide" data-preset="nested">Nested Archive</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Modules</h2>
+      <div class="button-grid">
+        <button id="addShelf">Add shelf bay</button>
+        <button id="addRack">Add hex rack bay</button>
+        <button id="addNested">Add nested cubby</button>
+        <button id="addOpen">Add open bay</button>
+        <button id="moveUp">Move up</button>
+        <button id="moveDown">Move down</button>
+        <button id="delete" class="wide">Delete selected</button>
+      </div>
+      <div style="margin-top:12px">
+        <span class="selected-chip" id="selectedLabel">Selected: none</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Selected Module</h2>
+      <div class="row">
+        <label for="moduleType">Type</label>
+        <select id="moduleType">
+          <option value="shelf">Shelf bay</option>
+          <option value="hex">Hex rack bay</option>
+          <option value="nested">Nested cubby</option>
+          <option value="open">Open bay</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="moduleHeight">Height</label>
+        <input id="moduleHeight" type="range" min="70" max="220" value="120" />
+        <output id="moduleHeightOut">120</output>
+      </div>
+      <div class="row">
+        <label for="moduleInset">Inset</label>
+        <input id="moduleInset" type="range" min="0" max="46" value="12" />
+        <output id="moduleInsetOut">12</output>
+      </div>
+      <div class="row">
+        <label for="moduleDensity">Hex density</label>
+        <input id="moduleDensity" type="range" min="2" max="6" value="4" />
+        <output id="moduleDensityOut">4</output>
+      </div>
+      <div class="minor">Hex density affects only hex rack modules. The shelf and open-bay modules remain intentionally simple in Study A1.</div>
+    </div>
+
+    <div class="footnote">
+      <strong>Intent:</strong> shelves and hex racks are both treated as legitimate storage entities inside a cubby. Books may later rest on shelves; scrolls belong in racks. This study ignores detailed file contents so we can settle the furniture first.
+    </div>
+  </aside>
+
+  <main class="viewport">
+    <div class="topbar">
+      <div>
+        <div class="title">Astral Archive — Cubby Screen Study A1</div>
+        <div class="note">Single-cubby front view. Minimal ornamentation. Real horizontal boards return, and the standard scroll storage module is now a <strong>hex rack bay</strong>. Click any bay to edit it.</div>
+      </div>
+    </div>
+    <section class="stage">
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:rgba(155,178,173,.12); border-color:rgba(155,178,173,.55)"></span> Shelf bay / open storage</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(151,182,177,.2); border-color:#97b6b1"></span> Hex scroll rack</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(255,255,255,.03); border-color:rgba(158,179,177,.42)"></span> Nested cubby</div>
+      </div>
+      <svg id="svg" viewBox="0 0 1200 860" aria-label="Cubby Study">
+        <defs>
+          <linearGradient id="frameFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#73817d" />
+            <stop offset="100%" stop-color="#596661" />
+          </linearGradient>
+          <linearGradient id="interiorFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1b2628" />
+            <stop offset="100%" stop-color="#162022" />
+          </linearGradient>
+          <linearGradient id="boardFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#86948f" />
+            <stop offset="100%" stop-color="#6d7a74" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </section>
+  </main>
+
+<script>
+const state = {
+  cubbyWidth: 680,
+  cubbyHeight: 560,
+  frameThickness: 34,
+  ornament: 22,
+  selected: null,
+  nextId: 1,
+  modules: []
+};
+
+const $ = sel => document.querySelector(sel);
+const svg = $('#svg');
+
+function moduleDefaults(type){
+  return {
+    id: state.nextId++,
+    type,
+    height: type === 'hex' ? 142 : type === 'nested' ? 150 : 112,
+    inset: type === 'nested' ? 18 : 12,
+    density: 4,
+  };
+}
+
+const presets = {
+  library(){
+    state.modules = [
+      {...moduleDefaults('shelf'), height: 100},
+      {...moduleDefaults('shelf'), height: 100},
+      {...moduleDefaults('shelf'), height: 100},
+      {...moduleDefaults('shelf'), height: 100},
+      {...moduleDefaults('open'), height: 90},
+    ];
+  },
+  mixed(){
+    state.modules = [
+      {...moduleDefaults('shelf'), height: 100},
+      {...moduleDefaults('hex'), height: 150, density: 4},
+      {...moduleDefaults('shelf'), height: 92},
+      {...moduleDefaults('nested'), height: 142},
+    ];
+  },
+  manuscripts(){
+    state.modules = [
+      {...moduleDefaults('hex'), height: 168, density: 4},
+      {...moduleDefaults('hex'), height: 168, density: 5},
+      {...moduleDefaults('shelf'), height: 96},
+    ];
+  },
+  open(){
+    state.modules = [
+      {...moduleDefaults('open'), height: 122},
+      {...moduleDefaults('shelf'), height: 90},
+      {...moduleDefaults('open'), height: 122},
+      {...moduleDefaults('shelf'), height: 90},
+    ];
+  },
+  nested(){
+    state.modules = [
+      {...moduleDefaults('shelf'), height: 92},
+      {...moduleDefaults('nested'), height: 168},
+      {...moduleDefaults('hex'), height: 150, density: 4},
+      {...moduleDefaults('open'), height: 78},
+    ];
+  }
+};
+
+function loadPreset(name){
+  presets[name]();
+  state.selected = state.modules[0]?.id ?? null;
+  syncControls();
+  render();
+}
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+function selectedModule(){ return state.modules.find(m => m.id === state.selected) || null; }
+
+function syncControls(){
+  const m = selectedModule();
+  $('#selectedLabel').textContent = `Selected: ${m ? labelForType(m.type) + ' #' + m.id : 'none'}`;
+  $('#moduleType').value = m?.type || 'shelf';
+  $('#moduleHeight').value = m?.height || 120;
+  $('#moduleHeightOut').textContent = m?.height || 120;
+  $('#moduleInset').value = m?.inset || 12;
+  $('#moduleInsetOut').textContent = m?.inset || 12;
+  $('#moduleDensity').value = m?.density || 4;
+  $('#moduleDensityOut').textContent = m?.density || 4;
+
+  for(const id of ['cubbyWidth','cubbyHeight','frameThickness','ornament']){
+    $('#'+id+'Out').textContent = $('#'+id).value;
+  }
+}
+
+function labelForType(type){
+  return ({shelf:'Shelf bay', hex:'Hex rack', nested:'Nested cubby', open:'Open bay'})[type] || type;
+}
+
+function distributeHeights(innerHeight){
+  const total = state.modules.reduce((s,m)=>s+m.height,0) || 1;
+  let y = 0;
+  return state.modules.map((m, idx) => {
+    const rawH = innerHeight * (m.height / total);
+    const h = idx === state.modules.length - 1 ? innerHeight - y : rawH;
+    const rect = { module:m, y, h };
+    y += h;
+    return rect;
+  });
+}
+
+function hexPoints(cx, cy, r){
+  const pts=[];
+  for(let i=0;i<6;i++){
+    const a = Math.PI/6 + i * Math.PI/3;
+    pts.push((cx + Math.cos(a)*r).toFixed(2)+','+(cy + Math.sin(a)*r).toFixed(2));
+  }
+  return pts.join(' ');
+}
+
+function render(){
+  syncControls();
+  const W = 1200, H = 860;
+  const outerW = state.cubbyWidth;
+  const outerH = state.cubbyHeight;
+  const frame = state.frameThickness;
+  const x = (W - outerW)/2;
+  const y = (H - outerH)/2 + 18;
+  const innerX = x + frame;
+  const innerY = y + frame;
+  const innerW = outerW - frame*2;
+  const innerH = outerH - frame*2;
+  const ornament = state.ornament / 100;
+
+  svg.innerHTML = svg.innerHTML.match(/^[\s\S]*?<\/defs>/)[0];
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','cubby-outer');
+
+  const shadowPad = 16;
+  const outerRect = rect(x, y, outerW, outerH, 10, 'frame-face');
+  g.appendChild(outerRect);
+  const innerRect = rect(innerX, innerY, innerW, innerH, 7, 'frame-inner');
+  g.appendChild(innerRect);
+
+  // very restrained ornament
+  if(ornament > 0.02){
+    const margin = 10;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    const k = 18 + 24 * ornament;
+    path.setAttribute('d', `M ${x+frame*0.4} ${y+frame*0.62}
+      C ${x+frame*0.85} ${y+frame*0.18}, ${x+frame*1.3} ${y+frame*0.18}, ${x+frame*1.68} ${y+frame*0.6}
+      M ${x+outerW-frame*1.68} ${y+frame*0.6}
+      C ${x+outerW-frame*1.3} ${y+frame*0.18}, ${x+outerW-frame*0.85} ${y+frame*0.18}, ${x+outerW-frame*0.4} ${y+frame*0.62}
+      M ${x+frame*0.4} ${y+outerH-frame*0.62}
+      C ${x+frame*0.85} ${y+outerH-frame*0.18}, ${x+frame*1.3} ${y+outerH-frame*0.18}, ${x+frame*1.68} ${y+outerH-frame*0.6}
+      M ${x+outerW-frame*1.68} ${y+outerH-frame*0.6}
+      C ${x+outerW-frame*1.3} ${y+outerH-frame*0.18}, ${x+outerW-frame*0.85} ${y+outerH-frame*0.18}, ${x+outerW-frame*0.4} ${y+outerH-frame*0.62}`);
+    path.setAttribute('class','trim-line');
+    path.setAttribute('opacity', 0.28 + ornament*0.22);
+    g.appendChild(path);
+  }
+
+  const floorZone = rect(innerX, innerY+innerH-12, innerW, 12, 0, 'floor-zone');
+  g.appendChild(floorZone);
+
+  const layout = distributeHeights(innerH);
+  layout.forEach(({module:m, y:my, h}, idx) => {
+    const fullY = innerY + my;
+    const moduleG = document.createElementNS('http://www.w3.org/2000/svg','g');
+    moduleG.setAttribute('class', 'module' + (m.id === state.selected ? ' selected':'') );
+
+    // hit area
+    const hit = rect(innerX, fullY, innerW, h, 0, 'module-hit');
+    hit.dataset.id = m.id;
+    hit.addEventListener('click', () => {
+      state.selected = m.id;
+      syncControls();
+      render();
+    });
+    moduleG.appendChild(hit);
+
+    const body = document.createElementNS('http://www.w3.org/2000/svg','g');
+    const highlight = rect(innerX+1, fullY+1, innerW-2, h-2, 4, 'module-highlight');
+    body.appendChild(highlight);
+
+    const inset = clamp(m.inset,0,46);
+    const moduleRect = rect(innerX+inset, fullY+8, innerW-inset*2, h-16, 6, 'module-bg');
+    body.appendChild(moduleRect);
+    const outline = rect(innerX+inset, fullY+8, innerW-inset*2, h-16, 6, 'module-outline');
+    body.appendChild(outline);
+
+    if(m.type === 'shelf') drawShelfBay(body, innerX+inset, fullY+8, innerW-inset*2, h-16);
+    if(m.type === 'open') drawOpenBay(body, innerX+inset, fullY+8, innerW-inset*2, h-16);
+    if(m.type === 'hex') drawHexBay(body, innerX+inset, fullY+8, innerW-inset*2, h-16, m.density || 4);
+    if(m.type === 'nested') drawNestedBay(body, innerX+inset, fullY+8, innerW-inset*2, h-16);
+
+    const label = textNode(innerX+inset+14, fullY+26, labelForType(m.type), 'module-label');
+    body.appendChild(label);
+    const cap = textNode(innerX+inset+14, fullY+h-18, captionForType(m.type), 'module-caption');
+    body.appendChild(cap);
+
+    moduleG.appendChild(body);
+    g.appendChild(moduleG);
+  });
+
+  svg.appendChild(g);
+}
+
+function captionForType(type){
+  return {
+    shelf:'Future home of books and supported objects',
+    hex:'Standard scroll storage entity from here on out',
+    nested:'Recursive compartment for another collection',
+    open:'Reserved empty bay or future display surface',
+  }[type] || '';
+}
+
+function drawShelfBay(g,x,y,w,h){
+  const boardY = y + h - 18;
+  g.appendChild(rect(x+8, boardY, w-16, 12, 2, 'board'));
+  g.appendChild(rect(x+8, boardY+9, w-16, 7, 1, 'board-edge'));
+  g.appendChild(rect(x+10, y+26, 10, h-44, 2, 'support'));
+  g.appendChild(rect(x+w-20, y+26, 10, h-44, 2, 'support'));
+}
+
+function drawOpenBay(g,x,y,w,h){
+  const boardY = y + h - 18;
+  g.appendChild(rect(x+8, boardY, w-16, 12, 2, 'board'));
+  g.appendChild(rect(x+8, boardY+9, w-16, 7, 1, 'board-edge'));
+}
+
+function drawHexBay(g,x,y,w,h,density){
+  const pad = 18;
+  const areaX = x + pad;
+  const areaY = y + 36;
+  const areaW = w - pad*2;
+  const areaH = h - 54;
+  const cols = clamp(Math.round(density),2,6);
+  const r = Math.min(areaW / (cols * 1.82 + 0.25), areaH / (((Math.max(2,Math.round(areaH/(areaW/(cols*1.82+0.25))*1.35))) + 0.5) * 1.55));
+  const dx = r * 1.74;
+  const dy = r * 1.5;
+  const rows = Math.max(2, Math.floor((areaH - r) / dy));
+  const totalW = dx * (cols - 1) + r*2;
+  const totalH = dy * (rows - 1) + r*2;
+  const startX = areaX + (areaW - totalW)/2 + r;
+  const startY = areaY + (areaH - totalH)/2 + r;
+
+  for(let row=0; row<rows; row++){
+    for(let col=0; col<cols; col++){
+      const cx = startX + col*dx + (row%2 ? dx/2 : 0);
+      const cy = startY + row*dy;
+      if(cx + r > x+w-pad || cx - r < x+pad) continue;
+      const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      poly.setAttribute('points', hexPoints(cx, cy, r));
+      poly.setAttribute('class','hex-cell');
+      g.appendChild(poly);
+    }
+  }
+  const boardY = y + h - 10;
+  g.appendChild(rect(x+4, boardY, w-8, 8, 2, 'board'));
+}
+
+function drawNestedBay(g,x,y,w,h){
+  const nx = x + 16, ny = y + 36, nw = w - 32, nh = h - 54;
+  g.appendChild(rect(nx, ny, nw, nh, 6, 'nested-frame'));
+  g.appendChild(line(nx + nw*0.5, ny + 12, nx + nw*0.5, ny + nh - 12, 'nested-divider'));
+  g.appendChild(line(nx + 12, ny + nh*0.56, nx + nw - 12, ny + nh*0.56, 'nested-divider'));
+  const boardY = y + h - 10;
+  g.appendChild(rect(x+4, boardY, w-8, 8, 2, 'board'));
+}
+
+function rect(x,y,w,h,r,cls){
+  const el = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  el.setAttribute('x', x); el.setAttribute('y', y); el.setAttribute('width', w); el.setAttribute('height', h);
+  if(r) el.setAttribute('rx', r);
+  if(cls) el.setAttribute('class', cls);
+  return el;
+}
+function line(x1,y1,x2,y2,cls){
+  const el = document.createElementNS('http://www.w3.org/2000/svg','line');
+  el.setAttribute('x1',x1); el.setAttribute('y1',y1); el.setAttribute('x2',x2); el.setAttribute('y2',y2);
+  if(cls) el.setAttribute('class',cls);
+  return el;
+}
+function textNode(x,y,txt,cls){
+  const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',x); t.setAttribute('y',y); t.textContent = txt; if(cls) t.setAttribute('class',cls); return t;
+}
+
+// generic controls
+['cubbyWidth','cubbyHeight','frameThickness','ornament'].forEach(id => {
+  $('#'+id).addEventListener('input', e => {
+    state[id] = +e.target.value;
+    syncControls(); render();
+  });
+});
+
+// selection-dependent controls
+$('#moduleType').addEventListener('change', e => {
+  const m = selectedModule(); if(!m) return;
+  m.type = e.target.value;
+  render();
+});
+$('#moduleHeight').addEventListener('input', e => {
+  const m = selectedModule(); if(!m) return;
+  m.height = +e.target.value;
+  syncControls(); render();
+});
+$('#moduleInset').addEventListener('input', e => {
+  const m = selectedModule(); if(!m) return;
+  m.inset = +e.target.value;
+  syncControls(); render();
+});
+$('#moduleDensity').addEventListener('input', e => {
+  const m = selectedModule(); if(!m) return;
+  m.density = +e.target.value;
+  syncControls(); render();
+});
+
+for(const btn of document.querySelectorAll('[data-preset]')){
+  btn.addEventListener('click', () => loadPreset(btn.dataset.preset));
+}
+
+$('#addShelf').addEventListener('click',()=>addModule('shelf'));
+$('#addRack').addEventListener('click',()=>addModule('hex'));
+$('#addNested').addEventListener('click',()=>addModule('nested'));
+$('#addOpen').addEventListener('click',()=>addModule('open'));
+$('#delete').addEventListener('click',()=>{
+  const idx = state.modules.findIndex(m=>m.id===state.selected); if(idx<0) return;
+  state.modules.splice(idx,1); state.selected = state.modules[Math.max(0, idx-1)]?.id ?? null; render();
+});
+$('#moveUp').addEventListener('click',()=>moveModule(-1));
+$('#moveDown').addEventListener('click',()=>moveModule(1));
+
+function addModule(type){
+  const mod = moduleDefaults(type);
+  if(state.selected){
+    const idx = state.modules.findIndex(m=>m.id===state.selected);
+    state.modules.splice(idx+1,0,mod);
+  } else {
+    state.modules.push(mod);
+  }
+  state.selected = mod.id;
+  render();
+}
+function moveModule(dir){
+  const idx = state.modules.findIndex(m=>m.id===state.selected);
+  if(idx<0) return;
+  const nidx = idx + dir;
+  if(nidx<0 || nidx>=state.modules.length) return;
+  const [m] = state.modules.splice(idx,1);
+  state.modules.splice(nidx,0,m);
+  render();
+}
+
+loadPreset('mixed');
+</script>
+</body>
+</html>

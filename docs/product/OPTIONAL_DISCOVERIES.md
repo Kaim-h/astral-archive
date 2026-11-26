@@ -1,5 +1,7 @@
 # Optional discoveries and hidden customizations
 
+**S20 scope:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) defers optional discoveries, journal, hallmark and puzzle box to tentative B10 after core Archive functionality. Earlier workshop next steps below are historical candidates, not active B8 assignments. Ordinary customization remains accessible without discoveries.
+
 **Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** candidate backlog, not implemented scope and not a mandatory progression system. This document consolidates the November 17 historical “Secrets & Distribution Notes” and the cross-platform handoff. Candidate ideas require owner review before implementation.

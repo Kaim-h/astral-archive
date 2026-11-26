@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astral Archive · Cubby Study B1</title>
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#101718; --aside:#182223; --panel:#1f2d2e; --line:#334643; --text:#e6ece8; --muted:#aab8b2;
+  --stone:#66756f; --interior:#162022; --accent:#b9ad86; --focus:#d9d3b5; --plaque:#8f8161; --plaque-line:#d8ccab;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button{background:#293938;color:var(--text);border:1px solid #435752;border-radius:8px;padding:8px 11px;cursor:pointer}
+button:hover{background:#314644}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #d8cdaa;outline-offset:2px}
+input[type=color]{width:38px;height:32px;background:transparent;border:1px solid #55665e;border-radius:6px;padding:2px;cursor:pointer}
+input[type=number], select, input[type=text]{background:#121b1c;border:1px solid #45554f;border-radius:7px;color:var(--text);padding:7px 8px;width:100%}
+input[type=range]{width:100%;accent-color:#bbc6bc}
+label{font-size:12px;color:var(--muted)}
+small{color:var(--muted)}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}
+aside{background:var(--aside);border-right:1px solid var(--line);padding:20px 18px 26px;overflow-y:auto}
+h1{margin:2px 0 7px;font-size:18px;font-weight:650;letter-spacing:.02em}
+.byline{font-size:12px;line-height:1.55;color:var(--muted);margin:0 0 20px}
+.group{padding:16px 0;border-top:1px solid #30413d}
+h2{margin:0 0 10px;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:#b4c0b8;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stack > * + *{margin-top:8px}
+.field{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;margin-bottom:9px}
+.field.range{grid-template-columns:1fr minmax(0,1fr) 44px}
+.checkboxrow{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-top:8px}
+main{display:flex;flex-direction:column;min-width:0}
+.top{padding:18px 22px 0}
+.title{font-size:18px;font-weight:650;margin-bottom:5px}
+.note{font-size:13px;line-height:1.55;color:var(--muted);max-width:900px}
+.stageWrap{padding:16px 22px 22px;flex:1;display:flex}
+.stage{position:relative;flex:1;min-height:720px;border:1px solid rgba(255,255,255,.08);border-radius:24px;background:linear-gradient(180deg,#0f1718,#0d1315);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 18px 60px rgba(0,0,0,.22)}
+#scene{width:100%;height:100%;display:block}
+.toolbar{position:absolute;right:16px;top:16px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:420px}
+.toolbar button{background:rgba(33,46,47,.9);backdrop-filter:blur(10px)}
+.statusbar{position:absolute;left:16px;bottom:16px;right:16px;display:flex;justify-content:space-between;gap:12px;align-items:center;background:rgba(16,23,24,.82);border:1px solid rgba(255,255,255,.08);padding:10px 12px;border-radius:12px;color:var(--muted);font-size:12px;backdrop-filter:blur(10px)}
+.context{position:fixed;z-index:30;background:#182223;border:1px solid #445752;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:8px;display:none;min-width:210px}
+.context button{display:block;width:100%;text-align:left;background:transparent;border:none;border-radius:7px;padding:9px 10px}
+.context button:hover{background:#2c3f3d}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:40;background:#152120;border:1px solid #48605a;color:var(--text);padding:10px 14px;border-radius:12px;display:none;box-shadow:0 18px 50px rgba(0,0,0,.35);max-width:680px}
+.modal{position:fixed;inset:0;background:rgba(5,8,9,.7);display:none;align-items:center;justify-content:center;z-index:35;padding:26px}
+.modalCard{background:#132022;border:1px solid #415651;border-radius:18px;width:min(980px,100%);padding:16px 16px 14px;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.modalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.modalHeader h3{margin:0;font-size:16px}
+.modalHeader p{margin:3px 0 0;color:var(--muted);font-size:12px}
+#focusScene{width:100%;height:680px;display:block;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0f1718}
+@media (max-width:1080px){.layout{grid-template-columns:1fr}aside{border-right:none;border-bottom:1px solid var(--line)}.stage{min-height:620px}}
+/* Exact flat-board geometry and ornament from
+   docs/research/handoffs/2026-11-17/prototypes/Astral_Archive_Book_Lighting_Lab.html
+   (the .board rules, with the .shelf-scene.flat background override).
+   The original asset is 15 px high. Only background color is exposed as a user override. */
+.lab-flat-board{position:relative;width:100%;height:15px;background:var(--shelf-color,#263c37);border:1px solid #927c59;border-radius:2px 2px 5px 5px;box-shadow:none;pointer-events:none}
+.lab-flat-board::before{content:"";position:absolute;left:6px;right:6px;top:3px;height:1px;background:#b3a27b77}
+.lab-flat-board::after{content:"◇ · ✧ · ◇";position:absolute;left:50%;transform:translateX(-50%);top:3px;font:6px monospace;color:#c2aa78;letter-spacing:2px;background:#263b37;padding:0 5px;white-space:nowrap}
+.rangeRow{display:grid;grid-template-columns:40px minmax(0,1fr) 42px;align-items:center;gap:8px;margin:9px 0}
+.rangeRow output{font-size:12px;font-variant-numeric:tabular-nums;text-align:right;color:#e6ece8}
+.rangeRow input{accent-color:#adbbac;min-width:0}
+.quickTune{margin-top:14px;padding:12px 10px;border:1px solid #3d514a;border-radius:9px;background:#132120}
+.miniLegend{font-size:11px;color:#b2c1b8;line-height:1.4;margin:2px 0 10px}
+.nudgeGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:11px 0 0}
+.nudgeGrid button{padding:7px 0}
+.connectionStatus{display:block;font-size:12px;color:#d8d5c4;padding:7px 8px;border-radius:6px;background:#20312e;border:1px solid #435951}
+.shelf-anchor{opacity:0;transition:opacity .12s;pointer-events:none}
+[data-module]:hover .shelf-anchor,[data-module].selected .shelf-anchor{opacity:.9}
+#scene.show-anchors .shelf-anchor{opacity:.9}
+.shelf-unattached{stroke:#be8f79;stroke-width:1.5;stroke-dasharray:4 4;fill:rgba(192,129,102,.07);pointer-events:none}
+.resize-handle{fill:#d9d3b5;stroke:#24312e;stroke-width:2;cursor:nwse-resize}
+.resize-handle.line{cursor:ew-resize}
+/* A5: all interface colors derive from the active Archive palette. */
+.themeField{grid-template-columns:1fr 118px}
+.color-control{display:flex;align-items:center;gap:6px}
+.color-control input{flex:none}
+.miniReset{padding:5px 7px;font-size:11px;border-radius:6px}
+:root{--control:#293938;--surface:#182223;--surface2:#1f2d2e;--stroke:#435752;--outline:#a8a98e;--stagebg:#0f1718;--plaque-ink:#e6e1d8}
+body,html{background:var(--bg);color:var(--text)}
+aside{background:var(--aside);border-color:var(--line)}
+.group{border-top-color:var(--line)}
+.group h2, h2{color:var(--muted)}
+.byline,.note,small,.checkboxrow,.miniLegend,label{color:var(--muted)}
+button{background:var(--control);color:var(--text);border-color:var(--stroke)}
+button:hover{background:var(--surface2)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline-color:var(--focus)}
+input[type=number],input[type=text],select{background:var(--surface);color:var(--text);border-color:var(--stroke)}
+input[type=color]{border-color:var(--stroke)}
+input[type=range],.rangeRow input{accent-color:var(--engraving)}
+.stage{background:var(--stagebg);border-color:var(--line)}
+.toolbar button{background:var(--control);border-color:var(--stroke)}
+.statusbar{background:var(--surface);border-color:var(--line);color:var(--muted)}
+.context,.toast{background:var(--surface);border-color:var(--stroke);color:var(--text)}
+.context button{background:transparent;color:var(--text)}
+.context button:hover{background:var(--control)}
+.modalCard{background:var(--surface);border-color:var(--stroke)}
+.modalHeader p{color:var(--muted)}
+#focusScene{background:var(--stagebg);border-color:var(--line)}
+.quickTune{background:var(--surface);border-color:var(--line)}
+.rangeRow output{color:var(--text)}
+.connectionStatus{background:var(--surface2);border-color:var(--stroke);color:var(--muted)}
+.lab-flat-board{background:var(--shelf-color,var(--panel));border-color:var(--metal);box-shadow:none;border-radius:2px 2px 5px 5px}
+.lab-flat-board::before{background:var(--engraving);opacity:.55}
+.lab-flat-board::after{background:var(--panel);color:var(--metal)}
+
+.crumbs{display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin:10px 0 13px;font-size:12px}
+.crumbs button{padding:4px 6px;font-size:12px;border:0;background:transparent;color:var(--muted)}
+.crumbs button:hover{background:var(--surface2);color:var(--text)}
+.crumbs button:last-child{color:var(--text);font-weight:700}
+.crumbs span{color:var(--muted)}
+.scaleReadout{font-size:12px;line-height:1.55;margin-top:12px;border:1px solid var(--line);padding:10px;border-radius:8px;color:var(--muted);background:var(--surface)}
+.childDimensions{border-top:1px solid var(--line);margin:14px 0;padding-top:15px}
+.childDimensions small{display:block;margin-bottom:12px;line-height:1.5}
+#browseMode.active,#arrangeMode.active{background:var(--panel);border-color:var(--metal);color:var(--text)}
+[data-module]{cursor:pointer}
+#scene.mode-arrange [data-module]{cursor:grab}
+#scene.mode-arrange [data-resize]{cursor:nwse-resize}
+#scene{touch-action:none}
+/* B1: object samples + restrained child silhouettes. */
+#fileTip{position:fixed;z-index:55;display:none;align-items:center;gap:10px;max-width:270px;pointer-events:none;border:1px solid var(--stroke);border-radius:8px;background:var(--surface);color:var(--text);padding:8px 11px;box-shadow:0 6px 25px #0007;font-size:12px}
+#fileTip small{display:block;margin-top:3px;font-size:11px;color:var(--muted)}
+.file-tip-mark{font-size:16px;color:var(--metal)}
+#fileTip b{font-weight:600;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <h1>Cubby Study B1</h1>
+    <p class="byline">Furniture &amp; contents, first pass. Shelf boards can carry a flat book and a low scroll cradle; child cubbies stay veiled until entered. New cubbies and shelves still begin empty.</p>
+
+    <div class="group stack">
+      <h2>Archive theme</h2>
+      <div class="field themeField"><label for="themeSelect">Palette</label><select id="themeSelect">
+        <option value="evening">Evening</option>
+        <option value="twilight" selected>Twilight</option>
+        <option value="midnight">Midnight</option>
+      </select></div>
+      <small>Uses the five palette roles from quickshell/themes/Theme.qml. Material overrides stay independent.</small>
+    </div>
+
+    <div class="group stack">
+      <h2>Navigation</h2>
+      <div class="grid2">
+        <button id="browseMode">Browse</button><button id="arrangeMode">Arrange</button>
+      </div>
+      <div id="breadcrumbs" class="crumbs" aria-label="Cubby navigation"></div>
+      <div class="grid2"><button id="backBtn">← Parent</button><button id="rootBtn">Main cubby</button></div>
+      <div id="scaleReadout" class="scaleReadout" aria-live="polite"></div>
+    </div>
+
+    <div class="group stack">
+      <h2>Nested cubby preview</h2>
+      <div class="field"><label for="previewMode">Exterior appearance</label><select id="previewMode">
+        <option value="veiled" selected>Veiled · faint structure</option>
+        <option value="inventory">Inventory · summary</option>
+        <option value="closed">Closed · dark recess</option>
+      </select></div>
+      <small>Only the parent-view preview changes. Entering a cubby always reveals its full stored arrangement.</small>
+    </div>
+
+    <div class="group stack">
+      <h2>Current cubby · storage interior</h2>
+      <div class="field"><label for="cubbyName">Cubby name</label><input id="cubbyName" type="text" value="Manuscripts"></div>
+      <div class="field"><label for="outerWidth">Width</label><input id="outerWidth" type="number" min="260" max="980" step="10" value="740"></div>
+      <div class="field"><label for="outerHeight">Height</label><input id="outerHeight" type="number" min="240" max="700" step="10" value="500"></div>
+      <div class="field"><label for="borderSize">Border</label><input id="borderSize" type="number" min="10" max="28" step="1" value="15"></div>
+      <div class="field"><label for="outerColor">Frame color</label><span class="color-control"><input id="outerColor" type="color" value="#263c37" title="Choose a custom outer cubby color"><button id="resetOuterColor" type="button" class="miniReset" title="Inherit theme frame color">Theme</button></span></div>
+      <small id="outerColorSource">Inherited from Twilight</small>
+      <div class="field"><label for="innerColor">Interior backing</label><span class="color-control"><input id="innerColor" type="color" title="Customize backing color"><button id="resetInnerColor" type="button" class="miniReset">Theme</button></span></div>
+      <small id="innerColorSource">Inherited contrasting background</small>
+      <div class="grid2">
+        <button id="expandWidth">Expand width</button>
+        <button id="expandHeight">Expand height</button>
+      </div>
+    </div>
+
+    <div class="group stack">
+      <h2>Samples</h2>
+      <div class="grid2">
+        <button id="emptySample">Empty</button>
+        <button id="codeSample">Code cubby</button>
+      </div>
+      <button class="wide" id="appSample">Application shelf · B1</button>
+    </div>
+
+    <div class="group stack">
+      <h2>Create module</h2>
+      <div class="grid2">
+        <button id="addRack">Add rack</button>
+        <button id="addShelf">Add shelf</button>
+        <button id="addCubby">Add cubby</button>
+        <button id="clearAll">Clear all</button>
+      </div>
+      <label class="checkboxrow"><input id="snap" type="checkbox" checked> Snap modules to walls and each other</label>
+      <label class="checkboxrow"><input id="showGuides" type="checkbox"> Show alignment guides</label>
+    </div>
+
+    <div class="group stack">
+      <h2>Selected module</h2>
+      <div id="selectionEmpty"><small>No module selected.</small></div>
+      <div id="selectionPanel" style="display:none">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px" id="moduleHeading"></div>
+        <div class="field"><label for="modX">X</label><input id="modX" type="number" step="1"></div>
+        <div class="field"><label for="modY">Y</label><input id="modY" type="number" step="1"></div>
+        <div class="field"><label for="modW">Width</label><input id="modW" type="number" step="1"></div>
+        <div class="field"><label for="modH">Height</label><input id="modH" type="number" step="1"></div>
+        <div class="field"><label for="modColor">Module color</label><span class="color-control"><input id="modColor" type="color" title="Set a custom color for this module"><button id="resetModColor" type="button" class="miniReset">Theme</button></span></div>
+        <small id="modColorSource">Inherited from theme</small>
+        <div class="field range" id="hexField"><label for="hexSize">Hex radius</label><input id="hexSize" type="range" min="38" max="76" step="1"><output id="hexOut"></output></div>
+        <div class="field" id="shelfAttachField"><label>Placement</label><span class="connectionStatus" id="shelfAttachStatus">Free; no overlap</span></div>
+        <div class="quickTune">
+          <div class="miniLegend">Quick adjustment · drag the controls or use the exact values above</div>
+          <div class="rangeRow"><label for="slideX">X</label><input id="slideX" type="range" min="0" max="740" step="1"><output id="outX">0</output></div>
+          <div class="rangeRow"><label for="slideY">Y</label><input id="slideY" type="range" min="0" max="500" step="1"><output id="outY">0</output></div>
+          <div class="rangeRow"><label for="slideW">Width</label><input id="slideW" type="range" min="120" max="740" step="1"><output id="outW">0</output></div>
+          <div class="rangeRow" id="slideHRow"><label for="slideH">Height</label><input id="slideH" type="range" min="120" max="500" step="1"><output id="outH">0</output></div>
+          <div class="nudgeGrid"><button id="nudgeLeft" title="Nudge one unit left">←</button><button id="nudgeUp" title="Nudge one unit up">↑</button><button id="nudgeDown" title="Nudge one unit down">↓</button><button id="nudgeRight" title="Nudge one unit right">→</button></div>
+        </div>
+        <div id="shelfContents" class="childDimensions" style="display:none">
+          <h2>Shelf contents · B1 study</h2>
+          <small>A flat application book and scrolls held by a shallow cradle. They move with the shelf and occupy real space for collision checking.</small>
+          <div class="field"><label for="shelfPreset">Arrangement</label><select id="shelfPreset">
+            <option value="empty">Empty shelf</option>
+            <option value="book-scrolls">Book + scroll holder</option>
+            <option value="scrolls">Scroll holder only</option>
+            <option value="book">One book only</option>
+          </select></div>
+          <div class="field range" id="scrollCountRow"><label for="scrollCount">Scrolls</label><input id="scrollCount" type="range" min="1" max="5" step="1" value="3"><output id="scrollCountOut">3</output></div>
+          <small>Sample objects only. A newly made shelf stays empty; full object management comes later.</small>
+        </div>
+        <div id="childDimensions" class="childDimensions" style="display:none">
+          <h2>Nested cubby · independent storage</h2>
+          <small>The placement width/height above is this cubby's footprint in its parent. These numbers describe the space <em>inside</em> when entered.</small>
+          <div class="field"><label for="childInnerW">Interior width</label><input id="childInnerW" type="number" min="260" max="1800" step="10"></div>
+          <div class="field"><label for="childInnerH">Interior height</label><input id="childInnerH" type="number" min="220" max="1500" step="10"></div>
+          <div class="field"><label for="childBorder">Frame thickness</label><input id="childBorder" type="number" min="8" max="28" step="1"></div>
+          <button id="enterSelected" class="wide">Enter this cubby</button>
+        </div>
+        <button id="removeModule">Delete selected</button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div class="title">Astral Archive — Cubby Study B1</div>
+      <div class="note">A book and a few end-on scrolls on the same flat shelf. Small cubbies show subdued silhouettes or an inventory—not a perfectly legible miniature. Navigate in place.</div>
+    </div>
+    <div class="stageWrap">
+      <div class="stage">
+        <div class="toolbar">
+          <button id="zoomOut" title="Zoom out of the current cubby">−</button><button id="zoomReset">Fit view</button><button id="zoomIn" title="Zoom into the current cubby">+</button>
+          <button id="focusSelected">Focus / Enter selected</button>
+          <button id="helpBtn">Usage</button>
+        </div>
+        <svg id="scene" viewBox="0 0 1120 810" role="img" aria-label="Interactive cubby study."></svg>
+        <div class="statusbar"><div id="status">Browse: select a sub-cubby to enter it. Arrange: customize the current interior.</div><div id="selSummary">Selection: none</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="context" class="context" role="menu"></div>
+<div id="toast" class="toast"></div>
+<div id="fileTip" role="tooltip" aria-hidden="true"><span class="file-tip-mark">✧</span><span><b id="fileTipName"></b><small id="fileTipKind"></small></span></div>
+<div id="focusModal" class="modal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalHeader">
+      <div>
+        <h3 id="focusTitle">Focused module</h3>
+        <p id="focusSubtitle">Larger view for judging scale and possible tooltip space.</p>
+      </div>
+      <button id="closeFocus">Close</button>
+    </div>
+    <svg id="focusScene" viewBox="0 0 920 680"></svg>
+  </div>
+</div>
+<script>
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const scene=document.getElementById('scene');
+const focusScene=document.getElementById('focusScene');
+const $=id=>document.getElementById(id);
+const palettes={
+  evening:{name:'Evening',symbol:'☀',background:'#343c43',panel:'#3f524f',metal:'#c2aa78',engraving:'#b7a2c8',text:'#f0f0e8'},
+  twilight:{name:'Twilight',symbol:'✦',background:'#121e23',panel:'#263c37',metal:'#8c6e5a',engraving:'#91ada1',text:'#e6e1d8'},
+  midnight:{name:'Midnight',symbol:'☾',background:'#080f10',panel:'#101c1b',metal:'#869c9c',engraving:'#568f80',text:'#dadfd9'}
+};
+const theme=()=>palettes[state.theme];
+const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+function mix(a,b,p){const A=rgb(a),B=rgb(b);return '#'+A.map((v,i)=>Math.round(v*(1-p)+B[i]*p).toString(16).padStart(2,'0')).join('');}
+function svg(tag,attr={},text){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attr))if(v!==undefined&&v!==null)n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;}
+function rect(x,y,w,h,fill,extra={}){return svg('rect',{x,y,width:w,height:h,fill,...extra});}
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const minSizes={rack:[180,160],shelf:[120,15],cubby:[130,100]};
+const moduleLabels={rack:'Hex rack',shelf:'Shelf',cubby:'Nested cubby'};
+const state={theme:'twilight',mode:'browse',previewMode:'veiled',cubbies:{},path:[],next:1,snap:true,guides:false};
+function nextId(prefix){return prefix+state.next++;}
+function createCubby(name,w=700,h=460,b=11,depth=0){
+  const id=nextId('c');state.cubbies[id]={id,name,w,h,b,depth,color:null,innerColor:null,mods:[],selected:null,camera:{zoom:1,dx:0,dy:0}};return state.cubbies[id];
+}
+function current(){return state.cubbies[state.path.at(-1)];}
+function selected(){const c=current();return c.mods.find(m=>m.id===c.selected)||null;}
+function childOf(m){return m?.childId?state.cubbies[m.childId]:null;}
+function materialColor(x){return x?.color||theme().panel;}
+function innerColor(c){
+  if(c.innerColor)return c.innerColor;
+  const p=theme();
+  // Alternates between two theme-derived tones, rather than darkening forever.
+  return c.depth%2===0?mix(p.background,p.panel,.25):mix(p.background,p.engraving,.20);
+}
+function applyTheme(){const p=theme(),root=document.documentElement;
+  const vars={bg:p.background,panel:p.panel,metal:p.metal,engraving:p.engraving,text:p.text,
+    aside:mix(p.background,p.panel,.16),surface:mix(p.background,p.panel,.28),
+    surface2:mix(p.background,p.panel,.53),control:mix(p.background,p.panel,.74),
+    line:mix(p.panel,p.metal,.30),stroke:mix(p.panel,p.metal,.55),
+    muted:mix(p.text,p.engraving,.48),focus:mix(p.text,p.metal,.35),
+    stagebg:p.background,interior:mix(p.background,p.panel,.3),
+    plaque:mix(p.metal,p.panel,.40),plaqueInk:p.text,outline:mix(p.metal,p.text,.24)};
+  for(const [k,v]of Object.entries(vars))root.style.setProperty('--'+k,v);
+  $('themeSelect').value=state.theme;
+}
+function newModule(c,type,x=0,y=0,opts={}){const d={rack:{w:430,h:300,r:52},shelf:{w:280,h:15,r:0},cubby:{w:210,h:150,r:0}}[type];
+ const m={id:nextId('m'),type,x,y,w:d.w,h:d.h,r:d.r,color:null,...opts};
+ if(type==='cubby'&&!m.childId){const child=createCubby('New cubby',700,460,11,c.depth+1);m.childId=child.id;}
+ return m;
+}
+function bbox(m){return{x:m.x,y:m.y,w:m.w,h:m.type==='shelf'?15:m.h};}
+function contentConfig(m){const v=m?.contents||{};return {preset:v.preset||'empty',count:clamp(Number(v.count)||3,1,5)};}
+function hasBook(cfg){return cfg.preset==='book'||cfg.preset==='book-scrolls';}
+function hasScrolls(cfg){return cfg.preset==='scrolls'||cfg.preset==='book-scrolls';}
+function scrollHolderLayout(m){const c=contentConfig(m),left=c.preset==='book-scrolls'?104:21;
+ return {x:m.x+left,y:m.y-14,w:22+31*c.count,h:14,count:c.count};}
+function requiredShelfWidth(m){const c=contentConfig(m);if(c.preset==='empty')return 120;
+ const need=hasScrolls(c)?(c.preset==='book-scrolls'?104:21)+(22+31*c.count)+12:80;
+ return Math.max(120,need);}
+// Furniture collision and contents collision are separate; the book/holder cannot clip a neighboring module.
+function occupiedRects(m){const out=[bbox(m)];if(m.type!=='shelf')return out;const c=contentConfig(m);
+ if(hasBook(c))out.push({x:m.x+16,y:m.y-125,w:40,h:125});
+ if(hasScrolls(c)){const h=scrollHolderLayout(m);out.push({x:h.x,y:m.y-52,w:h.w,h:52});}
+ return out;
+}
+function boxesIntersect(A,B){return A.x<B.x+B.w-.001&&A.x+A.w>B.x+.001&&A.y<B.y+B.h-.001&&A.y+A.h>B.y+.001;}
+function intersect(a,b){return occupiedRects(a).some(A=>occupiedRects(b).some(B=>boxesIntersect(A,B)));}
+function valid(c,m,ignore){const boxes=occupiedRects(m);
+ if(m.type==='shelf'&&m.w<requiredShelfWidth(m))return false;
+ return boxes.every(a=>a.x>=-.001&&a.y>=-.001&&a.x+a.w<=c.w+.001&&a.y+a.h<=c.h+.001)
+     &&!c.mods.some(q=>q.id!==ignore&&intersect(q,m));}
+function syncInspector(){const c=current(),m=selected(),p=theme();
+ $('cubbyName').value=c.name;$('outerWidth').value=c.w;$('outerHeight').value=c.h;$('borderSize').value=c.b;
+ $('outerColor').value=materialColor(c);$('outerColorSource').textContent=c.color?'Custom frame':'Inherited from '+p.name;
+ $('innerColor').value=innerColor(c);$('innerColorSource').textContent=c.innerColor?'Custom backing':'Theme-derived backing · independent of outer frame';
+ $('selectionPanel').style.display=m&&state.mode==='arrange'?'block':'none';$('selectionEmpty').style.display=!m&&state.mode==='arrange'?'block':'none';
+ $('selectionEmpty').parentElement.style.display=state.mode==='arrange'?'block':'none';
+ $('browseMode').classList.toggle('active',state.mode==='browse');$('arrangeMode').classList.toggle('active',state.mode==='arrange');
+ $('scene').classList.toggle('mode-arrange',state.mode==='arrange');
+ $('backBtn').disabled=state.path.length===1;
+ const canEdit=state.mode==='arrange';
+ for(const id of ['cubbyName','outerWidth','outerHeight','borderSize','outerColor','resetOuterColor','innerColor','resetInnerColor',
+    'expandWidth','expandHeight','addRack','addShelf','addCubby','clearAll','snap','showGuides'])$(id).disabled=!canEdit;
+ $('breadcrumbs').replaceChildren();state.path.forEach((id,i)=>{
+   if(i){const slash=document.createElement('span');slash.textContent='/';$('breadcrumbs').append(slash);}
+   const b=document.createElement('button');b.textContent=state.cubbies[id].name;b.title='Go to '+state.cubbies[id].name;
+   b.onclick=()=>navigateIndex(i);$('breadcrumbs').append(b);
+ });
+ $('scaleReadout').innerHTML=`<strong>Stored interior:</strong> ${c.w} × ${c.h} units<br><strong>Visible camera:</strong> ${camera(c).s.toFixed(2)}× · ${state.path.length-1} levels deep<br>Changing the preview size in the parent does not change this interior.`;
+ if(!m||state.mode!=='arrange')return;
+ $('moduleHeading').textContent=moduleLabels[m.type]+' · '+m.id;
+ for(const k of ['x','y','w','h'])$('mod'+k.toUpperCase()).value=m[k];
+ $('modH').disabled=m.type==='shelf'; $('modColor').value=materialColor(m.type==='cubby'?childOf(m):m);
+ $('modColorSource').textContent=(m.type==='cubby'?childOf(m):m).color?'Custom color override':'Inherited from '+p.name;
+ $('hexField').style.display=m.type==='rack'?'grid':'none';$('hexSize').value=m.r||52;$('hexOut').textContent=m.r||52;
+ $('shelfAttachField').style.display=m.type==='shelf'?'grid':'none';
+ $('shelfAttachStatus').textContent='Free placement · collision includes held objects';
+ $('shelfContents').style.display=m.type==='shelf'?'block':'none';
+ if(m.type==='shelf'){const cfg=contentConfig(m);$('shelfPreset').value=cfg.preset;$('scrollCount').value=cfg.count;$('scrollCountOut').textContent=cfg.count;
+   $('scrollCountRow').style.display=hasScrolls(cfg)?'grid':'none';}
+ $('slideHRow').style.display=m.type==='shelf'?'none':'grid';
+ const ranges=[['x','slideX','outX',0,c.w-m.w],['y','slideY','outY',0,c.h-m.h],['w','slideW','outW',minSizes[m.type][0],c.w-m.x],['h','slideH','outH',minSizes[m.type][1],c.h-m.y]];
+ for(const [axis,id,out,min,max]of ranges){const input=$(id);input.min=min;input.max=Math.max(min,max);input.value=m[axis];$(out).textContent=m[axis];}
+ const child=childOf(m);$('childDimensions').style.display=child?'block':'none';
+ if(child){$('childInnerW').value=child.w;$('childInnerH').value=child.h;$('childBorder').value=child.b;}
+}
+function camera(c){const s=Math.min(960/(c.w+2*c.b),660/(c.h+2*c.b))*c.camera.zoom;
+ return {s,tx:560-c.w*s/2+c.camera.dx,ty:405-c.h*s/2+c.camera.dy};}
+function pointerLocal(ev){const sp=scene.createSVGPoint();sp.x=ev.clientX;sp.y=ev.clientY;
+ const pt=sp.matrixTransform(scene.getScreenCTM().inverse()),cam=camera(current());
+ return{x:(pt.x-cam.tx)/cam.s,y:(pt.y-cam.ty)/cam.s};
+}
+function hexPoints(cx,cy,r){const pts=[];for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;pts.push((cx+Math.cos(a)*r).toFixed(3)+','+(cy+Math.sin(a)*r).toFixed(3));}return pts.join(' ');}
+function drawHexGrid(group,box,r,ident){
+ const {x,y,w,h}=box;const clipId='hexclip-'+ident;const defs=svg('defs'),clip=svg('clipPath',{id:clipId});clip.appendChild(rect(x,y,w,h,'white'));defs.appendChild(clip);group.appendChild(defs);
+ group.appendChild(rect(x,y,w,h,mix(theme().background,theme().panel,.17),{'stroke':mix(theme().panel,theme().metal,.36),'stroke-width':1}));
+ const grid=svg('g',{'clip-path':`url(#${clipId})`});const sx=Math.sqrt(3)*r,sy=1.5*r;
+ const edges=new Map();
+ function edge(a,b){const p=a[0].toFixed(4)+','+a[1].toFixed(4),q=b[0].toFixed(4)+','+b[1].toFixed(4),key=p<q?p+'|'+q:q+'|'+p;edges.set(key,[a,b]);}
+ for(let row=-3;row<=Math.ceil(h/sy)+3;row++){
+  const off=(row%2===0?0:.5)*sx;
+  for(let col=-3;col<=Math.ceil(w/sx)+3;col++){
+   const cx=x+off+col*sx+r,cy=y+row*sy+r;
+   const verts=[];for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;verts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+   grid.appendChild(svg('polygon',{points:hexPoints(cx,cy,r),fill:mix(theme().background,theme().engraving,.19),
+     'data-hex-cell':ident,'data-cell-row':row,'data-cell-col':col}));
+   for(let i=0;i<6;i++)edge(verts[i],verts[(i+1)%6]);
+  }
+ }
+ for(const [, [a,b]]of edges)grid.appendChild(svg('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:mix(theme().engraving,theme().text,.28),'stroke-width':1.8}));
+ group.appendChild(grid);
+}
+function labelLayer(m,x,y,compact=false){const p=theme(),l=svg('g',{'pointer-events':'none','data-label-for':m.id});
+ if(m.type==='shelf')return l;
+ const name=m.type==='rack'?'hex rack':childOf(m)?.name||'sub-cubby';
+ const size=compact?Math.min(8,Math.max(4,140/m.w*8)):9;
+ const maxPlaque=Math.max(24,m.w-12),plaqueW=Math.min(maxPlaque,Math.max(45,name.length*size*.68+18)),h=15;
+ l.appendChild(rect(x+(m.w-plaqueW)/2,y+m.h-12,plaqueW,h,mix(p.metal,p.panel,.35),{rx:5,stroke:mix(p.metal,p.text,.36),'stroke-width':1}));
+ l.appendChild(svg('text',{x:x+m.w/2,y:y+m.h-1,'text-anchor':'middle','font-size':size,fill:p.text,'font-weight':'600'},name));return l;
+}
+function drawShelf(g,x,y,w,color){
+ const fo=svg('foreignObject',{x,y,width:w,height:15});const board=document.createElement('div');
+ board.setAttribute('xmlns','http://www.w3.org/1999/xhtml');board.className='lab-flat-board';board.style.setProperty('--shelf-color',color);
+ fo.appendChild(board);g.appendChild(fo);
+}
+// Flat, frontal shelf objects based on the Lighting Lab's plain book treatment:
+// same 38–46px-class spine, restrained bands and engraving, no perspective or lighting shadows.
+function drawShelfContents(g,m,x,y,ctx){
+ const cfg=contentConfig(m);if(cfg.preset==='empty')return;
+ const p=theme(),arrange=ctx==='scene'&&state.mode==='arrange';
+ const obj=svg('g',{'data-layer':'shelf-objects','pointer-events':arrange?'none':'auto'});
+ if(hasBook(cfg)){
+  const bx=x+16,by=y-125,w=40,h=125;
+  const book=svg('g',{'data-file-object':'Installer.app','data-kind':'Application · illustrated book'});
+  book.appendChild(rect(bx,by,w,h,'#5b6e64',{rx:2,stroke:p.metal,'stroke-width':1}));
+  book.appendChild(svg('line',{x1:bx+4,y1:by+6,x2:bx+4,y2:by+h-6,stroke:p.metal,'stroke-width':.7,opacity:.35}));
+  book.appendChild(svg('line',{x1:bx+w-4,y1:by+6,x2:bx+w-4,y2:by+h-6,stroke:p.metal,'stroke-width':.7,opacity:.25}));
+  for(const ly of [by+12,by+h-14]){
+    book.appendChild(rect(bx+5,ly,w-10,2,p.metal,{opacity:.83}));
+  }
+  book.appendChild(svg('text',{x:bx+w/2,y:by+h/2,'font-size':10,'font-family':'Georgia, serif',fill:p.text,'text-anchor':'middle',transform:`rotate(90 ${bx+w/2} ${by+h/2})`,'letter-spacing':.5},'Installer'));
+  book.appendChild(svg('title',{},'Installer.app — application (sample)'));
+  obj.appendChild(book);
+ }
+ if(hasScrolls(cfg)){
+  const hld=scrollHolderLayout(m),offX=x-m.x,offY=y-m.y;
+  const hx=hld.x+offX,hy=hld.y+offY;
+  const holder=svg('g',{'data-holder':'shelf-scrolls'});
+  // A low, frontal cradle above the flat shelf. Ends sit on the cradle surface.
+  holder.appendChild(rect(hx,hy+4,hld.w,8,mix(p.panel,p.metal,.30),{rx:2,stroke:p.metal,'stroke-width':1}));
+  holder.appendChild(svg('line',{x1:hx+7,y1:hy+4,x2:hx+hld.w-7,y2:hy+4,stroke:p.engraving,'stroke-width':1,opacity:.8}));
+  holder.appendChild(rect(hx,hy-3,5,14,p.metal,{rx:1}));
+  holder.appendChild(rect(hx+hld.w-5,hy-3,5,14,p.metal,{rx:1}));
+  const names=['README.md','LICENSE.txt','Notes.pdf','Changelog.md','Manual.txt'];
+  for(let i=0;i<cfg.count;i++){
+    const r=[13,15,12,14,13][i],cx=hx+20+i*31,cy=hy+4-r,fill=['#c7b897','#d9c6a4','#bda989','#cfb89a','#d4c4a9'][i];
+    const scroll=svg('g',{'data-file-object':names[i],'data-kind':'Document · rolled scroll'});
+    scroll.appendChild(svg('circle',{cx,cy,r,fill,stroke:'#857255','stroke-width':1.3}));
+    scroll.appendChild(svg('circle',{cx,cy,r:r-3,fill:'none',stroke:'#9f8867','stroke-width':.8,opacity:.72}));
+    scroll.appendChild(svg('circle',{cx,cy,r:3.1,fill:'#947354',opacity:.6}));
+    scroll.appendChild(svg('title',{},names[i]+' — sample document, stored in shelf cradle'));
+    holder.appendChild(scroll);
+  }
+  obj.appendChild(holder);
+ }
+ g.appendChild(obj);
+}
+function previewSummary(c){const counts={rack:0,shelf:0,cubby:0,book:0,scroll:0};
+ for(const m of c.mods){counts[m.type]=(counts[m.type]||0)+1;
+  if(m.type==='shelf'){const cfg=contentConfig(m);if(hasBook(cfg))counts.book++;if(hasScrolls(cfg))counts.scroll+=cfg.count;}}
+ return counts;
+}
+function drawChildPreview(g,m,child,x,y,pad){
+ if(!child||state.previewMode==='closed')return;
+ const w=m.w-2*pad,h=m.h-2*pad,p=theme(),s=Math.min(w/child.w,h/child.h),ox=x+pad+(w-child.w*s)/2,oy=y+pad+(h-child.h*s)/2;
+ const clipId='veil-'+m.id,defs=svg('defs'),clip=svg('clipPath',{id:clipId});clip.appendChild(rect(x+pad,y+pad,w,h,'white'));defs.appendChild(clip);g.appendChild(defs);
+ const result=svg('g',{'clip-path':`url(#${clipId})`,'data-child-preview':child.id,'data-preview-mode':state.previewMode});
+ if(state.previewMode==='inventory'){
+  const n=previewSummary(child);const lines=[`${n.rack} racks  ·  ${n.shelf} shelves`,`${n.cubby} cubbies  ·  ${n.book+n.scroll} items`];
+  const textSize=clamp(m.w/18,9,13),lineH=textSize*1.55;
+  lines.forEach((v,i)=>result.appendChild(svg('text',{x:x+m.w/2,y:y+m.h/2+(i-.5)*lineH,'text-anchor':'middle',fill:p.text,opacity:i===0?.82:.58,'font-size':textSize,'font-family':'system-ui, sans-serif'},v)));
+ } else {
+  // The silhouettes use stored child rectangle coordinates. Rack internals and objects are deliberately hidden.
+  const mini=svg('g',{transform:`translate(${ox} ${oy}) scale(${s})`,'data-preview-scale':s});
+  for(const q of child.mods){const hq=q.type==='shelf'?15:q.h;
+   mini.appendChild(rect(q.x,q.y,q.w,hq,mix(p.engraving,p.panel,.5),{rx:q.type==='shelf'?1:2,stroke:p.engraving,'stroke-width':1.1,opacity:q.type==='shelf'?.36:.27}));
+  }
+  result.appendChild(mini);
+  // An actual veil over the silhouettes, rather than a duplicate detailed rendering.
+  const gradId='veil-grad-'+m.id,gd=svg('defs'),grad=svg('linearGradient',{id:gradId,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});
+  grad.appendChild(svg('stop',{offset:'0%','stop-color':innerColor(child),'stop-opacity':.12}));
+  grad.appendChild(svg('stop',{offset:'50%','stop-color':innerColor(child),'stop-opacity':.60}));
+  grad.appendChild(svg('stop',{offset:'100%','stop-color':innerColor(child),'stop-opacity':.28}));
+  gd.appendChild(grad);g.appendChild(gd);
+  result.appendChild(rect(x+pad,y+pad,w,h,`url(#${gradId})`));
+ }
+ g.appendChild(result);
+}
+function drawModule(m,c,rootX,rootY,ctx='scene',depth=0){
+ const x=rootX+m.x,y=rootY+m.y,p=theme(),child=childOf(m);
+ const frame=materialColor(child||m),edge=mix(p.metal,p.text,.16);
+ const g=svg('g',{'data-module':m.id,'data-type':m.type});
+ if(m.type==='rack'){
+  g.appendChild(rect(x,y,m.w,m.h,frame,{rx:2,stroke:edge,'stroke-width':1,'data-rack-frame':m.id}));
+  const pad=11;drawHexGrid(g,{x:x+pad,y:y+pad,w:m.w-2*pad,h:m.h-2*pad},m.r,ctx+'-'+m.id);
+ }else if(m.type==='cubby'){
+  const pad=child?.b||11;
+  g.appendChild(rect(x,y,m.w,m.h,frame,{rx:2,stroke:edge,'stroke-width':1,'data-child-frame':m.childId}));
+  const bg=innerColor(child);
+  g.appendChild(rect(x+pad,y+pad,m.w-2*pad,m.h-2*pad,bg,{stroke:mix(p.metal,p.panel,.45),'stroke-width':1,'data-child-backing':m.childId}));
+  if(ctx==='scene'&&child)drawChildPreview(g,m,child,x,y,pad);
+ }else if(m.type==='shelf')drawShelf(g,x,y,m.w,frame);
+ if(ctx==='scene'){
+  // This hit plane prevents preview children from masquerading as parent-level modules.
+  const shape=rect(x,y,m.w,m.type==='shelf'?15:m.h,'transparent',{
+    'data-drag':m.id,'data-hover-module':m.id,style:state.mode==='browse'?'cursor:pointer':'cursor:grab'});
+  g.appendChild(shape);
+  if(state.mode==='arrange'&&c.selected===m.id){
+   g.appendChild(rect(x-2,y-2,m.w+4,(m.type==='shelf'?15:m.h)+4,'none',{
+     stroke:p.engraving,'stroke-width':1.4,'stroke-dasharray':'4 3','pointer-events':'none'}));
+   g.appendChild(rect(x+m.w-13,y+(m.type==='shelf'?15:m.h)-13,13,13,p.text,{
+     rx:2,stroke:p.background,'stroke-width':1.3,class:'resize-handle',
+     'data-resize':m.id,style:'cursor:nwse-resize'}));
+  }
+ }
+ // Objects render in front of shelf hit-surfaces. Arrange mode lets the board receive edits.
+ if(m.type==='shelf'&&(ctx==='scene'||ctx==='focus'))drawShelfContents(g,m,x,y,ctx);
+ return g;
+}
+function render(){const c=current(),p=theme(),cam=camera(c);
+ scene.replaceChildren();
+ const view=svg('g',{'data-view-cubby':c.id,transform:`translate(${cam.tx} ${cam.ty}) scale(${cam.s})`});
+ view.appendChild(rect(-c.b,-c.b,c.w+2*c.b,c.h+2*c.b,materialColor(c),{
+  rx:2,stroke:mix(p.metal,p.text,.20),'stroke-width':1,'data-shell':'border'}));
+ view.appendChild(rect(0,0,c.w,c.h,innerColor(c),{
+  stroke:mix(p.metal,p.panel,.32),'stroke-width':1,'data-shell':'interior'}));
+ if(state.guides&&state.mode==='arrange'){
+  const grid=svg('g',{'pointer-events':'none',stroke:mix(p.background,p.engraving,.3),'stroke-width':.6});
+  for(let x=0;x<=c.w;x+=20)grid.appendChild(svg('line',{x1:x,y1:0,x2:x,y2:c.h}));
+  for(let y=0;y<=c.h;y+=20)grid.appendChild(svg('line',{x1:0,y1:y,x2:c.w,y2:y}));view.appendChild(grid);
+ }
+ const furniture=svg('g',{'data-layer':'furniture'});
+ for(const m of c.mods)furniture.appendChild(drawModule(m,c,0,0,'scene'));
+ view.appendChild(furniture);
+ const labels=svg('g',{'data-layer':'labels','pointer-events':'none'});
+ for(const m of c.mods)labels.appendChild(labelLayer(m,m.x,m.y));
+ const name=c.name||'Cubby',fw=Math.min(170,Math.max(88,name.length*8.2)),px=(c.w-fw)/2,py=c.h+c.b-20;
+ labels.appendChild(rect(px,py,fw,18,mix(p.metal,p.panel,.38),{rx:8,stroke:mix(p.metal,p.text,.35),'stroke-width':1}));
+ labels.appendChild(svg('text',{x:c.w/2,y:py+12,'font-size':11,'text-anchor':'middle',fill:p.text,'font-weight':'600'},name));
+ view.appendChild(labels);scene.appendChild(view);
+ $('selSummary').textContent='Selection: '+(selected()?moduleLabels[selected().type]+' · '+selected().id:'none');
+ $('scaleReadout').innerHTML=`<strong>Storage:</strong> ${c.w} × ${c.h} units · frame ${c.b}<br><strong>Display:</strong> ${cam.s.toFixed(2)}× camera scale · depth ${state.path.length-1}<br>Exterior footprint is set in the parent, independently of storage.`;
+}
+function status(msg){$('status').textContent=msg;}
+let toastTimer=null;function toast(msg){$('toast').textContent=msg;$('toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.display='none',3200);}
+function hideMenu(){$('context').style.display='none';}
+function menuAt(x,y,entries){const menu=$('context');menu.replaceChildren();for(const [txt,fn]of entries){const b=document.createElement('button');b.textContent=txt;b.onclick=()=>{hideMenu();fn();};menu.appendChild(b);}menu.style.left=Math.max(6,Math.min(x,innerWidth-238))+'px';menu.style.top=Math.max(6,Math.min(y,innerHeight-entries.length*40-24))+'px';menu.style.display='block';}
+function redraw(){syncInspector();render();}
+function moveTo(id){if(!state.cubbies[id])return;state.path.push(id);redraw();status('Entered '+current().name+'. This interior is independent of its small preview footprint.');}
+function navigateIndex(index){if(index<0||index>=state.path.length)return;state.path=state.path.slice(0,index+1);redraw();status('Returned to '+current().name+'.');}
+function goBack(){if(state.path.length>1)navigateIndex(state.path.length-2);}
+function goRoot(){navigateIndex(0);}
+function setMode(mode){state.mode=mode;current().selected=null;redraw();status(mode==='browse'?'Browse: click a sub-cubby to enter it. Alt+Left goes back.':'Arrange: click to select, drag or resize. Use Enter this cubby to navigate.');}
+function updateOuter(prop,value){const c=current();const n=Number(value);if(!Number.isFinite(n))return false;
+ const lim={w:[260,1800],h:[220,1500],b:[8,28]};const v=clamp(Math.round(n),...lim[prop]);
+ const old=c[prop];c[prop]=v;
+ if(c.mods.some(m=>!valid(c,m,m.id))){c[prop]=old;toast('Cannot shrink past stored furniture.');redraw();return false;}
+ redraw();return true;
+}
+function expand(which,amount){const c=current();updateOuter(which,c[which]+amount);status('Expanded interior storage '+(which==='w'?'width':'height')+'; parent footprint unchanged.');}
+function choose(id){current().selected=id;redraw();}
+function removeSubtree(childId){const child=state.cubbies[childId];if(!child)return;for(const m of child.mods)if(m.childId)removeSubtree(m.childId);delete state.cubbies[childId];}
+function removeSelected(){const c=current(),m=selected();if(!m)return;if(m.childId)removeSubtree(m.childId);
+ c.mods=c.mods.filter(q=>q.id!==m.id);c.selected=null;redraw();status('Removed '+moduleLabels[m.type]+'.');}
+function updateModule(m,patch){const c=current();const next={...m,...patch};
+ next.w=clamp(Number(next.w),minSizes[m.type][0],c.w);
+ next.h=m.type==='shelf'?15:clamp(Number(next.h),minSizes[m.type][1],c.h);
+ if(!Number.isFinite(next.x)||!Number.isFinite(next.y)||!valid(c,next,m.id))return false;
+ Object.assign(m,next);redraw();return true;
+}
+function candidateFor(c,type,requested){let opts={};if(type==='cubby')opts={};
+ // Search without allocating a child unless placement succeeds.
+ const d={rack:{w:430,h:300,r:52},shelf:{w:280,h:15,r:0},cubby:{w:210,h:150,r:0}}[type];
+ const loc=[];if(requested)loc.push([requested.x,requested.y]);
+ for(let y=0;y<=c.h;y+=10)for(let x=0;x<=c.w;x+=10)loc.push([x,y]);
+ if(requested)loc.sort((a,b)=>Math.hypot(a[0]-requested.x,a[1]-requested.y)-Math.hypot(b[0]-requested.x,b[1]-requested.y));
+ for(const [x,y]of loc){const m={type,x:clamp(Math.round(x/5)*5,0,c.w-d.w),y:clamp(Math.round(y/5)*5,0,c.h-d.h),...d};if(valid(c,m))return{x:m.x,y:m.y};}return null;
+}
+function addModule(type,where){const c=current(),at=candidateFor(c,type,where);if(!at){toast('No room for the module; expand interior storage or move existing furniture.');return false;}
+ const m=newModule(c,type,at.x,at.y);c.mods.push(m);c.selected=m.id;redraw();status('Created '+moduleLabels[type]+'.');return true;}
+function snapped(x,y,m){const c=current();x=clamp(x,0,c.w-m.w);y=clamp(y,0,c.h-bbox(m).h);if(state.snap){const xs=[0,c.w-m.w],ys=[0,c.h-bbox(m).h];for(const q of c.mods)if(q.id!==m.id){xs.push(q.x-m.w,q.x+q.w,q.x,q.x+q.w-m.w);ys.push(q.y-bbox(m).h,q.y+bbox(q).h,q.y,q.y+bbox(q).h-bbox(m).h);}x=nearest(x,xs);y=nearest(y,ys);}return{x:Math.round(x),y:Math.round(y)};}
+function nearest(value,targets,tol=12){let best=value,err=tol;for(const t of targets){if(Math.abs(t-value)<err){best=t;err=Math.abs(t-value);}}return best;}
+function resized(x,y,m){const c=current();let w=clamp(x-m.x,minSizes[m.type][0],c.w-m.x),h=clamp(y-m.y,minSizes[m.type][1],c.h-m.y);
+ if(m.type==='shelf')h=15;
+ if(state.snap){const xs=[c.w-m.x],ys=[c.h-m.y];for(const q of c.mods)if(q.id!==m.id){xs.push(q.x-m.x,q.x+q.w-m.x);ys.push(q.y-m.y,q.y+bbox(q).h-m.y);}w=nearest(w,xs);if(m.type!=='shelf')h=nearest(h,ys);}return{w:Math.round(w),h:Math.round(h)};}
+let grab=null;
+scene.addEventListener('pointermove',ev=>{
+ const node=ev.target.closest('[data-file-object]'),tip=$('fileTip');
+ if(state.mode!=='browse'||!node){tip.style.display='none';tip.setAttribute('aria-hidden','true');return;}
+ $('fileTipName').textContent=node.dataset.fileObject;
+ $('fileTipKind').textContent=node.dataset.kind+' · example only';
+ tip.style.display='flex';tip.setAttribute('aria-hidden','false');
+ const tx=Math.max(8,Math.min(innerWidth-280,ev.clientX+16)),ty=Math.max(8,Math.min(innerHeight-90,ev.clientY+16));
+ tip.style.left=tx+'px';tip.style.top=ty+'px';
+});
+scene.addEventListener('pointerleave',()=>{$('fileTip').style.display='none';$('fileTip').setAttribute('aria-hidden','true');});
+scene.addEventListener('pointerdown' ,ev=>{
+ hideMenu();if(ev.button!==0)return;
+ const file=ev.target.closest('[data-file-object]');
+ if(file&&state.mode==='browse'){status(file.dataset.fileObject+' · '+file.dataset.kind+' (sample object)');return;}
+ const target=ev.target.closest('[data-resize], [data-drag]');
+ if(target){const c=current(),id=target.getAttribute('data-resize')||target.getAttribute('data-drag'),m=c.mods.find(q=>q.id===id);if(!m)return;
+  if(state.mode==='browse'){if(m.type==='cubby')moveTo(m.childId);else if(m.type==='rack'){c.selected=id;openFocus();}return;}
+  c.selected=id;redraw();const pos=pointerLocal(ev);grab={mode:target.hasAttribute('data-resize')?'resize':'move',id,start:pos,orig:{...m}};
+  scene.setPointerCapture(ev.pointerId);ev.preventDefault();return;
+ }
+ if(ev.target.dataset.shell==='interior'&&state.mode==='arrange')choose(null);
+});
+scene.addEventListener('pointermove',ev=>{if(!grab)return;const c=current(),m=c.mods.find(q=>q.id===grab.id);if(!m)return;
+ const pt=pointerLocal(ev),dx=pt.x-grab.start.x,dy=pt.y-grab.start.y;
+ const patch=grab.mode==='move'?snapped(grab.orig.x+dx,grab.orig.y+dy,m):resized(grab.orig.x+grab.orig.w+dx,grab.orig.y+grab.orig.h+dy,m);
+ const next={...m,...patch};if(valid(c,next,m.id)){Object.assign(m,next);redraw();}ev.preventDefault();
+});
+function endDrag(ev){if(!grab)return;const c=current(),m=c.mods.find(q=>q.id===grab.id);if(m&&!valid(c,m,m.id))Object.assign(m,grab.orig);
+ try{scene.releasePointerCapture(ev.pointerId);}catch(_){}grab=null;redraw();}
+scene.addEventListener('pointerup',endDrag);scene.addEventListener('pointercancel',endDrag);
+scene.addEventListener('contextmenu',ev=>{ev.preventDefault();const c=current(),point=pointerLocal(ev),node=ev.target.closest('[data-drag]');const m=node&&c.mods.find(q=>q.id===node.dataset.drag);
+ let actions;
+ if(m){c.selected=m.id;redraw();actions=[
+  ...(m.type==='cubby'?[['Enter cubby',()=>moveTo(m.childId)]]:[]),
+  ...(m.type==='rack'?[['Inspect rack',openFocus]]:[]),
+  ...(state.mode==='arrange'?[['Delete module',removeSelected]]:[['Switch to Arrange',()=>setMode('arrange')]])];
+ }else if(state.mode==='browse'){
+  actions=[['Switch to Arrange',()=>setMode('arrange')]];
+ }else if(ev.target.dataset.shell==='border'||point.x<0||point.y<0||point.x>c.w||point.y>c.h){
+  actions=[['Expand storage width +100',()=>expand('w',100)],['Expand storage height +80',()=>expand('h',80)],['Rename this cubby',()=>$('cubbyName').focus()]];
+ }else{actions=[['Create hex rack',()=>addModule('rack',point)],['Create flat shelf',()=>addModule('shelf',point)],['Create nested cubby',()=>addModule('cubby',point)]];}
+ menuAt(ev.clientX,ev.clientY,actions);
+});
+document.addEventListener('pointerdown',ev=>{if(!ev.target.closest('#context')&&!ev.target.closest('#scene'))hideMenu();});
+function openFocus(){const m=selected();if(!m){toast('Select a rack first.');return;}
+ if(m.type==='cubby'){moveTo(m.childId);return;}
+ const p=theme(),svgRoot=focusScene;svgRoot.replaceChildren();
+ const top=m.type==='shelf'?(hasBook(contentConfig(m))?125:(hasScrolls(contentConfig(m))?52:22)):0;
+ const focusH=(m.type==='shelf'?15:m.h)+top;
+ const scale=Math.min(840/m.w,590/focusH);
+ const tx=(920-m.w*scale)/2,ty=(680-focusH*scale)/2+top*scale;
+ const g=svg('g',{transform:`translate(${tx} ${ty}) scale(${scale}) translate(${-m.x} ${-m.y})`,'data-focus-zoom':scale});
+ g.appendChild(drawModule(m,current(),0,0,'focus'));
+ g.appendChild(labelLayer(m,m.x,m.y));svgRoot.appendChild(g);
+ $('focusTitle').textContent=moduleLabels[m.type]+' · '+m.id;
+ $('focusSubtitle').textContent=m.type==='rack'?`Same ${m.r}-unit hex lattice as the parent, camera zoom ${scale.toFixed(2)}×.`:'Same flat Lighting Lab shelf, camera zoom only.';
+ $('focusModal').style.display='flex';$('focusModal').setAttribute('aria-hidden','false');
+}
+function closeFocus(){$('focusModal').style.display='none';$('focusModal').setAttribute('aria-hidden','true');}
+function setSample(name){state.cubbies={};state.path=[];state.next=1;const root=createCubby('Manuscripts',740,500,15,0);state.path=[root.id];
+ if(name==='code'){
+  root.name='Code';root.mods.push(newModule(root,'rack',0,0,{w:500,h:500,r:52}));
+  const first=newModule(root,'cubby',510,0,{w:230,h:155});root.mods.push(first);
+  const a=childOf(first);a.name='Utilities';a.w=740;a.h=470;
+  a.mods.push(newModule(a,'rack',25,25,{w:440,h:330,r:52}));
+  const nested=newModule(a,'cubby',490,25,{w:225,h:145});a.mods.push(nested);
+  const deep=childOf(nested);deep.name='Scripts';deep.w=680;deep.h=470;
+  deep.mods.push(newModule(deep,'shelf',35,330,{w:380,h:15,contents:{preset:'scrolls',count:3}}));
+  deep.mods.push(newModule(deep,'rack',35,35,{w:350,h:220,r:52}));
+  const final=newModule(deep,'cubby',420,35,{w:205,h:140});deep.mods.push(final);
+  const last=childOf(final);last.name='Drafts';last.w=750;last.h=420;
+  last.mods.push(newModule(last,'shelf',70,250,{w:380,h:15,contents:{preset:'scrolls',count:2}}));
+  const second=newModule(root,'cubby',510,165,{w:230,h:155});root.mods.push(second);childOf(second).name='Resources';
+  const third=newModule(root,'cubby',510,330,{w:230,h:170});root.mods.push(third);childOf(third).name='Configurations';
+ }else if(name==='application'){
+  root.name='Applications';root.mods.push(newModule(root,'shelf',20,260,{w:420,h:15,contents:{preset:'book-scrolls',count:3}}));
+  const m=newModule(root,'cubby',525,110,{w:170,h:155});root.mods.push(m);
+  const ch=childOf(m);ch.name='Installer';ch.w=700;ch.h=480;
+  ch.mods.push(newModule(ch,'shelf',50,260,{w:450,h:15,contents:{preset:'scrolls',count:2}}));
+ }
+ state.mode='browse';applyTheme();redraw();status('Sample loaded. Click a nested cubby in Browse mode; use Arrange to edit it.');
+}
+function serialize(){return{version:'B1',theme:state.theme,cubbies:state.cubbies,path:state.path,next:state.next};}
+$('browseMode').onclick=()=>setMode('browse');$('arrangeMode').onclick=()=>setMode('arrange');
+$('backBtn').onclick=goBack;$('rootBtn').onclick=goRoot;
+$('themeSelect').onchange=e=>{state.theme=e.target.value;applyTheme();redraw();};
+$('cubbyName').addEventListener('input',e=>{current().name=e.target.value;redraw();});
+for(const [id,key]of [['outerWidth','w'],['outerHeight','h'],['borderSize','b']])$(id).onchange=e=>updateOuter(key,e.target.value);
+$('outerColor').oninput=e=>{current().color=e.target.value;redraw();};
+$('resetOuterColor').onclick=()=>{current().color=null;redraw();};
+$('innerColor').oninput=e=>{current().innerColor=e.target.value;redraw();};
+$('resetInnerColor').onclick=()=>{current().innerColor=null;redraw();};
+$('expandWidth').onclick=()=>expand('w',100);$('expandHeight').onclick=()=>expand('h',80);
+$('codeSample').onclick=()=>setSample('code');$('appSample').onclick=()=>setSample('application');$('emptySample').onclick=()=>setSample('empty');
+$('addRack').onclick=()=>addModule('rack');$('addShelf').onclick=()=>addModule('shelf');$('addCubby').onclick=()=>addModule('cubby');
+$('clearAll').onclick=()=>{const c=current();if(c.mods.length&&!confirm('Clear this cubby interior?'))return;for(const m of c.mods)if(m.childId)removeSubtree(m.childId);c.mods=[];c.selected=null;redraw();};
+$('snap').onchange=e=>state.snap=e.target.checked;$('showGuides').onchange=e=>{state.guides=e.target.checked;render();};
+for(const [id,key]of [['modX','x'],['modY','y'],['modW','w'],['modH','h']])$(id).onchange=e=>{const m=selected();if(m&&!updateModule(m,{[key]:Number(e.target.value)})){redraw();toast('Blocked by an overlap or boundary.');}};
+for(const [id,key]of [['slideX','x'],['slideY','y'],['slideW','w'],['slideH','h']])$(id).oninput=e=>{const m=selected();if(m&&!updateModule(m,{[key]:Number(e.target.value)}))redraw();};
+for(const [id,key,d]of [['nudgeLeft','x',-1],['nudgeRight','x',1],['nudgeUp','y',-1],['nudgeDown','y',1]])$(id).onclick=()=>{const m=selected();if(m&&!updateModule(m,{[key]:m[key]+d}))toast('Cannot overlap module or cubby wall.');};
+$('modColor').oninput=e=>{const m=selected();if(m){(childOf(m)||m).color=e.target.value;redraw();}};
+$('resetModColor').onclick=()=>{const m=selected();if(m){(childOf(m)||m).color=null;redraw();}};
+$('hexSize').oninput=e=>{const m=selected();if(m&&m.type==='rack'){m.r=Number(e.target.value);$('hexOut').textContent=m.r;render();}};
+function updateShelfContents(next){const m=selected();if(!m||m.type!=='shelf')return;
+ const old=m.contents?{...m.contents}:null;m.contents={...contentConfig(m),...next};
+ if(!valid(current(),m,m.id)){m.contents=old;toast('Not enough clear space for this holder; move/widen the shelf first.');}
+ redraw();}
+$('shelfPreset').onchange=e=>updateShelfContents({preset:e.target.value});
+$('scrollCount').oninput=e=>updateShelfContents({count:Number(e.target.value)});
+$('previewMode').onchange=e=>{state.previewMode=e.target.value;render();};
+$('childInnerW').onchange=e=>{const ch=childOf(selected());if(ch)editChild(ch,'w',e.target.value);};
+$('childInnerH').onchange=e=>{const ch=childOf(selected());if(ch)editChild(ch,'h',e.target.value);};
+$('childBorder').onchange=e=>{const ch=childOf(selected());if(ch)editChild(ch,'b',e.target.value);};
+function editChild(ch,key,value){const val=Number(value);if(!Number.isFinite(val))return;
+ const limits={w:[260,1800],h:[220,1500],b:[8,28]};const n=clamp(Math.round(val),...limits[key]);
+ const old=ch[key];ch[key]=n;if(ch.mods.some(m=>!valid(ch,m,m.id))){ch[key]=old;toast('Cannot reduce interior below its stored furniture.');}redraw();}
+$('enterSelected').onclick=()=>{const m=selected();if(m&&m.type==='cubby')moveTo(m.childId);};
+$('removeModule').onclick=removeSelected;
+$('focusSelected').onclick=()=>{const m=selected();if(!m){toast('In Arrange mode, select a module first. In Browse mode, click the cubby.');return;}openFocus();};
+$('closeFocus').onclick=closeFocus;
+$('focusModal').onclick=e=>{if(e.target===$('focusModal'))closeFocus();};
+$('zoomIn').onclick=()=>changeZoom(1.2);$('zoomOut').onclick=()=>changeZoom(1/1.2);
+$('zoomReset').onclick=()=>{current().camera={zoom:1,dx:0,dy:0};redraw();};
+function changeZoom(f){current().camera.zoom=clamp(current().camera.zoom*f,.55,4);redraw();}
+$('helpBtn').onclick=()=>toast('Browse: click a cubby to enter, hover shelf objects for filenames; Alt+Left returns. Arrange: edit shelves, racks and nested cubbies. A new shelf starts empty; add sample objects in its inspector.');
+document.addEventListener('keydown',ev=>{
+ const tag=document.activeElement?.tagName;if(ev.altKey&&ev.key==='ArrowLeft'){ev.preventDefault();goBack();}
+ if(ev.key==='Escape'){hideMenu();if($('focusModal').style.display==='flex')closeFocus();else if(state.path.length>1)goBack();}
+ if(ev.key==='Delete'&&state.mode==='arrange'&&tag!=='INPUT'&&tag!=='TEXTAREA')removeSelected();
+ if(ev.key==='Enter'&&state.mode==='arrange'&&tag!=='INPUT'&&tag!=='TEXTAREA'){const m=selected();if(m?.type==='cubby')moveTo(m.childId);}
+});
+setSample('empty');
+window.__cubbyB1={state,current,selected,childOf,innerColor,materialColor,valid,drawHexGrid,camera,navigateIndex,goBack,moveTo,setMode,setSample,serialize,editChild,occupiedRects,contentConfig,drawChildPreview,previewSummary};
+</script>
+</body>
+</html>

@@ -9,11 +9,13 @@ import "themes" as Themes
 // The launcher remains a separate, keyboard-first floating library.
 // The capsule is an always-visible, compact overlay. Neither reserves a bar.
 ShellRoot {
+    Services.ThemePreferences { id: themePreferences }
     Panels.LauncherPanel { id: launcher }
 
     // One wallpaper service owns rotation, preferences and awww requests.
     Services.VerandaService {
         id: verandaService
+        themeReady: themePreferences.ready
         transitionLayer: vistaFx
     }
     Widgets.VistaTransition {
@@ -53,6 +55,8 @@ ShellRoot {
 
     Panels.ArchiveCapsule {
         id: capsule
+        themePreferenceWarning: themePreferences.warning
+        onThemeRequested: function(index) { themePreferences.select(index); }
         onVerandaRequested: {
             capsule.dismissPopups();
             veranda.toggleGallery();

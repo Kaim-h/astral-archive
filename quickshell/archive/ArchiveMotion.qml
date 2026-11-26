@@ -15,6 +15,7 @@ Item {
     property var positions: ({})
     property var carried: []
     property var caseRecords: []
+    property var mixedVisuals: ({hidden:[],pending:[]})
     property int activeCells: 0
     property int stepCount: 0
     property real lastTime: 0
@@ -24,6 +25,7 @@ Item {
         membership=Motion.members(transaction)
         carried=Core.clone(transaction.carried)
         caseRecords=Core.clone(transaction.draft.caseItems)
+        mixedVisuals=Motion.mixedVisuals(transaction)
         positions=Motion.positions(transaction)
     }
     function wake() {
@@ -61,7 +63,7 @@ Item {
         if(!activeCells)finish()
     }
     function clear() {
-        clock.stop();transaction=null;released=false;membership=({});positions=({});carried=[];caseRecords=[];activeCells=0
+        clock.stop();transaction=null;released=false;membership=({});positions=({});carried=[];caseRecords=[];mixedVisuals=({hidden:[],pending:[]});activeCells=0
     }
     function abort(message) {
         clear();notice=message||"Canceled · arrangement unchanged";completed(false)

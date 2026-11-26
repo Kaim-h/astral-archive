@@ -18,7 +18,7 @@ function viewState(s,v,formatVersion=version){
  if(v.showGrid!==undefined&&typeof v.showGrid!=='boolean')fail('Invalid grid visibility');
  if(v.snapDistance!==undefined&&(!Number.isInteger(v.snapDistance)||v.snapDistance<5||v.snapDistance>100))fail('Invalid grid interval');
  if(Object.keys(v.cameras).length>128)fail('Camera budget');
- for(const [k,c] of Object.entries(v.cameras))if(!s.cubbies[k]||!plain(c)||!finite(c.zoom,.5,2.5)||!finite(c.x,-100000,100000)||!finite(c.y,-100000,100000))fail('Invalid camera');
+ for(const [k,c] of Object.entries(v.cameras))if(!Object.prototype.hasOwnProperty.call(s.cubbies,k)||!plain(c)||!finite(c.zoom,.5,2.5)||!finite(c.x,-100000,100000)||!finite(c.y,-100000,100000))fail('Invalid camera');
  if(formatVersion===2&&JSON.stringify(v).length>Capacity.limits.viewChars)fail('View size budget exceeded');
  return Core.clone(v);
 }

@@ -25,6 +25,8 @@ jobs:
         run: node scripts/check-shelves.js
       - name: Utility shelf logic
         run: node scripts/check-utilities.js
+      - name: Theme preference policy and startup ordering
+        run: node scripts/check-theme-policy.js
       - name: Veranda wallpaper logic and transition toggle
         run: node scripts/check-veranda.js
       - name: Vista FX boundaries

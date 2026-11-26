@@ -13,12 +13,17 @@ Item {
     width: 0
     height: 0
 
+    // Do not apply or persist a wallpaper against the provisional startup theme.
+    property bool themeReady: true // production shell binds its preference adapter
     property bool initialized: false
+    property bool initializationStarted: false
     property bool manifestReady: false
+    property string manifestReadStatus: "pending"
     property string stateReadStatus: "pending"
     property bool preferencesWritable: false
     property string preferenceWarning: ""
-    readonly property string displayMessage: preferenceWarning || message
+    readonly property bool manualOnly: stateReadStatus === "timeout"
+    readonly property string displayMessage: !initialized ? "Loading Veranda preferences…" : (preferenceWarning || message)
     readonly property string wallpaperDirectory: Policy.localDirectory(String(Qt.resolvedUrl("../../assets/wallpapers/")))
     property var lastSuccessful: null
     property var artworks: []
@@ -43,59 +48,115 @@ Item {
 
     FileView {
         id: catalogue
-        path: Qt.resolvedUrl("../data/veranda-wallpapers.json")
-        blockLoading: true
+        // Assign paths after construction; observe terminal results first.
+        preload: true
+        blockLoading: false
+        blockAllReads: false
+        watchChanges: false
         printErrors: true
+        onLoaded: service.noteManifestRead("loaded")
+        onLoadFailed: service.noteManifestRead("failed")
     }
     FileView {
         id: stateFile
-        path: Quickshell.statePath("veranda-of-vistas.json")
-        blockLoading: true
-        printErrors: false // Missing on first launch is expected.
+        preload: true
+        blockLoading: false
+        blockAllReads: false
+        watchChanges: false
+        printErrors: false
         atomicWrites: true
-        onLoaded: {
-            service.stateReadStatus = "loaded";
-            Qt.callLater(service.finishInitialization);
-        }
+        onLoaded: service.noteStateRead("loaded")
         onLoadFailed: function(error) {
-            service.stateReadStatus = error === FileViewError.FileNotFound ? "missing" : "failed";
-            Qt.callLater(service.finishInitialization);
+            service.noteStateRead(error === FileViewError.FileNotFound ? "missing" : "failed");
         }
-        onSaveFailed: {
-            service.preferenceWarning = "Preferences not saved — changes may be lost on restart.";
-            console.warn(service.preferenceWarning);
-        }
+        onSaveFailed: service.preferenceWriteFailed()
+    }
+    Timer {
+        id: initializationDeadline
+        interval: 3000
+        repeat: false
+        onTriggered: service.expireInitialization()
     }
 
     function loadAll() {
-        try { artworks = Policy.normalizeManifest(JSON.parse(catalogue.text())); }
-        catch (error) { message = "Wallpaper manifest could not be read"; console.warn(error); }
+        if (initializationStarted || initialized) return;
+        initializationStarted = true;
+        initializationDeadline.start();
+        try { catalogue.path = Qt.resolvedUrl("../data/veranda-wallpapers.json"); }
+        catch (error) { noteManifestRead("failed"); }
+        try { stateFile.path = Quickshell.statePath("veranda-of-vistas.json"); }
+        catch (error) { noteStateRead("failed"); }
+    }
+    // One read generation per lifetime. First terminal result wins even
+    // while another prerequisite is pending.
+    function noteManifestRead(status) {
+        if (!initializationStarted || manifestReadStatus !== "pending" || initialized) return;
+        manifestReadStatus = status;
         manifestReady = true;
-        stateFile.text();
-        finishInitialization();
+        scheduleInitialization();
+    }
+    function noteStateRead(status) {
+        if (!initializationStarted || stateReadStatus !== "pending" || initialized) return;
+        stateReadStatus = status;
+        scheduleInitialization();
+    }
+    function scheduleInitialization() {
+        if (!manifestReady || stateReadStatus === "pending") return;
+        initializationDeadline.stop();
+        // Finalize outside FileView callbacks, after theme bindings settle.
+        Qt.callLater(service.finishInitialization);
+    }
+    function expireInitialization() {
+        noteManifestRead("timeout");
+        noteStateRead("timeout");
     }
     function finishInitialization() {
-        if (!manifestReady || initialized || stateReadStatus === "pending") return;
-        var decoded = Policy.decodePreferences(stateReadStatus,
-            stateReadStatus === "loaded" ? stateFile.text() : "");
+        if (!themeReady || !manifestReady || initialized || stateReadStatus === "pending") return;
+        if (manifestReadStatus === "loaded") {
+            try { artworks = Policy.normalizeManifest(JSON.parse(catalogue.text())); }
+            catch (error) { manifestReadStatus = "failed"; console.warn(error); }
+        }
+        var decoded;
+        try {
+            decoded = Policy.decodePreferences(stateReadStatus,
+                stateReadStatus === "loaded" ? stateFile.text() : "");
+        } catch (error) {
+            stateReadStatus = "failed";
+            decoded = Policy.decodePreferences("failed", "");
+        }
         saved = decoded.state;
+        // Timeout is neither confirmed absence nor consent to rotation.
+        if (manualOnly) {
+            var sessionState = Policy.cleanState(saved);
+            sessionState.rotationEnabled = false;
+            saved = sessionState;
+        }
         preferencesWritable = decoded.writable && artworks.length > 0;
         if (!decoded.writable) {
-            preferenceWarning = "Preferences protected — session-only changes.";
+            preferenceWarning = manualOnly
+                ? "Preferences read timed out — manual selection, session-only."
+                : "Preferences protected — session-only changes.";
+            if (!artworks.length) preferenceWarning += " Catalogue unavailable.";
             console.warn("Veranda preferences unreadable or unsupported; original file preserved. Back up and repair or move the state file before restarting.");
         } else if (!preferencesWritable) {
             preferenceWarning = "Preferences protected — wallpaper catalogue unavailable.";
         }
         initialized = true;
-        if (artworks.length) ensureToday(true);
-        else message = "No Veranda wallpapers in the manifest";
+        if (!artworks.length) message = "No Veranda wallpapers in the manifest";
+        else if (!manualOnly) ensureToday(true);
     }
     Component.onCompleted: Qt.callLater(service.loadAll)
 
     function persist(next) {
         saved = Policy.cleanState(next);
         if (!preferencesWritable) return;
-        stateFile.setText(JSON.stringify(saved, null, 2) + "\n");
+        try { stateFile.setText(JSON.stringify(saved, null, 2) + "\n"); }
+        catch (error) { preferenceWriteFailed(); }
+    }
+    function preferenceWriteFailed() {
+        preferencesWritable = false;
+        preferenceWarning = "Preferences not saved — session-only changes until restart.";
+        console.warn(preferenceWarning);
     }
     function imageUrl(art) {
         return Policy.localImageUrl(imagePath(art));
@@ -121,7 +182,7 @@ Item {
     function currentDate() { return Policy.localDate(new Date()); }
 
     function ensureToday(force) {
-        if (!initialized || busy || !eligible.length) return;
+        if (!initialized || manualOnly || busy || !eligible.length) return;
         var date = currentDate();
         var result = Policy.forDay(saved, themeName, date, artworks);
         if (!result.id) return;
@@ -178,7 +239,7 @@ Item {
         requestApply(result,themeName,Policy.applicationKey(themeName,date,result.id,rotationEnabled));
     }
     function setRotationEnabled(enabled) {
-        if (!initialized) return;
+        if (!initialized || manualOnly) return;
         var next=Policy.cleanState(saved);
         next.rotationEnabled=Boolean(enabled);
         persist(next);
@@ -197,7 +258,10 @@ Item {
     function retry() { lastAttemptKey=""; ensureToday(true); }
 
     onThemeNameChanged: {
-        if (initialized) Qt.callLater(function(){service.ensureToday(true);});
+        if (initialized) Qt.callLater(function(){service.ensureToday(false);});
+    }
+    onThemeReadyChanged: {
+        if (themeReady) Qt.callLater(service.finishInitialization);
     }
     Timer {
         // Local-calendar boundary and wake-from-sleep check; no fast polling.
@@ -252,7 +316,7 @@ Item {
                 service.message="Wallpaper failed — check awww-daemon and image path";
                 if (service.backendErrorText) console.warn(service.backendErrorText);
             }
-            if (service.themeName !== p.theme) Qt.callLater(function(){service.ensureToday(true);});
+            if (service.themeName !== p.theme) Qt.callLater(function(){service.ensureToday(false);});
         }
     }
 }
