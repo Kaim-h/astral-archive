@@ -4,7 +4,7 @@ Scope: documentation-only preparation while native B8 implementation is active i
 
 ## Preparation and evidence boundary
 
-Integrated source remains B7-N2 synthetic Archive and existing desktop shell, with S20 design integrated through PR #18. B8 checkpoints on PR #19 are candidate evidence until integrated. Keep README visitor-facing; route volatile milestone details to active work and the live PR. The roadmap is a dependency sequence, not dates or release promises.
+Integrated source remains B7-N2 synthetic Archive and existing desktop shell, with S20 design integrated through PR #18. B8 checkpoints on PR #19 are candidate evidence until integrated. B8-N4 Map Room development is distinct from the historical N4 actual target desktop validation gate; neither offscreen success nor a Map Room closeout waives target acceptance. Keep README visitor-facing; route volatile milestone details to active work and the live PR. The roadmap is a dependency sequence, not dates or release promises.
 
 ## Final reconciliation checklist
 
@@ -26,4 +26,4 @@ After accepted B8 closeout and integration, verify actual main commit/tree, merg
 
 Every current implementation claim must be traceable to integrated source, every verification claim to a named run/test and exact revision, and every remaining requirement or deferral to an accepted decision or explicit open question. Keep routine entry points compact. Separate current architecture from historical milestone logs; preserve historical records rather than restating them wholesale.
 
-The initial preparation is not final B8 documentation. Refresh all refs and review dispositions at integration; owner retains merge and acceptance decisions.
+The initial preparation is not final B8 documentation. At preparation closeout refresh the dated active-work snapshot against live PR #19 and report actual candidate checks, including failures and pending runs. Refresh all refs and review dispositions at integration; owner retains merge and acceptance decisions.

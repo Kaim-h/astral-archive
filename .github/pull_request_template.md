@@ -2,6 +2,7 @@
 Every PR, including a small fix, must complete the six sections below.
 Keep this description current; put chronological checkpoints in comments or durable docs.
 When opening through an API or connector, supply this template explicitly.
+Before publication, apply docs/PUBLICATION_PREFLIGHT.md to descriptions, comments, logs, screenshots and attachments; withhold sensitive or uncleared material.
 Replace prompts; use "None" or "Not applicable — reason" when appropriate. -->
 
 ## Overview
