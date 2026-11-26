@@ -9,6 +9,7 @@ import * as Capacity from "../archive/ArchiveCapacity.mjs";
 import * as Doors from "../archive/ArchiveDoors.mjs";
 import * as View from "../archive/ArchiveView.mjs";
 import * as Architecture from "../archive/ArchiveArchitecture.mjs";
+import * as Projection from "../archive/ArchiveRoomProjection.mjs";
 import * as ShelfSample from "./ArchiveB8ShelfFixture.mjs";
 export function run(){
  let checks=0;
@@ -691,6 +692,45 @@ export function run(){
   const actual=View.roomPlan(doorsActive,opening.roomId).openings.find(o=>o.id===d1);
   eq(actual,Object.assign({id:d1},opening),'two-sided plan opening shared record');
  }
+ }
+ {
+ const active=apply(sampleState,{kind:'spatialAdoptProfiles'}),s=active.snapshot,roomId=s.spatial.shelves.root.roomId;
+ const before=JSON.stringify(s),plan=View.roomPlan(s,roomId),mesh=Projection.roomMesh(s,roomId,plan.openings);
+ const scene=Projection.projectedScene(mesh,1200,750),fr=scene.frame;
+ for(const q of [[0,0],[plan.room.w,0],[0,plan.room.h],[plan.room.w,plan.room.h],[plan.room.w*.37,plan.room.h*.64]]){
+  const pt=Projection.project([q[0],q[1],0],fr),inv=Projection.floorInverse(pt[0],pt[1],fr);
+  yes(Math.abs(inv.x-q[0])<1e-7&&Math.abs(inv.y-q[1])<1e-7,'floor inverse roundtrip');
+ }
+ for(const face of scene.faces)for(const q of face.points)
+  yes(q.every(Number.isFinite)&&q[0]>=31.99&&q[0]<=1168.01&&q[1]>=49.99&&q[1]<=700.01,'actual volume fits perspective viewport');
+ for(const profile of Spatial.shelfProfiles)for(const orientation of [0,90,180,270]){
+  const g=Architecture.shelfGeometry({w:700.5,h:1500,b:11.25},profile,75),p={x:0,y:0,orientation};
+  const surfaces=Projection.shelfSurfaces(g,p,'synthetic'),box=Architecture.profileFootprint(g,p);
+  for(const part of g.parts){
+   const actual=surfaces.find(f=>f.side==='front'&&f.role===part.role&&JSON.stringify(f.points)===JSON.stringify(part.points.map(q=>Architecture.frontPoint(g,p,q[0],q[1]))));
+   yes(actual,'exact shared frontal polygon');
+  }
+  const fr=Projection.frame({w:box.w,h:box.h},g.h,900,700);
+  for(const surface of surfaces)for(const q of surface.points){
+   yes(q[0]>=-1e-8&&q[0]<=box.w+1e-8&&q[1]>=-1e-8&&q[1]<=box.h+1e-8&&q[2]>=-1e-8&&q[2]<=g.h+1e-8,'volume bounded by actual envelope');
+   const pt=Projection.project(q,fr);yes(pt&&pt.every(Number.isFinite),'tall shallow case before near plane');
+  }
+ }
+ const visible=scene.faces.find(f=>{
+  if(!f.shelfId)return false;
+  const x=f.points.reduce((n,p)=>n+p[0],0)/f.points.length,y=f.points.reduce((n,p)=>n+p[1],0)/f.points.length;
+  return Projection.faceAt(scene,x,y)===f;
+ });
+ yes(visible,'visible surface pickable');
+ const x=visible.points.reduce((n,p)=>n+p[0],0)/visible.points.length,y=visible.points.reduce((n,p)=>n+p[1],0)/visible.points.length;
+ eq(View.roomPerspectiveHit(scene,x,y),visible.shelfId,'hit matches painted surface');
+ const nearDoor=Core.clone(doorway);nearDoor.spatial.shelves.root.x--;
+ const ds=apply(Core.session(nearDoor),{kind:'spatialAdoptProfiles'}).snapshot;
+ for(const o of Spatial.doorGeometry(ds,d1).openings){
+  const dp=View.roomPlan(ds,o.roomId),dm=Projection.roomMesh(ds,o.roomId,dp.openings);
+  yes(!dm.segments.some(v=>v.side===o.side&&v.start<o.end&&v.end>o.start),'actual shared opening omitted from wall mesh');
+ }
+ eq(JSON.stringify(s),before,'perspective view never mutates snapshot');
  }
  return checks;
 }

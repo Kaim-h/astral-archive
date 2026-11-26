@@ -18,6 +18,7 @@ Rectangle {
     property bool spatialEnabled:false
     property bool physicalProfilesEnabled:false
     property bool roomPlanOpen:false
+    property bool roomPerspective:false
     readonly property bool showRoomPlan:roomPlanOpen&&Spatial.physicalProfiles(archive.snapshot)
     readonly property bool viewSwitchReady:!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
     // Optional isolated study adapter, injected by the standalone window.
@@ -192,7 +193,7 @@ Rectangle {
     property string retainedShape: ""
     Connections {
         target:archive
-        function onSnapshotChanged(){if(!Spatial.physicalProfiles(archive.snapshot))study.roomPlanOpen=false}
+        function onSnapshotChanged(){if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.roomPerspective=false}}
         function onStructuralProposalChanged(){
             study.structureApplyError=""
             if(study.materialPanel!==""&&!study.materialProposal)study.closeMaterials()
@@ -464,6 +465,7 @@ Rectangle {
             Archive.ArchiveButton { colors:study.colors; label:"Undo"; enabled:!sceneView.busy&&!archive.draft&&!archive.structuralProposal&&archive.archiveState.history.length>0; onClicked:archive.undo() }
             Archive.ArchiveButton {objectName:"adopt-physical-profiles";colors:study.colors;label:"Adopt physical profiles…";visible:study.physicalProfilesEnabled&&!Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:archive.proposeStructure({kind:"spatialAdoptProfiles"})}
             Archive.ArchiveButton {objectName:"toggle-room-plan";colors:study.colors;label:study.showRoomPlan?"Return to Shelf":"Room plan";visible:Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:{study.roomPlanOpen=!study.roomPlanOpen;sceneView.clearSelection()}}
+            Archive.ArchiveButton {objectName:"toggle-room-perspective";colors:study.colors;label:study.roomPerspective?"Plan":"Perspective";visible:study.showRoomPlan;enabled:study.viewSwitchReady;onClicked:study.roomPerspective=!study.roomPerspective}
             Archive.ArchiveButton {objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange"&&!study.showRoomPlan;enabled:study.structureReady;onClicked:study.openContext(12,12)}
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
@@ -529,6 +531,15 @@ Rectangle {
         snapshot:archive.snapshot
         roomId:Spatial.enabled(archive.snapshot)&&archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]]?archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]].roomId:""
         colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
+        perspective:study.roomPerspective
+        arranging:sceneView.mode==="arrange"
+        rotationPreview:archive.structuralProposal&&archive.structuralProposal.ok&&archive.structuralProposal.command.kind==="spatialShelfTurn"?
+            Spatial.footprint(archive.structuralProposal.snapshot,archive.structuralProposal.command.containerId):null
+        onTurnShelf:function(id){
+            if(!study.viewSwitchReady||!roomPlan.arranging)return
+            var p=archive.snapshot.spatial.shelves[id]
+            if(p){archive.proposeStructure({kind:"spatialShelfTurn",containerId:id,patch:{orientation:(p.orientation+90)%360}});structurePanel.forceActiveFocus()}
+        }
         onInspectShelf:function(id){if(study.viewSwitchReady&&sceneView.openShelf(id)){study.roomPlanOpen=false;sceneView.forceActiveFocus()}}
     }
     MouseArea {
@@ -944,7 +955,8 @@ Rectangle {
         readonly property bool supportEdit:!!cmd&&cmd.kind==="spatialSupport"
         readonly property bool shelfAppearance:!!cmd&&cmd.kind==="spatialAppearance"
         readonly property bool adopting:!!cmd&&cmd.kind==="spatialAdoptProfiles"
-        readonly property bool spatialConfirmation:!!cmd&&[ "spatialAdoptProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
+        readonly property bool shelfTurn:!!cmd&&cmd.kind==="spatialShelfTurn"
+        readonly property bool spatialConfirmation:!!cmd&&[ "spatialShelfTurn","spatialAdoptProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
@@ -965,7 +977,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:"Cancel fixture adjustment";onClicked:archive.cancelStructure()}
@@ -983,7 +995,8 @@ Rectangle {
                 readonly property var cmd:structurePanel.cmd
                 Text {
                     width:parent.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
-                    text:!structurePanel.proposal?"":structurePanel.adopting?
+                    text:!structurePanel.proposal?"":structurePanel.shelfTurn?
+                        "Quarter-turn of selected Shelf only. Preview outline shows validated new footprint; wall correction is minimal. Apply or Cancel.":structurePanel.adopting?
                         "Adopt real outer profiles for every Shelf. Interior, positions and ownership remain unchanged. Review old/new bounds; unresolved conflicts prevent Apply.":structurePanel.removing?
                         (structurePanel.cmd.kind==="spatialShelfDelete"?"Remove this architectural Shelf and its contents? ":"Remove this fixture and its contents? ")+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
                         (study.spatialEnabled&&structurePanel.proposal.appUnplacementCount?" "+structurePanel.proposal.appUnplacementCount+" application book(s) will be unplaced; application identities retained.":"")+" No disk files are deleted.":

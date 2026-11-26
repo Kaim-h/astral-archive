@@ -3,6 +3,7 @@
 import * as Core from "./ArchiveCore.mjs";
 import * as Spatial from "./ArchiveSpatial.mjs";
 import * as Architecture from "./ArchiveArchitecture.mjs";
+import * as RoomProjection from "./ArchiveRoomProjection.mjs";
 import * as Mixed from "./representation/B7Ownership.mjs";
 
 export function mix(a,b,t) {
@@ -222,6 +223,21 @@ export function roomPlan(s,roomId){
         for(const o of g.openings)if(o.roomId===roomId)openings.push(Object.assign({id},o));
     }
     return {room,shelves,openings};
+}
+export function profilePartColor(role,frame,p){
+    return role==='foot'||role==='capital'||role==='base'?mix(frame,p.metal,.32):role==='crest'?mix(frame,p.metal,.16):frame;
+}
+export function roomPerspective(s,plan,width,height){
+    return plan?RoomProjection.projectedScene(RoomProjection.roomMesh(s,plan.room.id,plan.openings),width,height):null;
+}
+export function roomPerspectiveHit(scene,x,y){
+    const face=RoomProjection.faceAt(scene,x,y);return face?face.shelfId:'';
+}
+export function roomPerspectiveColor(s,face,palettes,desktop,roomColors){
+    if(!face.shelfId)return face.side==='north'||face.side==='east'?mix(roomColors.background,roomColors.panel,.85):mix(roomColors.background,roomColors.panel,.65);
+    const p=spatialPalette(s,face.shelfId,palettes,desktop),c=s.cubbies[face.shelfId];
+    const base=face.role==='backing'?backingColor(c,p,0):profilePartColor(face.role,frameColor(c,p,0),p);
+    return face.side==='front'?base:mix(p.background,base,face.side==='back'?.75:.85);
 }
 export function roomPlanHit(plan,x,y){
     if(!plan||!Number.isFinite(x)||!Number.isFinite(y))return '';

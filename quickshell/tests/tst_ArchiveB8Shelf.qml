@@ -5,6 +5,7 @@ import "../archive/ArchiveCore.mjs" as Core
 import "../archive/ArchiveSpatial.mjs" as Spatial
 import "ArchiveB8ShelfFixture.mjs" as Sample
 import "../archive/ArchiveView.mjs" as View
+import "../archive/ArchiveRoomProjection.mjs" as Projection
 
 Item {
     width:1366;height:900
@@ -12,7 +13,7 @@ Item {
     TestCase {
         name:"ArchiveB8Shelf"
         when:windowShown
-        function init(){study.roomPlanOpen=false;study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
+        function init(){study.roomPlanOpen=false;study.roomPerspective=false;study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
         function clickNamed(name){
             var item=null,last=""
             tryVerify(function(){
@@ -24,6 +25,66 @@ Item {
                 last=next;return ok
             },3000,name)
             mouseClick(item,item.width/2,item.height/2)
+        }
+        function test_room_perspective_and_rotation(){
+            var ctl=study.controller,scene=study.scene
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            tryVerify(function(){return scene.physicalFront})
+            var roomId=ctl.snapshot.spatial.shelves.root.roomId
+            verify(ctl.proposeStructure({kind:"spatialRoomEdit",roomId:roomId,patch:{h:2000}}));verify(ctl.applyStructure())
+            var before=JSON.stringify(ctl.snapshot)
+            clickNamed("toggle-room-plan");clickNamed("toggle-room-perspective")
+            var plan=findChild(study,"archive-room-plan")
+            tryVerify(function(){return plan.visible&&plan.perspective&&!!plan.perspectiveData})
+            var box=Spatial.footprint(ctl.snapshot,"root"),p=plan.pointFor(box.x+box.w/2,box.y+box.h/2),inv=plan.floorAt(p.x,p.y)
+            verify(Math.abs(inv.x-box.x-box.w/2)<.001&&Math.abs(inv.y-box.y-box.h/2)<.001)
+            function visibleSample(){
+                var faces=plan.perspectiveData.faces
+                for(var i=faces.length-1;i>=0;i--){
+                    var f=faces[i];if(f.shelfId!=="root")continue
+                    var x=f.points.reduce((n,q)=>n+q[0],0)/f.points.length,y=f.points.reduce((n,q)=>n+q[1],0)/f.points.length
+                    var top=Projection.faceAt(plan.perspectiveData,x,y)
+                    if(!top||top.index!==f.index)continue
+                    // Require a broad interior sample on this painted face.
+                    var area=0
+                    for(var j=0;j<f.points.length;j++){var a=f.points[j],b=f.points[(j+1)%f.points.length];area+=a[0]*b[1]-b[0]*a[1]}
+                    if(Math.abs(area)<800)continue
+                    return {x:x,y:y,face:f}
+                }
+                return null
+            }
+            var sample=visibleSample();verify(!!sample)
+            mouseClick(plan,sample.x,sample.y);tryCompare(plan,"selectedShelf","root")
+            function captureSurface(v,name){
+                var shot=null,pt=plan.mapToItem(study,v.x,v.y)
+                var expected=View.roomPerspectiveColor(ctl.snapshot,v.face,plan.palettes,plan.desktopPalette,plan.colors)
+                tryVerify(function(){
+                    shot=grabImage(study)
+                    var x=Math.floor(pt.x*shot.width/study.width),y=Math.floor(pt.y*shot.height/study.height)
+                    return x>=0&&y>=0&&x<shot.width&&y<shot.height&&Math.abs(shot.red(x,y)-parseInt(expected.slice(1,3),16))<10&&Math.abs(shot.green(x,y)-parseInt(expected.slice(3,5),16))<10&&Math.abs(shot.blue(x,y)-parseInt(expected.slice(5,7),16))<10
+                },3000,"Actual composed perspective face role color")
+                shot.save(name)
+            }
+            captureSurface(sample,"archive-b8-native-shelf-perspective.png")
+            compare(JSON.stringify(ctl.snapshot),before)
+            study.switchMode("arrange")
+            clickNamed("plan-turn-shelf")
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+            compare(ctl.structuralProposal.command.patch.orientation,90)
+            verify(!!plan.rotationPreview);compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("plan-turn-shelf");clickNamed("structure-apply")
+            tryVerify(function(){return ctl.snapshot.spatial.shelves.root.orientation===90&&!ctl.structuralProposal})
+            compare(JSON.stringify(ctl.snapshot.cubbies),JSON.stringify(JSON.parse(before).cubbies))
+            sample=visibleSample();verify(!!sample)
+            captureSurface(sample,"archive-b8-native-shelf-perspective-rotated.png")
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            study.switchMode("browse")
+            sample=visibleSample();verify(!!sample)
+            mouseClick(plan,sample.x,sample.y);tryCompare(plan,"selectedShelf","root")
+            clickNamed("plan-inspect-shelf")
+            tryVerify(function(){return scene.visible&&!plan.visible});compare(scene.cubbyId,"root")
+            compare(JSON.stringify(ctl.snapshot),before)
         }
         function test_physical_profiles_and_room_plan(){
             var ctl=study.controller,scene=study.scene,before=JSON.stringify(ctl.snapshot),oldTheme=Themes.Theme.index

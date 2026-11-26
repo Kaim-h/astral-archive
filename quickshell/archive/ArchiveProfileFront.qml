@@ -26,9 +26,7 @@ Canvas {
             ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1])
             for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1])
             ctx.closePath()
-            ctx.fillStyle=part.role==="foot"||part.role==="capital"||part.role==="base"?
-                View.mix(String(frameColor),colors.metal,.32):part.role==="crest"?
-                View.mix(String(frameColor),colors.metal,.16):frameColor
+            ctx.fillStyle=View.profilePartColor(part.role,String(frameColor),colors)
             ctx.fill()
         }
         // Restrained in-envelope rules. These are fills, not outward strokes.

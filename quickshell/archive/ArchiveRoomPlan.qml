@@ -1,8 +1,9 @@
 import QtQuick
 import "ArchiveView.mjs" as View
+import "ArchiveRoomProjection.mjs" as Projection
 
-// Isolated native plan: one room, authoritative occupied H glyphs, shared
-// openings. No separate arrangement model or continuous paint loop.
+// Isolated native plan and perspective: one Room, shared geometry/openings.
+// No separate arrangement model or continuous paint loop.
 Item {
     id:plan
     required property var snapshot
@@ -11,19 +12,33 @@ Item {
     required property var palettes
     required property int desktopPalette
     property string selectedShelf:""
+    property bool perspective:false
+    property bool arranging:false
+    property var rotationPreview:null
+    signal turnShelf(string shelfId)
+    readonly property var perspectiveData:visible&&perspective?View.roomPerspective(snapshot,planData,width,height):null
     signal inspectShelf(string shelfId)
     readonly property var planData:View.roomPlan(snapshot,roomId)
     readonly property real planScale:planData?Math.max(.001,Math.min(Math.max(1,width-64)/planData.room.w,Math.max(1,height-100)/planData.room.h)):1
     readonly property point planOrigin:planData?Qt.point((width-planData.room.w*planScale)/2,(height-planData.room.h*planScale)/2):Qt.point(0,0)
-    function pointFor(x,y){return Qt.point(planOrigin.x+x*planScale,planOrigin.y+y*planScale)}
-    function hit(x,y){return View.roomPlanHit(planData,(x-planOrigin.x)/planScale,(y-planOrigin.y)/planScale)}
+    function pointFor(x,y){
+        if(perspective&&perspectiveData){var p=Projection.project([x,y,0],perspectiveData.frame);return p?Qt.point(p[0],p[1]):Qt.point(-1,-1)}
+        return Qt.point(planOrigin.x+x*planScale,planOrigin.y+y*planScale)
+    }
+    function floorAt(x,y){
+        return perspective&&perspectiveData?Projection.floorInverse(x,y,perspectiveData.frame):{x:(x-planOrigin.x)/planScale,y:(y-planOrigin.y)/planScale}
+    }
+    function hit(x,y){
+        if(perspective)return View.roomPerspectiveHit(perspectiveData,x,y)
+        var p=floorAt(x,y);return p?View.roomPlanHit(planData,p.x,p.y):""
+    }
     onRoomIdChanged:selectedShelf=""
     onPlanDataChanged:if(!planData||!planData.shelves.some(v=>v.id===selectedShelf))selectedShelf=""
     Rectangle {anchors.fill:parent;color:plan.colors.background}
     Text {
         anchors.top:parent.top;anchors.topMargin:8;anchors.horizontalCenter:parent.horizontalCenter
         color:plan.colors.text;font.pixelSize:16
-        text:plan.planData?plan.planData.room.name+" · Room plan":"Room plan"
+        text:plan.planData?plan.planData.room.name+(plan.perspective?" · Perspective":" · Room plan"):"Room plan"
     }
     Canvas {
         id:art
@@ -39,6 +54,9 @@ Item {
             function onPlanOriginChanged(){art.refresh()}
             function onPlanScaleChanged(){art.refresh()}
             function onSelectedShelfChanged(){art.refresh()}
+            function onPerspectiveDataChanged(){art.refresh()}
+            function onPerspectiveChanged(){art.refresh()}
+            function onRotationPreviewChanged(){art.refresh()}
         }
         onWidthChanged:refresh()
         onHeightChanged:refresh()
@@ -48,6 +66,26 @@ Item {
             if(!visible)return
             var ctx=getContext("2d");ctx.reset();ctx.clearRect(0,0,width,height)
             var data=plan.planData;if(!data)return
+            function polygon(points,fill){
+                ctx.beginPath();ctx.moveTo(points[0][0],points[0][1])
+                for(var i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1])
+                ctx.closePath();ctx.fillStyle=fill;ctx.fill()
+            }
+            function outline(box,color){
+                var a=plan.pointFor(box.x,box.y),b=plan.pointFor(box.x+box.w,box.y),
+                    c=plan.pointFor(box.x+box.w,box.y+box.h),d=plan.pointFor(box.x,box.y+box.h)
+                ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.lineTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.closePath()
+                ctx.lineWidth=1.5;ctx.strokeStyle=color;ctx.stroke()
+            }
+            if(plan.perspective){
+                var scene=plan.perspectiveData;if(!scene)return
+                polygon(scene.floor,plan.colors.panel)
+                for(var face of scene.faces)polygon(face.points,View.roomPerspectiveColor(plan.snapshot,face,plan.palettes,plan.desktopPalette,plan.colors))
+                var selected=data.shelves.find(v=>v.id===plan.selectedShelf)
+                if(selected)outline(selected.box,plan.colors.text)
+                if(plan.rotationPreview)outline(plan.rotationPreview,plan.colors.engraving)
+                return
+            }
             var r=data.room,k=plan.planScale,o=plan.planOrigin
             ctx.save();ctx.translate(o.x,o.y);ctx.scale(k,k)
             var wall=3/k
@@ -66,11 +104,6 @@ Item {
                 }
                 ctx.stroke()
             }
-            function polygon(points,fill){
-                ctx.beginPath();ctx.moveTo(points[0][0],points[0][1])
-                for(var i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1])
-                ctx.closePath();ctx.fillStyle=fill;ctx.fill()
-            }
             for(var shelf of data.shelves){
                 var palette=View.spatialPalette(plan.snapshot,shelf.id,plan.palettes,plan.desktopPalette)
                 var box=shelf.box
@@ -88,10 +121,11 @@ Item {
                 }
             }
             ctx.restore()
+            if(plan.rotationPreview)outline(plan.rotationPreview,plan.colors.engraving)
         }
     }
     Repeater {
-        model:plan.visible&&plan.planData?plan.planData.shelves:[]
+        model:plan.visible&&!plan.perspective&&plan.planData?plan.planData.shelves:[]
         Text {
             required property var modelData
             readonly property var box:modelData.box
@@ -106,14 +140,26 @@ Item {
     MouseArea {
         anchors.fill:parent
         onClicked:function(mouse){plan.selectedShelf=plan.hit(mouse.x,mouse.y)}
-        onDoubleClicked:function(mouse){var id=plan.hit(mouse.x,mouse.y);if(id)plan.inspectShelf(id)}
+        onDoubleClicked:function(mouse){var id=plan.hit(mouse.x,mouse.y);if(id&&!plan.arranging)plan.inspectShelf(id)}
     }
-    ArchiveButton {
+    Row {
         anchors.horizontalCenter:parent.horizontalCenter;anchors.bottom:parent.bottom;anchors.bottomMargin:8
-        colors:plan.colors
-        objectName:"plan-inspect-shelf"
-        label:"Inspect selected Shelf"
-        enabled:!!plan.selectedShelf
-        onClicked:plan.inspectShelf(plan.selectedShelf)
+        spacing:6
+        ArchiveButton {
+            colors:plan.colors
+            objectName:"plan-inspect-shelf"
+            label:"Inspect selected Shelf"
+            visible:!plan.arranging
+            enabled:!!plan.selectedShelf
+            onClicked:plan.inspectShelf(plan.selectedShelf)
+        }
+        ArchiveButton {
+            colors:plan.colors
+            objectName:"plan-turn-shelf"
+            label:"Rotate selected Shelf 90°"
+            visible:plan.arranging
+            enabled:!!plan.selectedShelf
+            onClicked:plan.turnShelf(plan.selectedShelf)
+        }
     }
 }
