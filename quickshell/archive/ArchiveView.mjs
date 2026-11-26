@@ -227,8 +227,8 @@ export function roomPlan(s,roomId){
 export function profilePartColor(role,frame,p){
     return role==='foot'||role==='capital'||role==='base'?mix(frame,p.metal,.32):role==='crest'?mix(frame,p.metal,.16):frame;
 }
-export function roomPerspective(s,plan,width,height){
-    return plan?RoomProjection.projectedScene(RoomProjection.roomMesh(s,plan.room.id,plan.openings),width,height):null;
+export function roomPerspective(s,plan,width,height,research=null){
+    return plan?RoomProjection.projectedScene(RoomProjection.roomMesh(s,plan.room.id,plan.openings,research),width,height):null;
 }
 export function roomPerspectiveHit(scene,x,y){
     const face=RoomProjection.faceAt(scene,x,y);return face?face.shelfId:'';
@@ -245,7 +245,10 @@ export function architectureSurfaceColor(face,frame,backing,p){
     return mix(base,p.metal,.12);
 }
 export function roomPerspectiveColor(s,face,palettes,desktop,roomColors){
-    if(!face.shelfId)return face.side==='north'||face.side==='east'?mix(roomColors.panel,roomColors.metal,.27):mix(roomColors.background,roomColors.metal,.36);
+    if(!face.shelfId){
+        const fill=face.side==='north'||face.side==='east'?mix(roomColors.panel,roomColors.metal,.27):mix(roomColors.background,roomColors.metal,.36);
+        return face.surface==='cap'?mix(fill,roomColors.metal,.45):face.surface==='base'?mix(fill,roomColors.background,.32):fill;
+    }
     const p=spatialPalette(s,face.shelfId,palettes,desktop),c=s.cubbies[face.shelfId];
     return architectureSurfaceColor(face,frameColor(c,p,0),backingColor(c,p,0),p);
 }

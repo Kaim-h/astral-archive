@@ -236,6 +236,31 @@ Item {
             compare(JSON.stringify(ctl.snapshot),before)
             study.reducedRoomMotion=true
         }
+        function test_room_wall_height_comparison(){
+            var ctl=study.controller,scene=study.scene
+            ctl.reset(Sample.roomFixture())
+            tryVerify(function(){return scene.physicalFront})
+            var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+            var g=Spatial.shelfGeometry(ctl.snapshot,"root"),plan=findChild(study,"archive-room-plan")
+            clickNamed("toggle-room-plan");clickNamed("toggle-room-perspective")
+            tryVerify(function(){return !!plan.visibilityRaster})
+            var art=findChild(plan,"room-depth-art")
+            verify(!!art)
+            try{
+                var samples=[{name:"baseline",options:null},{name:"occupied-fit",options:{occupiedFit:true}},{name:"wall-120",options:{farWall:g.h*1.2,occupiedFit:true,wallBands:true}},{name:"wall-160",options:{farWall:g.h*1.6,occupiedFit:true,wallBands:true}}]
+                for(var sample of samples){
+                    var old=art.paintCount
+                    plan.researchProjection=sample.options
+                    if(sample.options)tryVerify(function(){return art.paintCount>old})
+                    wait(100)
+                    var data=plan.perspectiveData
+                    verify(!!data&&!!plan.visibilityRaster)
+                    console.log("B8 wall comparison",sample.name,"reference",g.h,"far",sample.options&&sample.options.farWall||125,"camera",JSON.stringify(data.frame),"faces",data.faces.length)
+                    grabImage(study).save("archive-b8-native-shelf-wall-"+sample.name+".png")
+                    compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                }
+            }finally{plan.researchProjection=null;study.roomPlanOpen=false}
+        }
         function test_room_furnished_arrangement_rejections(){
             var ctl=study.controller,scene=study.scene
             ctl.reset(Sample.roomFixture())

@@ -14,6 +14,8 @@ Item {
     required property int desktopPalette
     property string selectedShelf:""
     property bool perspective:false
+    // Isolated test comparison only, never a saved preference.
+    property var researchProjection:null
     property bool arranging:false
     property var rotationPreview:null
     property var editPreview:null
@@ -27,7 +29,7 @@ Item {
     signal editShelf(string shelfId,var patch)
     signal editDimensions(string shelfId)
     signal turnShelf(string shelfId)
-    readonly property var perspectiveData:visible&&perspective?View.roomPerspective(snapshot,planData,width,height):null
+    readonly property var perspectiveData:visible&&perspective?View.roomPerspective(snapshot,planData,width,height,researchProjection):null
     readonly property var visibilityRaster:perspectiveData?Projection.visibility(perspectiveData,width,height):null
     signal inspectShelf(string shelfId)
     readonly property var planData:View.roomPlan(snapshot,roomId)
@@ -46,7 +48,7 @@ Item {
     }
     function mapping(){return perspective&&perspectiveData?{frame:perspectiveData.frame}:{x:planOrigin.x,y:planOrigin.y,scale:planScale}}
     function startGesture(id,kind,x,y){
-        if(!arranging||!id||gesture)return false
+        if(researchProjection||!arranging||!id||gesture)return false
         var m=mapping(),start=View.roomFloorAt(m,x,y)
         var g=View.roomGesture(snapshot,id,kind,start,m)
         if(!g)return false
@@ -74,6 +76,7 @@ Item {
     onRoomIdChanged:{cancelGesture();selectedShelf=""}
     onPlanDataChanged:{cancelGesture();if(!planData||!planData.shelves.some(v=>v.id===selectedShelf))selectedShelf=""}
     onPerspectiveChanged:cancelGesture()
+    onResearchProjectionChanged:cancelGesture()
     onWidthChanged:cancelGesture()
     onHeightChanged:cancelGesture()
     onVisibleChanged:if(!visible)cancelGesture()
@@ -212,7 +215,7 @@ Item {
         onReleased:function(mouse){plan.finishGesture(mouse.x,mouse.y)}
         onCanceled:plan.cancelGesture()
         onClicked:function(mouse){if(!plan.arranging)plan.selectedShelf=plan.hit(mouse.x,mouse.y)}
-        onDoubleClicked:function(mouse){var id=plan.hit(mouse.x,mouse.y);if(id&&!plan.arranging)plan.inspectShelf(id)}
+        onDoubleClicked:function(mouse){var id=plan.hit(mouse.x,mouse.y);if(id&&!plan.arranging&&!plan.researchProjection)plan.inspectShelf(id)}
     }
     Rectangle {
         id:resizeHandle
@@ -239,7 +242,7 @@ Item {
             objectName:"plan-inspect-shelf"
             label:"Inspect selected Shelf"
             visible:!plan.arranging
-            enabled:!!plan.selectedShelf
+            enabled:!!plan.selectedShelf&&!plan.researchProjection
             onClicked:plan.inspectShelf(plan.selectedShelf)
         }
         ArchiveButton {
@@ -247,12 +250,12 @@ Item {
             objectName:"plan-turn-shelf"
             label:"Rotate selected Shelf 90°"
             visible:plan.arranging
-            enabled:!!plan.selectedShelf&&!plan.dragging
+            enabled:!!plan.selectedShelf&&!plan.researchProjection&&!plan.dragging
             onClicked:plan.turnShelf(plan.selectedShelf)
         }
         ArchiveButton {
             colors:plan.colors;objectName:"plan-edit-shelf";label:"Shelf dimensions…"
-            visible:plan.arranging;enabled:!!plan.selectedShelf&&!plan.dragging
+            visible:plan.arranging;enabled:!!plan.selectedShelf&&!plan.researchProjection&&!plan.dragging
             onClicked:plan.editDimensions(plan.selectedShelf)
         }
     }

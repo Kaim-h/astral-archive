@@ -12,15 +12,24 @@ export function rawProject(p,c){
  if(!Number.isFinite(q)||q<=0)return null;
  return [x*c.distance/q,(c.cos*y-c.sin*z)*c.distance/q,1/q];
 }
-export function frame(room,maxHeight,width,height,tilt=22){
+export function frame(room,maxHeight,width,height,tilt=22,occupied=null){
  need([room.w,room.h,maxHeight,width,height,tilt].every(Number.isFinite)&&room.w>0&&room.h>0&&maxHeight>=0&&width>0&&height>0&&tilt>=20&&tilt<=30,'Invalid perspective viewport');
  const angle=tilt*Math.PI/180,cos=Math.cos(angle),sin=Math.sin(angle);
  const top=Math.max(maxHeight,wallHeight(room,'north'));
  // Real tall cases in shallow rooms must never cross the camera near plane.
  const distance=Math.max(Math.max(room.w,room.h)*2.6,(sin*room.h/2+cos*top)*1.35+1);
- const c={w:room.w,h:room.h,cos,sin,distance},pts=[];
- for(const x of [0,room.w])for(const y of [0,room.h])for(const z of [0,top])pts.push(rawProject([x,y,z],c));
- const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),l=Math.min(...xs),r=Math.max(...xs),u=Math.min(...ys),b=Math.max(...ys);
+ const c={w:room.w,h:room.h,cos,sin,distance};
+ let l=Infinity,r=-Infinity,u=Infinity,b=-Infinity;
+ function include(point){
+  const q=rawProject(point,c);need(q&&q.every(Number.isFinite),'Invalid fitted vertex');
+  l=Math.min(l,q[0]);r=Math.max(r,q[0]);u=Math.min(u,q[1]);b=Math.max(b,q[1]);
+ }
+ // Comparison only: retain conservative near-plane protection, fit real
+ // floor and visible faces rather than empty tall bounding-box corners.
+ if(occupied){
+  for(const xy of rectPoints(0,0,room.w,room.h))include([xy[0],xy[1],0]);
+  for(const face of occupied)if(face.role==='wall'||facesCamera(face.points,c))for(const point of face.points)include(point);
+ }else for(const x of [0,room.w])for(const y of [0,room.h])for(const z of [0,top])include([x,y,z]);
  const scale=Math.min(Math.max(1,width-64)/(r-l),Math.max(1,height-100)/(b-u));
  return Object.assign(c,{scale,ox:width/2-(l+r)*scale/2,oy:height/2-(u+b)*scale/2});
 }
@@ -95,20 +104,30 @@ function facesCamera(points,f){
  const n=normal(points),a=points[0],cam=[f.w/2,f.h/2+f.distance*f.sin,f.distance*f.cos];
  return n[0]*(cam[0]-a[0])+n[1]*(cam[1]-a[1])+n[2]*(cam[2]-a[2])>1e-8;
 }
-export function roomMesh(s,roomId,openings){
+export function roomMesh(s,roomId,openings,research=null){
  if(!Spatial.physicalProfiles(s)||!own(s.spatial.rooms,roomId))return null;
  const room=s.spatial.rooms[roomId],faces=[],segments=wallSegments(room,openings);
- let maxHeight=0;
+ // Explicit absolute comparison height, never coupled to Shelf edits.
+ const proposed=research&&research.farWall!==undefined?research.farWall:null;
+ if(proposed!==null)need(Number.isFinite(proposed)&&proposed>0&&proposed<=20000,'Invalid research wall height');
+ let maxHeight=0,wallTop=0;
  for(const id of Object.keys(s.spatial.shelves)){
   const p=s.spatial.shelves[id];if(p.roomId!==roomId)continue;
   const g=Spatial.shelfGeometry(s,id);maxHeight=Math.max(maxHeight,g.h);
   for(const face of shelfSurfaces(g,p,id))faces.push(face);
  }
  for(const v of segments){
-  const h=wallHeight(room,v.side);
-  faces.push({shelfId:'',role:'wall',side:v.side,points:[wallPoint(room,v.side,v.start,0),wallPoint(room,v.side,v.end,0),wallPoint(room,v.side,v.end,h),wallPoint(room,v.side,v.start,h)]});
+  const far=v.side==='north'||v.side==='east';
+  const h=proposed===null?wallHeight(room,v.side):far?proposed:proposed*12/125;
+  wallTop=Math.max(wallTop,h);
+  function band(z0,z1,surface){
+   faces.push({shelfId:'',role:'wall',side:v.side,surface,points:[wallPoint(room,v.side,v.start,z0),wallPoint(room,v.side,v.end,z0),wallPoint(room,v.side,v.end,z1),wallPoint(room,v.side,v.start,z1)]});
+  }
+  // Coplanar role bands remain within the supporting wall and openings.
+  if(research&&research.wallBands){band(0,h*.035,'base');band(h*.035,h*.975,'wall');band(h*.975,h,'cap');}
+  else band(0,h,'wall');
  }
- return {room,maxHeight,faces,segments};
+ return {room,maxHeight,faces,segments,wallTop,occupiedFit:!!(research&&research.occupiedFit)};
 }
 // Back-face culling and projected planar faces. Average depth remains a
 // stable iteration order for historical callers, NOT the visibility rule.
@@ -133,7 +152,7 @@ function nearer(z,f,oldZ,old){
 }
 export function projectedScene(mesh,width,height,tilt=22){
  if(!mesh||width<=0||height<=0)return null;
- const f=frame(mesh.room,mesh.maxHeight,width,height,tilt);
+ const f=frame(mesh.room,Math.max(mesh.maxHeight,mesh.wallTop||0),width,height,tilt,mesh.occupiedFit?mesh.faces:null);
  const floor=rectPoints(0,0,mesh.room.w,mesh.room.h).map(q=>project([q[0],q[1],0],f));
  const faces=[];
  for(let i=0;i<mesh.faces.length;i++){

@@ -871,5 +871,42 @@ export function run(){
   yes(surfaces.some(v=>v.surface==='top')&&surfaces.some(v=>v.surface==='side')&&surfaces.some(v=>v.surface==='bottom'),'actual solid face roles across cardinals');
  }
  }
+ {
+ const s=ShelfSample.roomFixture(),before=Core.clone(s),id=s.spatial.shelves.root.roomId,plan=View.roomPlan(s,id),g=Spatial.shelfGeometry(s,'root');
+ const base=Projection.roomMesh(s,id,plan.openings),baseline=Projection.projectedScene(base,1366,756);
+ const plainFit=Projection.projectedScene(Projection.roomMesh(s,id,plan.openings,{occupiedFit:true}),1366,756);
+ yes(plainFit.frame.scale>=baseline.frame.scale-1e-9,'occupied fit never smaller at same geometry');
+ for(const ratio of [1.2,1.6]){
+  const far=g.h*ratio,opts={farWall:far,occupiedFit:true,wallBands:true};
+  const mesh=Projection.roomMesh(s,id,plan.openings,opts);
+  eq(mesh.maxHeight,base.maxHeight,'Shelf heights unchanged');
+  eq(mesh.wallTop,far,'independent absolute wall height');
+  eq(mesh.faces.filter(f=>f.shelfId),base.faces.filter(f=>f.shelfId),'all Shelf faces unchanged');
+  eq(mesh.segments,base.segments,'shared openings unchanged');
+  for(const face of mesh.faces.filter(f=>!f.shelfId)){
+   const z=Math.max(...face.points.map(p=>p[2]));
+   yes(z<=(face.side==='north'||face.side==='east'?far:far*12/125)+1e-7,'wall band within chosen height');
+   if(face.side==='east')yes(!(Math.min(...face.points.map(p=>p[1]))<650&&Math.max(...face.points.map(p=>p[1]))>300),'bands do not span doorway');
+  }
+  for(const [w,h] of [[1366,756],[740,725]]){
+   const sc=Projection.projectedScene(mesh,w,h),f=sc.frame;
+   for(const q of sc.floor.concat(...sc.faces.map(v=>v.points)))yes(q.every(Number.isFinite)&&q[2]>0&&q[0]>=32-1e-6&&q[0]<=w-32+1e-6&&q[1]>=50-1e-6&&q[1]<=h-50+1e-6,'visible occupied vertex fits and positive depth');
+   const q=Projection.project([900,1000,0],f),round=Projection.floorInverse(q[0],q[1],f);
+   yes(Math.abs(round.x-900)<1e-7&&Math.abs(round.y-1000)<1e-7,'comparison floor inverse exact');
+  }
+ }
+ // Synthetic projection-only empty/outlier variants, not checkpoint edits.
+ const empty=Core.clone(s);for(const k of Object.keys(empty.spatial.shelves))if(empty.spatial.shelves[k].roomId===id)delete empty.spatial.shelves[k];
+ const opts={farWall:1300,occupiedFit:true,wallBands:true};
+ const emptyMesh=Projection.roomMesh(empty,id,plan.openings,opts);
+ eq(emptyMesh.maxHeight,0,'empty comparison room');
+ eq(emptyMesh.wallTop,1300,'empty comparison independent wall');
+ yes(Projection.projectedScene(emptyMesh,740,725).faces.length>0,'empty wall and floor fit');
+ const tall=Core.clone(s);tall.cubbies.root.h=2500;
+ const tallMesh=Projection.roomMesh(tall,id,plan.openings,opts);
+ eq(tallMesh.wallTop,1300,'taller outlier leaves independent wall unchanged');
+ yes(tallMesh.maxHeight>2500&&Projection.projectedScene(tallMesh,740,725).faces.every(f=>f.points.every(q=>q[2]>0)),'tall outlier near plane protected');
+ eq(s,before,'comparison never mutates snapshot');
+ }
  return checks;
 }
