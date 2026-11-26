@@ -42,6 +42,29 @@ export function spatialPalette(snapshot,id,palettes,desktop){
     const resolved=Spatial.resolveAppearance(snapshot,id,desktop);
     return appearancePalette(palettes[resolved.palette],snapshot.materials);
 }
+// Bounded frame-detail geometry shared by future scene consumers. These
+// are in-envelope ornament treatments, not external silhouette profiles.
+// No line may claim space outside the stored frame or over the aperture.
+export function shelfTrim(c,profile){
+    const b=Number(c.b)||11,w=c.w+2*b,h=c.h+2*b,t=Math.min(1,b/4),out=[];
+    function add(x,y,w,h,role){if(w>0&&h>0)out.push({x,y,w,h,role});}
+    const side=Math.max(0,h-2*b-8);
+    add(t,b*.27,w-2*t,t,'metal');
+    add(b,b*.70,w-2*b,t,'engraving');
+    add(t,h-b*.30-t,w-2*t,t,'metal');
+    for(const x of [b*.40,w-b*.40-t])add(x,b+4,t,side,'engraving');
+    if(profile==='pilaster'){
+        for(const x of [b*.70,w-b*.70-t])add(x,b+4,t,side,'metal');
+        for(const x of [0,w-b])for(const y of [b,h-2*b])add(x,y,b,Math.min(b,2*t),'metal');
+    }
+    if(profile==='crest'){
+        // Stepped central inscription within the lintel; no raised crest
+        // or overhang until the physical profile envelope is reconciled.
+        const span=Math.min(c.w*.35,110);
+        for(let i=0;i<3;i++){const half=span*(1-i*.26)/2;add(w/2-half,b*(.12+i*.22),half*2,t,'engraving');}
+    }
+    return out;
+}
 // Provisional three-theme book treatment: preserve the stable binding hue
 // supplied by AppMatching, coordinate its cover with the current panel.
 // The production launcher and native ribbon mechanics are unchanged.

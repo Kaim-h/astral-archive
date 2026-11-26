@@ -83,9 +83,12 @@ Rectangle {
     // Resolved material roles are separate from semantic theme colors.
     readonly property var materialProposal:archive.structuralProposal&&archive.structuralProposal.command.kind==="materialBatch"?archive.structuralProposal:null
     readonly property var materialSnapshot:materialProposal&&materialProposal.snapshot?materialProposal.snapshot:archive.snapshot
+    readonly property var shelfAppearanceProposal:archive.structuralProposal&&archive.structuralProposal.command.kind==="spatialAppearance"&&archive.structuralProposal.ok?archive.structuralProposal:null
+    readonly property var sceneAppearanceSnapshot:shelfAppearanceProposal?shelfAppearanceProposal.snapshot:materialProposal?materialSnapshot:null
     readonly property var appearanceColors: View.appearancePalette(colors,materialSnapshot.materials)
     function paletteFor(id){
-        return spatialEnabled&&Spatial.enabled(materialSnapshot)&&Object.prototype.hasOwnProperty.call(materialSnapshot.cubbies,id)?View.spatialPalette(materialSnapshot,id,Themes.Theme.palettes,Themes.Theme.index):appearanceColors
+        var s=sceneAppearanceSnapshot||materialSnapshot
+        return spatialEnabled&&Spatial.enabled(s)&&Object.prototype.hasOwnProperty.call(s.cubbies,id)?View.spatialPalette(s,id,Themes.Theme.palettes,Themes.Theme.index):appearanceColors
     }
     readonly property var sceneColors:paletteFor(sceneView.cubbyId)
     readonly property var localMaterialColors:materialCubby?paletteFor(materialCubby.id):sceneColors
@@ -298,6 +301,19 @@ Rectangle {
         archive.proposeStructure({kind:"spatialSupport",containerId:sceneView.cubbyId,moduleId:m.id,patch:{enabled:m.flatTop!==true}})
         structurePanel.forceActiveFocus()
     }
+    function startShelfAppearance(){
+        if(!structureReady||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf")return
+        var id=sceneView.cubbyId
+        closeContext()
+        archive.proposeStructure({kind:"spatialAppearance",containerId:id,patch:{profile:Spatial.shelfProfile(archive.snapshot,id)}})
+        structurePanel.forceActiveFocus()
+    }
+    function setShelfAppearance(key,value){
+        var q=archive.structuralProposal
+        if(!q||q.command.kind!=="spatialAppearance")return
+        var cmd=Core.clone(q.command);cmd.patch[key]=value
+        archive.proposeStructure(cmd)
+    }
     function startShelfRemoval(){
         if(!structureReady||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf")return
         closeContext()
@@ -486,7 +502,7 @@ Rectangle {
         colors:study.sceneColors
         paletteOptions:Themes.Theme.palettes
         desktopPaletteIndex:Themes.Theme.index
-        appearanceSnapshot:study.materialProposal?study.materialSnapshot:null
+        appearanceSnapshot:study.sceneAppearanceSnapshot
         anchors.top:heading.bottom
         anchors.bottom:footer.top
         anchors.left:parent.left
@@ -524,6 +540,7 @@ Rectangle {
             Archive.ArchiveButton {objectName:"toggle-flat-top";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!!study.selectedFixture&&["rack","cubby"].includes(study.selectedFixture.type);label:study.selectedFixture&&study.selectedFixture.flatTop?"Disable top support":"Enable top support";onClicked:study.toggleTop()}
             Archive.ArchiveButton {objectName:"place-book";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&study.selectedSupport&&!study.bookPicker;label:"Place / move application book…";onClicked:study.beginBookPicker()}
             Archive.ArchiveButton {objectName:"unplace-selected-book";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&study.selectedSupport&&!!sceneView.selectedAppId;label:"Unplace selected book";onClicked:study.startBook(sceneView.selectedAppId,true)}
+            Archive.ArchiveButton {objectName:"shelf-appearance";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!study.selectedFixture&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf";label:"Shelf appearance…";onClicked:study.startShelfAppearance()}
             Archive.ArchiveButton {objectName:"remove-architectural-shelf";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!study.selectedFixture&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"&&sceneView.shelfRoots.length>1;label:"Remove architectural Shelf";onClicked:study.startShelfRemoval()}
             Archive.ArchiveButton {objectName:"edit-rack";colors:study.colors;width:parent.width;label:"Rack size / cell pigment";visible:!!study.selectedRack;onClicked:study.openRackInspector()}
             Archive.ArchiveButton {objectName:"material-local";colors:study.colors;width:parent.width;label:!study.selectedFixture||study.selectedFixture.type==="cubby"?"Cubby colors":"Fixture color";visible:!study.selectedFixture||study.selectedFixture.type!=="artwork";onClicked:study.openMaterials(!study.selectedFixture||study.selectedFixture.type==="cubby"?"cubby":"fixture")}
@@ -896,7 +913,7 @@ Rectangle {
         availableWidth:study.width-16
         availableHeight:sceneView.height-16
         preferredWidth:265
-        preferredHeight:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
+        preferredHeight:shelfAppearance?340:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
         property var proposal:study.materialProposal?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
@@ -906,7 +923,8 @@ Rectangle {
         readonly property bool bookEdit:!!cmd&&cmd.kind==="spatialAppPlace"
         readonly property bool bookRemove:!!cmd&&cmd.kind==="spatialAppUnplace"
         readonly property bool supportEdit:!!cmd&&cmd.kind==="spatialSupport"
-        readonly property bool spatialConfirmation:!!cmd&&[ "spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete" ].includes(cmd.kind)
+        readonly property bool shelfAppearance:!!cmd&&cmd.kind==="spatialAppearance"
+        readonly property bool spatialConfirmation:!!cmd&&[ "spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
@@ -927,7 +945,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:"Cancel fixture adjustment";onClicked:archive.cancelStructure()}
@@ -948,8 +966,39 @@ Rectangle {
                     text:!structurePanel.proposal?"":structurePanel.removing?
                         (structurePanel.cmd.kind==="spatialShelfDelete"?"Remove this architectural Shelf and its contents? ":"Remove this fixture and its contents? ")+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
                         (study.spatialEnabled&&structurePanel.proposal.appUnplacementCount?" "+structurePanel.proposal.appUnplacementCount+" application book(s) will be unplaced; application identities retained.":"")+" No disk files are deleted.":
-                        structurePanel.bookEdit?"Place "+structurePanel.cmd.appId+" · choose support-local position. The book retains its size and identity.":structurePanel.bookRemove?"Unplace "+structurePanel.cmd.appId+"? Its application identity is retained.":structurePanel.supportEdit?"Change explicit top support eligibility. Occupied supports cannot be disabled.":structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
+                        structurePanel.shelfAppearance?"Choose a local frame treatment and palette. Geometry and contents stay unchanged.":structurePanel.bookEdit?"Place "+structurePanel.cmd.appId+" · choose support-local position. The book retains its size and identity.":structurePanel.bookRemove?"Unplace "+structurePanel.cmd.appId+"? Its application identity is retained.":structurePanel.supportEdit?"Change explicit top support eligibility. Occupied supports cannot be disabled.":structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
                         structurePanel.cubbyEdit?"Grow the interior without changing furniture or its outer footprint. Apply when ready.":"Drag the preview to move; drag its lower-right handle to resize. Apply when valid."
+                }
+                Column {
+                    visible:structurePanel.shelfAppearance
+                    width:contentStructure.width;spacing:4
+                    Repeater {
+                        model:[{key:"cornice",label:"Straight cornice"},{key:"crest",label:"Crest trim"},{key:"pilaster",label:"Pilaster trim"}]
+                        Archive.ArchiveButton {
+                            required property var modelData
+                            objectName:"shelf-profile-"+modelData.key
+                            colors:study.colors;width:contentStructure.width;label:modelData.label
+                            active:structurePanel.shelfAppearance&&structurePanel.cmd.patch.profile===modelData.key
+                            onClicked:study.setShelfAppearance("profile",modelData.key)
+                        }
+                    }
+                    Text {text:"Local palette";color:study.colors.engraving;font.pixelSize:11}
+                    Flow {
+                        width:contentStructure.width;spacing:3
+                        Repeater {
+                            model:[{key:null,label:"Desktop"},{key:0,label:"Evening"},{key:1,label:"Twilight"},{key:2,label:"Midnight"}]
+                            Archive.ArchiveButton {
+                                required property var modelData
+                                objectName:"shelf-palette-"+(modelData.key===null?"desktop":String(modelData.key))
+                                colors:study.colors;label:modelData.label
+                                active:structurePanel.shelfAppearance&&(
+                                    structurePanel.cmd.patch.palette!==undefined?structurePanel.cmd.patch.palette:
+                                    (archive.snapshot.cubbies[sceneView.cubbyId].appearance||{}).palette===undefined?null:
+                                    archive.snapshot.cubbies[sceneView.cubbyId].appearance.palette)===modelData.key
+                                onClicked:study.setShelfAppearance("palette",modelData.key)
+                            }
+                        }
+                    }
                 }
                 Column {
                     visible:structurePanel.cubbyEdit
@@ -1027,7 +1076,7 @@ Rectangle {
                     Archive.ArchiveButton {objectName:"book-plus";colors:study.colors;label:"+";onClicked:study.stepBook(10)}
                 }
                 Repeater {
-                    model:contentStructure.cmd&&!structurePanel.removing&&!structurePanel.cubbyEdit&&!structurePanel.bookEdit&&!structurePanel.bookRemove&&!structurePanel.supportEdit?(structurePanel.holderEdit?["x","w","count"]:contentStructure.cmd.type==="shelf"||contentStructure.cmd.kind==="shelf"?["x","y","w"]:["x","y","w","h"]):[]
+                    model:contentStructure.cmd&&!structurePanel.removing&&!structurePanel.cubbyEdit&&!structurePanel.bookEdit&&!structurePanel.bookRemove&&!structurePanel.supportEdit&&!structurePanel.shelfAppearance?(structurePanel.holderEdit?["x","w","count"]:contentStructure.cmd.type==="shelf"||contentStructure.cmd.kind==="shelf"?["x","y","w"]:["x","y","w","h"]):[]
                     Row {
                         required property string modelData
                         spacing:5

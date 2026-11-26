@@ -155,6 +155,28 @@ Item {
             tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")},3000,study.structureApplyError+" / "+ctl.errorText)
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
+        function test_shelf_local_appearance(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
+            study.switchMode("arrange");scene.clearSelection()
+            clickNamed("arrange-menu");clickNamed("shelf-appearance")
+            tryVerify(function(){return !!ctl.structuralProposal})
+            clickNamed("shelf-profile-pilaster")
+            tryVerify(function(){return ctl.structuralProposal.ok&&ctl.structuralProposal.command.patch.profile==="pilaster"})
+            var trim=findChild(scene,"architectural-frame-detail")
+            tryCompare(trim,"profile","pilaster")
+            clickNamed("shelf-palette-2")
+            tryVerify(function(){return scene.colors.name==="Midnight"})
+            compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("structure-cancel")
+            tryCompare(trim,"profile","cornice")
+            compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("arrange-menu");clickNamed("shelf-appearance");clickNamed("shelf-profile-crest")
+            tryCompare(trim,"profile","crest")
+            clickNamed("structure-apply")
+            tryVerify(function(){return !ctl.structuralProposal&&Spatial.shelfProfile(ctl.snapshot,"root")==="crest"})
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            tryCompare(trim,"profile","cornice")
+        }
         function test_spatial_theme_comparison(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot),oldTheme=Themes.Theme.index
             var covers=[]

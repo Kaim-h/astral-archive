@@ -484,5 +484,25 @@ export function run(){
  eq(new Set(swatches.map(v=>v.cover)).size,3,'three coordinated covers');
  eq(View.bookColors('#526f63',palettes[1]),swatches[1],'deterministic cover identity');
  yes(View.bookColors('#526f63',palettes[1]).cover!==View.bookColors('#836b54',palettes[1]).cover,'base identity hue retained');
+ eq(Spatial.shelfProfile(sample,'root'),'cornice','default Shelf profile');
+ const profile=apply(sampleState,{kind:'spatialAppearance',containerId:'root',patch:{profile:'pilaster',palette:2}});
+ eq(Spatial.shelfProfile(profile.snapshot,'root'),'pilaster','local profile stored');
+ eq(Spatial.shelfProfile(profile.snapshot,otherRoot),'cornice','other Shelf unaffected');
+ eq(Spatial.footprint(profile.snapshot,'root'),Spatial.footprint(sample,'root'),'trim does not change footprint');
+ eq(profile.snapshot.cubbies.root.mods,sample.cubbies.root.mods,'trim retains all furniture and placements');
+ eq(Core.undo(profile).snapshot,sample,'profile exact Undo');
+ eq(Checkpoint.decode(Checkpoint.encode(profile,{path:['root'],theme:1,cameras:{}})).snapshot,profile.snapshot,'profile checkpoint exact');
+ refuse(sampleState,{kind:'spatialAppearance',containerId:'root',patch:{profile:'unknown'}});
+ refuse(sampleState,{kind:'spatialAppearance',containerId:'child',patch:{profile:'crest'}});
+ refuse(sampleState,{kind:'spatialAppearance',patch:{profile:'crest'}});
+ const trims=Spatial.shelfProfiles.map(p=>View.shelfTrim(sample.cubbies.root,p));
+ eq(new Set(trims.map(t=>JSON.stringify(t))).size,3,'distinct trim geometry');
+ for(const c of [{w:130,h:100,b:4},{w:700.5,h:500,b:11.25},sample.cubbies.root]){
+  const e=Spatial.exterior(c);
+  for(const p of Spatial.shelfProfiles)for(const r of View.shelfTrim(c,p)){
+   yes(r.x>=0&&r.y>=0&&r.x+r.w<=e.w+.001&&r.y+r.h<=e.h+.001,'trim inside envelope');
+   yes(r.x+r.w<=c.b+.001||r.x>=e.w-c.b-.001||r.y+r.h<=c.b+.001||r.y>=e.h-c.b-.001,'trim outside aperture');
+  }
+ }
  return checks;
 }

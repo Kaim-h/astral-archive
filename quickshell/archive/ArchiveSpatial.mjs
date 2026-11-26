@@ -24,8 +24,10 @@ export function footprint(s,shelfId){
 function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
 function inside(a,w,h){return a.x>=0&&a.y>=0&&a.x+a.w<=w&&a.y+a.h<=h;}
 function keysOnly(o,keys){return plain(o)&&Object.keys(o).every(k=>keys.includes(k));}
-function appearance(v){
- return v===undefined||keysOnly(v,['family','palette'])&&
+export const shelfProfiles=Object.freeze(['cornice','crest','pilaster']);
+function appearance(v,shelf=false){
+ return v===undefined||keysOnly(v,shelf?['family','palette','profile']:['family','palette'])&&
+  (v.profile===undefined||v.profile===null||shelf&&shelfProfiles.includes(v.profile))&&
   (v.family===undefined||v.family===null||name(v.family))&&
   (v.palette===undefined||v.palette===null||integer(v.palette,0,2));
 }
@@ -54,7 +56,7 @@ export function validate(s){
   need(plain(apps)&&Object.keys(apps).length<=spatialLimits.applications,'Application catalogue budget');
   for(const [k,v] of Object.entries(apps))need(id(k)&&keysOnly(v,['appId','title'])&&v.appId===k&&name(v.title),'Invalid application identity');
   for(const c of Object.values(s.cubbies)){
-   need((c.name===undefined||name(c.name))&&appearance(c.appearance),'Invalid container name or appearance reference');
+   need((c.name===undefined||name(c.name))&&appearance(c.appearance,own(a.shelves,c.id)),'Invalid container name or appearance reference');
    for(const m of c.mods){
     need(!structuralIds.has(m.id),'Duplicate spatial structural identity');structuralIds.add(m.id);
     for(const meta of Object.values(m.cellMeta||{})){need(!structuralIds.has(meta.id),'Duplicate spatial structural identity');structuralIds.add(meta.id);}
@@ -93,6 +95,12 @@ export function resolveAppearance(s,containerId,globalPalette){
  const chosen=chain.find(a=>a&&a.family!==undefined&&a.family!==null);
  const local=s.cubbies[containerId].appearance;
  return {family:chosen?chosen.family:'Architectural',palette:local&&local.palette!==undefined&&local.palette!==null?local.palette:globalPalette};
+}
+// Profiles are explicit per architectural Shelf, never inherited by Cubbies.
+export function shelfProfile(s,id){
+ need(enabled(s)&&own(s.spatial.shelves,id),'Invalid Shelf profile target');
+ const a=s.cubbies[id].appearance;
+ return a&&a.profile||'cornice';
 }
 // Application catalogue and placements are separate from file owners/Case.
 export function appPlacements(s){
@@ -194,7 +202,8 @@ export function edit(s,cmd,allocate){
    for(const record of s.caseItems)if(record.originCubbyId===cmd.containerId&&record.originModuleId===m.id)record.originStale=true;
   }
  }else if(cmd.kind==='spatialAppearance'){
-  need(keysOnly(p,['family','palette'])&&appearance(p),'Invalid appearance reference');
+  const isShelf=cmd.containerId!==undefined&&own(a.shelves,cmd.containerId);
+  need(appearance(p,isShelf),'Invalid appearance reference');
   const target=cmd.containerId===undefined?s.spatial:s.cubbies[cmd.containerId];
   need(cmd.containerId===undefined||own(s.cubbies,cmd.containerId),'Container no longer exists');
   target.appearance=Object.assign({},target.appearance||{},p);

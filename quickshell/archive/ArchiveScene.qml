@@ -459,17 +459,22 @@ Item {
             color:View.frameColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
             border.color:View.mix(scene.colors.metal,scene.colors.text,.20)
         }
-        // Initial restrained straight-cornice treatment, confined to the
-        // existing frame. Decorative lines never alter camera or footprint.
+        // Each Shelf keeps its own frame treatment, bounded to the
+        // physical envelope. The same profile reference can be used in N3.
         Item {
+            id:frameDetail
             objectName:"architectural-frame-detail"
             anchors.fill:parent;visible:scene.architectural
-            readonly property real b:Number(scene.displayCubby.b)||11
-            Rectangle {x:1;y:Math.max(1,parent.b*.27);width:Math.max(0,parent.width-2);height:1;color:scene.colors.metal}
-            Rectangle {x:parent.b;y:Math.max(1,parent.b*.70);width:Math.max(0,parent.width-2*parent.b);height:1;color:scene.colors.engraving;opacity:.65}
-            Rectangle {x:1;y:parent.height-Math.max(2,parent.b*.30);width:Math.max(0,parent.width-2);height:1;color:scene.colors.metal}
-            Rectangle {x:Math.max(1,parent.b*.40);y:parent.b+4;width:1;height:Math.max(0,parent.height-2*parent.b-8);color:scene.colors.engraving;opacity:.55}
-            Rectangle {x:parent.width-Math.max(2,parent.b*.40);y:parent.b+4;width:1;height:Math.max(0,parent.height-2*parent.b-8);color:scene.colors.engraving;opacity:.55}
+            readonly property string profile:scene.architectural?Spatial.shelfProfile(scene.appearanceSnapshot||scene.controller.snapshot,scene.cubbyId):"cornice"
+            Repeater {
+                model:frameDetail.visible?View.shelfTrim(scene.displayCubby,frameDetail.profile):[]
+                Rectangle {
+                    required property var modelData
+                    x:modelData.x;y:modelData.y;width:modelData.w;height:modelData.h
+                    color:scene.colors[modelData.role]
+                    opacity:modelData.role==="engraving"?.65:1
+                }
+            }
         }
         Item {
             id: interior
