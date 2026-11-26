@@ -2,6 +2,7 @@
 // originate in ArchiveCore; this module never mutates committed snapshots.
 import * as Core from "./ArchiveCore.mjs";
 import * as Spatial from "./ArchiveSpatial.mjs";
+import * as Mixed from "./representation/B7Ownership.mjs";
 
 export function mix(a,b,t) {
     function rgb(s){return [parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];}
@@ -112,20 +113,22 @@ export function rackColor(m,p){return m.color||(p.materials?p.materials.rack:mix
 export function shelfColor(m,p){return m.color||(p.materials?p.materials.shelf:p.panel);}
 export function wallColor(meta,p){return meta&&meta.color||mix(p.panel,p.metal,.34);}
 export function recessColor(meta,p){return mix(mix(p.background,p.engraving,.15),p.background,Math.max(0,Math.min(24,Number(meta&&meta.depth)||0))/24*.46);}
-// Exterior preview inventory describes immediate contents only. A nested
-// cubby is counted once, without exposing its descendants or file names.
-// N3r1 has empty shelf boards; populated shelf ownership arrives in B7.
+// Exterior inventory counts immediate placed representations: rack files,
+// mounted files, supported file objects, occupied holder slots and apps.
+// Count each eligible support once, independent of fixture type. A Cubby
+// counts as a fixture; its interior (and Case contents) is not traversed.
 export function cubbyPreviewSummary(c){
     const counts={rack:0,shelf:0,cubby:0,items:0};
     for(const m of c.mods){
         if(m.type==="rack"){
             counts.rack++;
             for(const records of Object.values(m.scrollCells||{}))counts.items+=records.length;
-        }else if(m.type==="shelf"){
-            counts.shelf++;
-            for(const entry of m.items||[])counts.items+=entry.kind==="holder"?entry.slots.filter(Boolean).length:1;
-        }else if(m.type==="artwork"){if(m.record)counts.items++;}
+        }else if(m.type==="shelf")counts.shelf++;
+        else if(m.type==="artwork"){if(m.record)counts.items++;}
         else if(m.type==="cubby")counts.cubby++;
+        if(Mixed.supportsTop(m)){
+            for(const entry of m.items||[])counts.items+=entry.kind==="holder"?entry.slots.filter(Boolean).length:1;
+        }
     }
     return counts;
 }

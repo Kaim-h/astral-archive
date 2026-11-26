@@ -52,7 +52,11 @@ export function populatedFixture(copies){
    if(typeof v==="string")return map.has(v)?map.get(v):v;
    if(Array.isArray(v))return v.map(remap);
    if(!v||typeof v!=="object")return v;
-   return Object.fromEntries(Object.entries(v).map(([k,x])=>[map.has(k)?map.get(k):k,remap(x)]));
+   // Qt 6.4's JS engine does not provide Object.fromEntries.
+   // Source keys and generated IDs are bounded synthetic fixture data.
+   const out={};
+   for(const [k,x] of Object.entries(v))out[map.has(k)?map.get(k):k]=remap(x);
+   return out;
   }
   const copy={root:remap(source.root),child:remap(source.child),caseItems:remap(source.caseItems),apps:remap(source.apps)},roomId=prefix+"room";
   const room=Object.assign({},originalRoom,{id:roomId,name:"Sample Room "+i,x:2000*(i+1),y:0});
@@ -61,6 +65,18 @@ export function populatedFixture(copies){
   s.spatial.shelves[copy.root.id]=Object.assign({},specimen.spatial.shelves.root,{roomId});
   Object.assign(s.spatial.apps,copy.apps);s.caseItems.push(...copy.caseItems);
  }
+ const error=Core.validate(s);if(error)throw Error(error);
+ return s;
+}
+
+
+// Valid nested specimen exposing the furnished root in Inventory mode.
+// The enclosing Cubby footprint is independent of interior dimensions.
+export function inventoryFixture(){
+ const s=fixture(),other=Object.keys(s.spatial.shelves).find(k=>k!=="root");
+ delete s.spatial.shelves.root;
+ s.cubbies[other].mods.push({id:"inventory-parent-face",type:"cubby",childId:"root",x:560,y:70,w:130,h:180});
+ s.path=[other];
  const error=Core.validate(s);if(error)throw Error(error);
  return s;
 }

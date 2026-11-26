@@ -177,6 +177,25 @@ Item {
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
             tryCompare(trim,"profile","cornice")
         }
+        function test_nested_inventory_counts(){
+            var scene=study.scene,ctl=study.controller
+            var sample=Sample.inventoryFixture(),oldMode=scene.cubbyPreviewMode
+            ctl.reset(sample)
+            var parentId=sample.path[0]
+            tryCompare(scene,"cubbyId",parentId)
+            var before=JSON.stringify(ctl.snapshot)
+            try{
+                scene.cubbyPreviewMode="inventory"
+                var face=findChild(scene,"cubby-inventory-parent-face")
+                tryVerify(function(){face=findChild(scene,"cubby-inventory-parent-face");return !!face&&face.previewMode==="inventory"&&!!face.inventory})
+                compare(face.inventory.items,20)
+                compare(face.inventory.cubby,1)
+                var label=findChild(face,"cubby-inventory-item-label")
+                verify(!!label&&label.visible)
+                compare(label.text,"1 cubbies · 20 items")
+                compare(JSON.stringify(ctl.snapshot),before)
+            }finally{scene.cubbyPreviewMode=oldMode}
+        }
         function test_idle_hidden_and_populated_navigation(){
             var scene=study.scene,ctl=study.controller,oldTheme=Themes.Theme.index
             // Larger populated study; only the selected Shelf should render.

@@ -86,6 +86,7 @@ Item {
                 horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight
             }
             Text {
+                objectName:"cubby-inventory-item-label"
                 width:parent.width
                 text:face.inventory?face.inventory.cubby+" cubbies · "+face.inventory.items+" items":""
                 font.pixelSize:Math.max(9,Math.min(13,face.width/18))

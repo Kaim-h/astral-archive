@@ -529,5 +529,19 @@ export function run(){
  eq(Spatial.appPlacements(population).length,Spatial.appPlacements(sample).length*3,'population retains independent books');
  eq(new Set(Core.owners(population).map(o=>o.id)).size,Core.owners(population).length,'population unique file IDs');
  eq(View.reachablePath(population,['sample-2-root','sample-2-child']),['sample-2-root','sample-2-child'],'populated hierarchy reachable');
+ // Adapter-only specimen: count occupied slots, not holders or empty slots.
+ const immediate={mods:[
+  {type:'rack',flatTop:true,scrollCells:{a:[{id:'a'}]},items:[{kind:'object'},{kind:'app'},{kind:'holder',slots:[{},null,{}]}]},
+  {type:'cubby',flatTop:true,childId:'descendant',items:[{kind:'object'},{kind:'app'},{kind:'holder',slots:[null,{}]}]},
+  {type:'shelf',items:[{kind:'object'},{kind:'app'},{kind:'holder',slots:[null,{},null]}]},
+  {type:'rack',scrollCells:{b:[{}]}},
+  {type:'artwork',record:{}},{type:'cubby',childId:'another'}
+ ]};
+ eq(View.cubbyPreviewSummary(immediate),{rack:2,shelf:1,cubby:2,items:13},'immediate support inventory all fixture types');
+ const nestedInventory=ShelfSample.inventoryFixture();
+ eq(Core.validate(nestedInventory),null,'nested inventory specimen valid');
+ eq(View.cubbyPreviewSummary(nestedInventory.cubbies.root).items,20,'actual furnished child includes top books and files');
+ eq(View.cubbyPreviewSummary(nestedInventory.cubbies.child).items,1,'descendant counted only in its own inventory');
+ eq(Core.owners(nestedInventory).length,20,'inventory not ownership mutation');
  return checks;
 }
