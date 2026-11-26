@@ -239,6 +239,41 @@ export function roomPerspectiveColor(s,face,palettes,desktop,roomColors){
     const base=face.role==='backing'?backingColor(c,p,0):profilePartColor(face.role,frameColor(c,p,0),p);
     return face.side==='front'?base:mix(p.background,base,face.side==='back'?.75:.85);
 }
+// Room arrangement is view-local until release. The captured floor mapping
+// is reused for the whole gesture; snap relative deltas, never the old anchor.
+export function roomGesture(s,id,kind,start,mapping){
+    if(!Spatial.physicalProfiles(s)||Spatial.kind(s,id)!=='shelf'||!['move','resize'].includes(kind)||!start)return null;
+    const p=s.spatial.shelves[id],c=s.cubbies[id];
+    return {id,kind,start,mapping,attachment:Object.assign({},p),w:c.w,h:c.h,box:Spatial.footprint(s,id)};
+}
+export function roomFloorAt(mapping,x,y){
+    if(!mapping||![x,y].every(Number.isFinite))return null;
+    return mapping.frame?RoomProjection.floorInverse(x,y,mapping.frame):
+        {x:(x-mapping.x)/mapping.scale,y:(y-mapping.y)/mapping.scale};
+}
+export function roomGesturePatch(g,point,snap,interval){
+    if(!g||!point||![point.x,point.y].every(Number.isFinite))return null;
+    const dx=Core.snapCoordinate(point.x-g.start.x,interval,snap),dy=Core.snapCoordinate(point.y-g.start.y,interval,snap),p=g.attachment,patch={};
+    if(g.kind==='move'){
+        if(dx)patch.x=p.x+dx;
+        if(dy)patch.y=p.y+dy;
+    }else{
+        const sideways=p.orientation%180!==0,wide=sideways?dy:dx,deep=sideways?dx:dy;
+        if(wide)patch.w=Math.round(g.w+wide);
+        if(deep)patch.depth=p.depth+deep;
+    }
+    return patch;
+}
+// An outline only, not a validated candidate or a publication path.
+export function roomEditOutline(s,id,patch){
+    if(!Spatial.physicalProfiles(s)||Spatial.kind(s,id)!=='shelf'||!patch)return null;
+    const c=Object.assign({},s.cubbies[id]),p=Object.assign({},s.spatial.shelves[id]);
+    for(const key of ['w','h'])if(Object.prototype.hasOwnProperty.call(patch,key))c[key]=patch[key];
+    for(const key of ['x','y','depth'])if(Object.prototype.hasOwnProperty.call(patch,key))p[key]=patch[key];
+    if(![p.x,p.y,p.depth,c.w,c.h].every(Number.isFinite)||p.depth<=0||c.w<=0||c.h<=0||
+        [p.x,p.y,p.depth,c.w,c.h].some(v=>Math.abs(v)>20000))return null;
+    return Architecture.profileFootprint(Architecture.shelfGeometry(c,Spatial.shelfProfile(s,id),p.depth),p);
+}
 export function roomPlanHit(plan,x,y){
     if(!plan||!Number.isFinite(x)||!Number.isFinite(y))return '';
     const item=plan.shelves.find(v=>x>=v.box.x&&x<v.box.x+v.box.w&&y>=v.box.y&&y<v.box.y+v.box.h);

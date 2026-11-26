@@ -19,6 +19,27 @@ Rectangle {
     property bool physicalProfilesEnabled:false
     property bool roomPlanOpen:false
     property bool roomPerspective:false
+    property var roomEditText:({})
+    function startRoomShelfEdit(id,patch){
+        if(!viewSwitchReady||roomPlan.dragging||!roomPlan.arranging)return
+        var p=archive.snapshot.spatial.shelves[id],c=archive.snapshot.cubbies[id],raw={}
+        if(!p||!c)return
+        for(var key of ["x","y","w","h","depth"])raw[key]=String(patch[key]!==undefined?patch[key]:key==="w"||key==="h"?c[key]:p[key])
+        roomEditText=raw
+        archive.proposeStructure({kind:"spatialShelfEdit",containerId:id,patch:patch})
+        structurePanel.forceActiveFocus()
+    }
+    function setRoomShelfValue(key,value){
+        var q=archive.structuralProposal
+        if(!q||q.command.kind!=="spatialShelfEdit")return
+        var raw=Object.assign({},roomEditText);raw[key]=value;roomEditText=raw
+        var cmd=Core.clone(q.command),p=archive.snapshot.spatial.shelves[cmd.containerId],c=archive.snapshot.cubbies[cmd.containerId]
+        var original=key==="w"||key==="h"?c[key]:p[key]
+        var n=/^-?[0-9]+$/.test(value)?Number(value):null
+        if(value===String(original)||n===original)delete cmd.patch[key]
+        else cmd.patch[key]=n
+        archive.proposeStructure(cmd)
+    }
     readonly property bool showRoomPlan:roomPlanOpen&&Spatial.physicalProfiles(archive.snapshot)
     readonly property bool viewSwitchReady:!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
     // Optional isolated study adapter, injected by the standalone window.
@@ -26,7 +47,7 @@ Rectangle {
     property var checkpointStore:null
     property bool checkpointLoadPending:false
     readonly property bool checkpointReady:!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
-        !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker
+        !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker&&!roomPlan.dragging
     onCheckpointReadyChanged:if(!checkpointReady)checkpointLoadPending=false
     function checkpointView(){
         // Prune deleted cubby cameras and capture the currently open camera
@@ -233,7 +254,7 @@ Rectangle {
         pickId=""
     }
     function switchMode(value) {
-        if(sceneView.busy)return
+        if(sceneView.busy||roomPlan.dragging)return
         if(archive.draft||archive.structuralProposal)archive.cancel()
         closeContext();closeMaterials();rackInspector=false;pickId="";sceneView.mode=value
     }
@@ -442,7 +463,7 @@ Rectangle {
 
     Column {
         id:heading
-        enabled:study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
+        enabled:!roomPlan.dragging&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
         anchors.top:parent.top
         anchors.left:parent.left
         anchors.right:parent.right
@@ -533,10 +554,15 @@ Rectangle {
         colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
         perspective:study.roomPerspective
         arranging:sceneView.mode==="arrange"
+        snapEnabled:sceneView.snapEnabled;snapDistance:sceneView.snapDistance
+        editPreview:archive.structuralProposal&&archive.structuralProposal.command.kind==="spatialShelfEdit"?View.roomEditOutline(archive.snapshot,archive.structuralProposal.command.containerId,archive.structuralProposal.command.patch):null
+        editPreviewValid:!!archive.structuralProposal&&archive.structuralProposal.ok
+        onEditShelf:function(id,patch){study.startRoomShelfEdit(id,patch)}
+        onEditDimensions:function(id){study.startRoomShelfEdit(id,{})}
         rotationPreview:archive.structuralProposal&&archive.structuralProposal.ok&&archive.structuralProposal.command.kind==="spatialShelfTurn"?
             Spatial.footprint(archive.structuralProposal.snapshot,archive.structuralProposal.command.containerId):null
         onTurnShelf:function(id){
-            if(!study.viewSwitchReady||!roomPlan.arranging)return
+            if(!study.viewSwitchReady||roomPlan.dragging||!roomPlan.arranging)return
             var p=archive.snapshot.spatial.shelves[id]
             if(p){archive.proposeStructure({kind:"spatialShelfTurn",containerId:id,patch:{orientation:(p.orientation+90)%360}});structurePanel.forceActiveFocus()}
         }
@@ -943,7 +969,7 @@ Rectangle {
         availableWidth:study.width-16
         availableHeight:sceneView.height-16
         preferredWidth:265
-        preferredHeight:shelfAppearance?450:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
+        preferredHeight:shelfAppearance?450:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
         property var proposal:study.materialProposal?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
@@ -956,7 +982,8 @@ Rectangle {
         readonly property bool shelfAppearance:!!cmd&&cmd.kind==="spatialAppearance"
         readonly property bool adopting:!!cmd&&cmd.kind==="spatialAdoptProfiles"
         readonly property bool shelfTurn:!!cmd&&cmd.kind==="spatialShelfTurn"
-        readonly property bool spatialConfirmation:!!cmd&&[ "spatialShelfTurn","spatialAdoptProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
+        readonly property bool roomShelfEdit:!!cmd&&cmd.kind==="spatialShelfEdit"
+        readonly property bool spatialConfirmation:!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
@@ -977,7 +1004,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:"Cancel fixture adjustment";onClicked:archive.cancelStructure()}
@@ -995,7 +1022,8 @@ Rectangle {
                 readonly property var cmd:structurePanel.cmd
                 Text {
                     width:parent.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
-                    text:!structurePanel.proposal?"":structurePanel.shelfTurn?
+                    text:!structurePanel.proposal?"":structurePanel.roomShelfEdit?
+                        "Position uses occupied top-left. Width and height describe the interior; depth is independent. Invalid dimensions retain the original arrangement.":structurePanel.shelfTurn?
                         "Quarter-turn of selected Shelf only. Preview outline shows validated new footprint; wall correction is minimal. Apply or Cancel.":structurePanel.adopting?
                         "Adopt real outer profiles for every Shelf. Interior, positions and ownership remain unchanged. Review old/new bounds; unresolved conflicts prevent Apply.":structurePanel.removing?
                         (structurePanel.cmd.kind==="spatialShelfDelete"?"Remove this architectural Shelf and its contents? ":"Remove this fixture and its contents? ")+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
@@ -1066,6 +1094,29 @@ Rectangle {
                                     (archive.snapshot.cubbies[sceneView.cubbyId].appearance||{}).palette===undefined?null:
                                     archive.snapshot.cubbies[sceneView.cubbyId].appearance.palette)===modelData.key
                                 onClicked:study.setShelfAppearance("palette",modelData.key)
+                            }
+                        }
+                    }
+                }
+                Column {
+                    visible:structurePanel.roomShelfEdit
+                    width:contentStructure.width;spacing:5
+                    Repeater {
+                        model:structurePanel.roomShelfEdit?[{key:"x",name:"X"},{key:"y",name:"Y"},{key:"w",name:"Width"},{key:"h",name:"Height"},{key:"depth",name:"Depth"}]:[]
+                        Row {
+                            required property var modelData
+                            width:contentStructure.width;spacing:6
+                            Text {width:64;text:parent.modelData.name;color:study.colors.engraving;font.pixelSize:11;anchors.verticalCenter:parent.verticalCenter}
+                            Rectangle {
+                                width:100;height:26;radius:4;color:study.colors.background;border.color:study.colors.metal
+                                TextInput {
+                                    objectName:"room-shelf-input-"+parent.parent.modelData.key
+                                    anchors.fill:parent;anchors.margins:4
+                                    text:study.roomEditText[parent.parent.modelData.key]||""
+                                    color:study.colors.text;font.pixelSize:11;maximumLength:12;selectByMouse:true
+                                    Accessible.name:"Exact Shelf "+parent.parent.modelData.name
+                                    onTextEdited:study.setRoomShelfValue(parent.parent.modelData.key,text)
+                                }
                             }
                         }
                     }
@@ -1146,7 +1197,7 @@ Rectangle {
                     Archive.ArchiveButton {objectName:"book-plus";colors:study.colors;label:"+";onClicked:study.stepBook(10)}
                 }
                 Repeater {
-                    model:contentStructure.cmd&&!structurePanel.removing&&!structurePanel.cubbyEdit&&!structurePanel.bookEdit&&!structurePanel.bookRemove&&!structurePanel.supportEdit&&!structurePanel.shelfAppearance?(structurePanel.holderEdit?["x","w","count"]:contentStructure.cmd.type==="shelf"||contentStructure.cmd.kind==="shelf"?["x","y","w"]:["x","y","w","h"]):[]
+                    model:contentStructure.cmd&&!structurePanel.removing&&!structurePanel.cubbyEdit&&!structurePanel.bookEdit&&!structurePanel.bookRemove&&!structurePanel.supportEdit&&!structurePanel.shelfAppearance&&!structurePanel.roomShelfEdit&&!structurePanel.shelfTurn&&!structurePanel.adopting?(structurePanel.holderEdit?["x","w","count"]:contentStructure.cmd.type==="shelf"||contentStructure.cmd.kind==="shelf"?["x","y","w"]:["x","y","w","h"]):[]
                     Row {
                         required property string modelData
                         spacing:5

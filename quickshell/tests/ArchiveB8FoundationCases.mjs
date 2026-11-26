@@ -732,5 +732,34 @@ export function run(){
  }
  eq(JSON.stringify(s),before,'perspective view never mutates snapshot');
  }
+ {
+ const active=apply(sampleState,{kind:'spatialAdoptProfiles'}),s=active.snapshot,roomId=s.spatial.shelves.root.roomId;
+ const roomy=apply(active,{kind:'spatialRoomEdit',roomId,patch:{w:1800,h:2000}}),ss=roomy.snapshot,orig=Core.clone(ss);
+ for(const orientation of [0,90,180,270]){
+  const st=orientation===0?roomy:apply(roomy,{kind:'spatialShelfEdit',containerId:'root',patch:{orientation}}),v=st.snapshot;
+  const plan=View.roomPlan(v,roomId),scene=View.roomPerspective(v,plan,1200,700);
+  for(const mapping of [{x:30,y:45,scale:.5},{frame:scene.frame}]){
+   const proj=(x,y)=>mapping.frame?Projection.project([x,y,0],mapping.frame):[mapping.x+x*mapping.scale,mapping.y+y*mapping.scale];
+   const q=proj(100,100),r=proj(137,163),start=View.roomFloorAt(mapping,q[0],q[1]),end=View.roomFloorAt(mapping,r[0],r[1]);
+   const move=View.roomGesture(v,'root','move',start,mapping),patch=View.roomGesturePatch(move,end,true,20);
+   eq(patch,{x:move.attachment.x+40,y:move.attachment.y+60},'relative snapped move in both projections');
+   const moved=apply(st,{kind:'spatialShelfEdit',containerId:'root',patch});
+   eq(moved.snapshot.cubbies,v.cubbies,'move retains every interior');
+   eq(Core.undo(moved).snapshot,v,'move exact Undo');
+   const resize=View.roomGesture(v,'root','resize',start,mapping),edit=View.roomGesturePatch(resize,end,false,20);
+   eq(edit,{w:resize.w+(orientation%180?63:37),depth:resize.attachment.depth+(orientation%180?37:63)},'cardinal independent resize axes');
+   const sized=apply(st,{kind:'spatialShelfEdit',containerId:'root',patch:edit});
+   eq(View.roomEditOutline(v,'root',edit),Spatial.footprint(sized.snapshot,'root'),'outline matches validated envelope');
+   eq(sized.snapshot.cubbies.root.mods,v.cubbies.root.mods,'resize preserves fixtures');
+   eq(Core.undo(sized).snapshot,v,'resize exact Undo');
+   eq(View.roomGesturePatch(resize,start,false,20),{},'no motion no edit');
+  }
+ }
+ refuse(roomy,{kind:'spatialShelfEdit',containerId:'root',patch:{x:-1}});
+ refuse(roomy,{kind:'spatialShelfEdit',containerId:'root',patch:{h:100}});
+ refuse(roomy,{kind:'spatialShelfEdit',containerId:'root',patch:{w:null}});
+ eq(View.roomEditOutline(ss,'root',{w:null}),null,'invalid numeric outline withheld');
+ eq(ss,orig,'gesture adapters never mutate committed model');
+ }
  return checks;
 }

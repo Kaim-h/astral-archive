@@ -26,6 +26,68 @@ Item {
             },3000,name)
             mouseClick(item,item.width/2,item.height/2)
         }
+        function test_room_arrangement_gestures(){
+            var ctl=study.controller,scene=study.scene
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            tryVerify(function(){return scene.physicalFront})
+            var roomId=ctl.snapshot.spatial.shelves.root.roomId
+            verify(ctl.proposeStructure({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}}));verify(ctl.applyStructure())
+            var before=JSON.stringify(ctl.snapshot)
+            scene.snapEnabled=false
+            study.switchMode("arrange");clickNamed("toggle-room-plan")
+            var plan=findChild(study,"archive-room-plan")
+            for(var perspective=0;perspective<2;perspective++){
+                if(perspective)clickNamed("toggle-room-perspective")
+                tryVerify(function(){return plan.visible&&(!perspective||!!plan.perspectiveData)})
+                var box=Spatial.footprint(ctl.snapshot,"root"),at=plan.pointFor(box.x+box.w/2,box.y+box.h/2)
+                if(perspective){
+                    var faces=plan.perspectiveData.faces
+                    for(var i=faces.length-1;i>=0;i--){
+                        var f=faces[i];if(f.shelfId!=="root")continue
+                        var x=f.points.reduce((n,q)=>n+q[0],0)/f.points.length,y=f.points.reduce((n,q)=>n+q[1],0)/f.points.length
+                        if(plan.hit(x,y)==="root"){at=Qt.point(x,y);break}
+                    }
+                }
+                var floor=plan.floorAt(at.x,at.y),dest=plan.pointFor(floor.x+60,floor.y+40)
+                mousePress(plan,at.x,at.y,Qt.LeftButton);tryVerify(function(){return plan.dragging})
+                mouseMove(plan,dest.x,dest.y,20,Qt.LeftButton)
+                tryVerify(function(){return !!plan.dragPatch})
+                compare(JSON.stringify(ctl.snapshot),before);verify(!ctl.structuralProposal)
+                mouseRelease(plan,dest.x,dest.y,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                var patch=ctl.structuralProposal.command.patch
+                verify(Math.abs(patch.x-box.x-60)<5&&Math.abs(patch.y-box.y-40)<5)
+                clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
+                mousePress(plan,at.x,at.y,Qt.LeftButton);tryVerify(function(){return plan.dragging})
+                mouseMove(plan,dest.x,dest.y,20,Qt.LeftButton);tryVerify(function(){return !!plan.dragPatch})
+                keyClick(Qt.Key_Escape);tryVerify(function(){return !plan.dragging})
+                mouseRelease(plan,dest.x,dest.y,Qt.LeftButton)
+                verify(!ctl.structuralProposal);compare(JSON.stringify(ctl.snapshot),before)
+                var handle=findChild(plan,"room-shelf-resize-handle")
+                verify(!!handle&&handle.visible)
+                var corner=handle.mapToItem(plan,handle.width/2,handle.height/2),end=plan.pointFor(box.x+box.w+50,box.y+box.h+40)
+                mousePress(plan,corner.x,corner.y,Qt.LeftButton);tryVerify(function(){return plan.dragging})
+                mouseMove(plan,end.x,end.y,20,Qt.LeftButton);mouseRelease(plan,end.x,end.y,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                patch=ctl.structuralProposal.command.patch
+                verify(Math.abs(patch.w-ctl.snapshot.cubbies.root.w-50)<5&&Math.abs(patch.depth-ctl.snapshot.spatial.shelves.root.depth-40)<5)
+                clickNamed("structure-apply")
+                compare(JSON.stringify(ctl.snapshot.cubbies.root.mods),JSON.stringify(JSON.parse(before).cubbies.root.mods))
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                clickNamed("plan-edit-shelf")
+                var input=findChild(study,"room-shelf-input-h")
+                verify(!!input);input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);for(var digit of "100")keyClick(digit)
+                tryVerify(function(){return !ctl.structuralProposal.ok})
+                verify(!findChild(study,"structure-apply").enabled)
+                compare(input.text,"100")
+                input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);for(var digit of "1100")keyClick(digit)
+                tryVerify(function(){return ctl.structuralProposal.ok})
+                clickNamed("structure-apply")
+                compare(ctl.snapshot.cubbies.root.h,1100)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            }
+            study.roomPlanOpen=false;study.switchMode("browse")
+        }
         function test_room_perspective_and_rotation(){
             var ctl=study.controller,scene=study.scene
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")

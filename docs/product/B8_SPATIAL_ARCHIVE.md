@@ -38,6 +38,8 @@ Move/resize/rename Rooms, focus selected Room or door, restore preceding camera 
 
 ## 5. Room and navigation
 
+2D plan is the default Room view. Persist the user's explicit 2D/perspective preference across restarts (separate from arrangement and Undo; missing/legacy preference defaults to 2D). Current native study remembers the choice only within a session; global versus per-Room preference remains to be resolved before persistence implementation.
+
 Accepted H stepped-cornice plan glyph, centered shallow perspective with actual selected Shelf profile/theme, no independent Room-side Shelf appearance. Nine stone floors and eight walls from S14, minimal grout, no timber. Zero yaw/roll, initial tilt 22 degrees (20–30 range); camera distance 2.6× larger dimension and cutaway details provisional. Common projection for floor/walls/furniture/openings, inverse floor mapping, frozen gesture camera. Native renderer open; event-driven caching, avoid idle/hidden work. CPU rasterizer is research, not mandatory architecture.
 
 Room→Shelf: S16r3 method A accepted, initial 500 ms; 2D tilt-and-focus, perspective focus-and-enter, reverse return; reduced motion instant, Skip/Escape, mode guards. Actual current Shelf geometry and appearance define source/destination; uniformly fit, no artificial stretching or fixed plate ratio, same shared front, freeze anchors and rotation on entry, restore camera on return. 900 ms imperfection accepted; don't reopen just to perfect slow animation. Map→Room focus/enlarge and optional tilt to Room preference is proposed; exact duration not separately accepted. Shelf→Cubby recursive entry follows short restrained consistent motion; exact timing to verify. Fixed frame and Back/breadcrumb identity preserved.

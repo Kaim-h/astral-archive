@@ -15,6 +15,16 @@ Item {
     property bool perspective:false
     property bool arranging:false
     property var rotationPreview:null
+    property var editPreview:null
+    property bool editPreviewValid:false
+    property bool snapEnabled:false
+    property int snapDistance:20
+    property var gesture:null
+    property var dragPatch:null
+    readonly property bool dragging:!!gesture
+    readonly property var selectedBox:planData&&selectedShelf?(planData.shelves.find(v=>v.id===selectedShelf)||{}).box||null:null
+    signal editShelf(string shelfId,var patch)
+    signal editDimensions(string shelfId)
     signal turnShelf(string shelfId)
     readonly property var perspectiveData:visible&&perspective?View.roomPerspective(snapshot,planData,width,height):null
     signal inspectShelf(string shelfId)
@@ -32,8 +42,42 @@ Item {
         if(perspective)return View.roomPerspectiveHit(perspectiveData,x,y)
         var p=floorAt(x,y);return p?View.roomPlanHit(planData,p.x,p.y):""
     }
-    onRoomIdChanged:selectedShelf=""
-    onPlanDataChanged:if(!planData||!planData.shelves.some(v=>v.id===selectedShelf))selectedShelf=""
+    function mapping(){return perspective&&perspectiveData?{frame:perspectiveData.frame}:{x:planOrigin.x,y:planOrigin.y,scale:planScale}}
+    function startGesture(id,kind,x,y){
+        if(!arranging||!id||gesture)return false
+        var m=mapping(),start=View.roomFloorAt(m,x,y)
+        var g=View.roomGesture(snapshot,id,kind,start,m)
+        if(!g)return false
+        selectedShelf=id
+        gesture={data:g,px:x,py:y,active:false,snap:snapEnabled,interval:snapDistance}
+        dragPatch=null
+        forceActiveFocus()
+        return true
+    }
+    function updateGesture(x,y){
+        if(!gesture)return
+        var g=gesture
+        if(!g.active&&Math.hypot(x-g.px,y-g.py)<4)return
+        if(!g.active)gesture=Object.assign({},g,{active:true})
+        dragPatch=View.roomGesturePatch(g.data,View.roomFloorAt(g.data.mapping,x,y),g.snap,g.interval)
+    }
+    function finishGesture(x,y){
+        if(!gesture)return
+        updateGesture(x,y)
+        var g=gesture,p=dragPatch
+        cancelGesture()
+        if(g.active&&p&&Object.keys(p).length)editShelf(g.data.id,p)
+    }
+    function cancelGesture(){gesture=null;dragPatch=null}
+    onRoomIdChanged:{cancelGesture();selectedShelf=""}
+    onPlanDataChanged:{cancelGesture();if(!planData||!planData.shelves.some(v=>v.id===selectedShelf))selectedShelf=""}
+    onPerspectiveChanged:cancelGesture()
+    onWidthChanged:cancelGesture()
+    onHeightChanged:cancelGesture()
+    onVisibleChanged:if(!visible)cancelGesture()
+    onEnabledChanged:if(!enabled)cancelGesture()
+    onArrangingChanged:cancelGesture()
+    Keys.onEscapePressed:function(event){if(gesture){cancelGesture();event.accepted=true}}
     Rectangle {anchors.fill:parent;color:plan.colors.background}
     Text {
         anchors.top:parent.top;anchors.topMargin:8;anchors.horizontalCenter:parent.horizontalCenter
@@ -57,6 +101,9 @@ Item {
             function onPerspectiveDataChanged(){art.refresh()}
             function onPerspectiveChanged(){art.refresh()}
             function onRotationPreviewChanged(){art.refresh()}
+            function onEditPreviewChanged(){art.refresh()}
+            function onEditPreviewValidChanged(){art.refresh()}
+            function onDragPatchChanged(){art.refresh()}
         }
         onWidthChanged:refresh()
         onHeightChanged:refresh()
@@ -84,6 +131,8 @@ Item {
                 var selected=data.shelves.find(v=>v.id===plan.selectedShelf)
                 if(selected)outline(selected.box,plan.colors.text)
                 if(plan.rotationPreview)outline(plan.rotationPreview,plan.colors.engraving)
+                if(plan.editPreview)outline(plan.editPreview,plan.editPreviewValid?plan.colors.engraving:"#df8585")
+                if(plan.dragPatch&&plan.gesture){var ghost=View.roomEditOutline(plan.snapshot,plan.gesture.data.id,plan.dragPatch);if(ghost)outline(ghost,plan.colors.engraving)}
                 return
             }
             var r=data.room,k=plan.planScale,o=plan.planOrigin
@@ -122,6 +171,8 @@ Item {
             }
             ctx.restore()
             if(plan.rotationPreview)outline(plan.rotationPreview,plan.colors.engraving)
+            if(plan.editPreview)outline(plan.editPreview,plan.editPreviewValid?plan.colors.engraving:"#df8585")
+            if(plan.dragPatch&&plan.gesture){var ghost=View.roomEditOutline(plan.snapshot,plan.gesture.data.id,plan.dragPatch);if(ghost)outline(ghost,plan.colors.engraving)}
         }
     }
     Repeater {
@@ -139,8 +190,32 @@ Item {
     }
     MouseArea {
         anchors.fill:parent
-        onClicked:function(mouse){plan.selectedShelf=plan.hit(mouse.x,mouse.y)}
+        onPressed:function(mouse){
+            var id=plan.hit(mouse.x,mouse.y)
+            if(plan.arranging){plan.selectedShelf=id;if(id)plan.startGesture(id,"move",mouse.x,mouse.y)}
+        }
+        onPositionChanged:function(mouse){if(pressed)plan.updateGesture(mouse.x,mouse.y)}
+        onReleased:function(mouse){plan.finishGesture(mouse.x,mouse.y)}
+        onCanceled:plan.cancelGesture()
+        onClicked:function(mouse){if(!plan.arranging)plan.selectedShelf=plan.hit(mouse.x,mouse.y)}
         onDoubleClicked:function(mouse){var id=plan.hit(mouse.x,mouse.y);if(id&&!plan.arranging)plan.inspectShelf(id)}
+    }
+    Rectangle {
+        id:resizeHandle
+        objectName:"room-shelf-resize-handle"
+        visible:plan.arranging&&!!plan.selectedBox
+        width:16;height:16;radius:2
+        readonly property point corner:plan.selectedBox?plan.pointFor(plan.selectedBox.x+plan.selectedBox.w,plan.selectedBox.y+plan.selectedBox.h):Qt.point(0,0)
+        x:corner.x-width/2;y:corner.y-height/2
+        color:plan.colors.background;border.color:plan.colors.engraving;border.width:2
+        MouseArea {
+            anchors.fill:parent;cursorShape:Qt.SizeFDiagCursor
+            function local(mouse){return resizeHandle.mapToItem(plan,mouse.x,mouse.y)}
+            onPressed:function(mouse){var p=local(mouse);plan.startGesture(plan.selectedShelf,"resize",p.x,p.y)}
+            onPositionChanged:function(mouse){if(pressed){var p=local(mouse);plan.updateGesture(p.x,p.y)}}
+            onReleased:function(mouse){var p=local(mouse);plan.finishGesture(p.x,p.y)}
+            onCanceled:plan.cancelGesture()
+        }
     }
     Row {
         anchors.horizontalCenter:parent.horizontalCenter;anchors.bottom:parent.bottom;anchors.bottomMargin:8
@@ -158,8 +233,13 @@ Item {
             objectName:"plan-turn-shelf"
             label:"Rotate selected Shelf 90°"
             visible:plan.arranging
-            enabled:!!plan.selectedShelf
+            enabled:!!plan.selectedShelf&&!plan.dragging
             onClicked:plan.turnShelf(plan.selectedShelf)
+        }
+        ArchiveButton {
+            colors:plan.colors;objectName:"plan-edit-shelf";label:"Shelf dimensions…"
+            visible:plan.arranging;enabled:!!plan.selectedShelf&&!plan.dragging
+            onClicked:plan.editDimensions(plan.selectedShelf)
         }
     }
 }
