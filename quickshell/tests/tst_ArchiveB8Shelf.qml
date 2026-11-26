@@ -434,7 +434,18 @@ Item {
                 verify(!map.startGesture(room.id,"resize",hp.x,hp.y));unchanged()
                 clickNamed("map-chart-close");tryVerify(function(){return !map.appearanceOpen&&map.activeFocus})
                 verify(rh.visible&&rh.enabled)
-                pt=map.pointFor(g.line,(g.start+g.end)/2);mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
+                // A selected Room's west-edge handle can cover the opening's
+                // midpoint. First dismiss Room selection through real empty
+                // map input, then exercise normal doorway selection/deletion.
+                pt=map.pointFor(g.line,(g.start+g.end)/2)
+                var west=findChild(map,"map-room-resize-w"),wp=west.mapToItem(map,0,0)
+                console.log("B8 Chart reselect geometry",JSON.stringify({doorPoint:{x:pt.x,y:pt.y},westHandle:{x:wp.x,y:wp.y,w:west.width,h:west.height,visible:west.visible}}))
+                var blank=Qt.point(map.width/2,80)
+                compare(map.hit(blank.x,blank.y),"")
+                compare(View.mapDoorHit(map.dataModel,map.camera,blank.x,blank.y),"")
+                mouseClick(map,blank.x,blank.y);compare(map.selectedRoom,"");compare(map.selectedDoor,"")
+                verify(!rh.visible);unchanged()
+                mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
                 keyClick(Qt.Key_Delete);verify(!ctl.snapshot.spatial.doors[door.id]);verify(!ctl.structuralProposal)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
             }finally{map.chartTitle=oldTitle;study.mapEnabled=false;study.switchMode("browse")}
