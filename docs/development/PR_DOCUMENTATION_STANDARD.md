@@ -47,6 +47,8 @@ Do not create synonyms merely to match this table. Use GitHub's own draft, revie
 
 If metadata access or a suitable label/milestone is unavailable, record the intended classification and limitation in the PR description or handoff, and coordinate with the maintainer. Repository-wide label creation, renaming, deletion and milestone administration require owner coordination. Do not bulk-relabel historical PRs or disturb live topics solely to apply this standard; adopt it at their next authorized checkpoint. Metadata must be publication-safe.
 
+See the [issue management proposal](ISSUE_MANAGEMENT_STANDARD.md) for backlog classification, scope boundaries and evidence-based issue closure.
+
 ## Living summary, durable evidence
 
 The principal contributor maintains the description; a successor inherits that responsibility. Refresh at meaningful checkpoints, review/disposition changes, failed checks or changed limitations, handoff, readiness requests and closeout. Date or pin status when it may become stale. Do not label an entire topic complete because one stage or a test suite passed. Draft, review, implementation and integration are distinct.
