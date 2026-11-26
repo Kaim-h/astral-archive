@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astral Archive — B8s6 Ornament & Glass Study</title>
+<style>
+  :root{
+    --bg:#121e23; --panel:#263c37; --metal:#8c6e5a; --etch:#91ada1; --text:#e6e1d8;
+    --shadow:rgba(0,0,0,.28);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,sans-serif}
+  main{max-width:1380px;margin:auto;padding:24px}
+  h1,h2,h3{font-family:Georgia,serif;margin:.2em 0 .45em;letter-spacing:.03em}
+  h1{font-size:30px}
+  h2{font-size:22px;margin-top:28px}
+  h3{font-size:16px}
+  p{margin:.4em 0 .8em;opacity:.9}
+  .controls,.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .controls{margin:12px 0 18px}
+  label{display:flex;gap:8px;align-items:center}
+  select,input,button{font:inherit}
+  select,input[type=range],button{background:var(--panel);color:var(--text);border:1px solid var(--metal);border-radius:5px;padding:7px 10px}
+  input[type=range]{padding:4px 6px;width:160px}
+  .layout{display:grid;grid-template-columns:minmax(320px,1.05fr) minmax(300px,.95fr);gap:20px;align-items:start}
+  .card{background:color-mix(in srgb,var(--panel) 80%, black 20%);border:1px solid color-mix(in srgb,var(--metal) 65%, black 35%);border-radius:10px;padding:16px;box-shadow:0 8px 28px var(--shadow)}
+  .grid{display:grid;gap:16px}
+  .theme-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .door-grid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .thumb{width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--bg) 80%, black 20%);border:1px solid rgba(255,255,255,.08)}
+  .tiny{font-size:12px;opacity:.84}
+  .swatch{display:inline-block;width:12px;height:12px;border:1px solid rgba(255,255,255,.35);vertical-align:-1px;margin-right:6px}
+  .muted{opacity:.82}
+  .stack{display:grid;gap:12px}
+  .pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid var(--metal);font-size:12px;color:var(--text);opacity:.92}
+  .family-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .sep{height:1px;background:linear-gradient(90deg,transparent,var(--metal),transparent);margin:22px 0}
+  .note{font-size:13px;opacity:.8}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  button{cursor:pointer}
+  button:hover{border-color:var(--etch)}
+  svg text{fill:var(--text);font-family:Georgia,serif}
+  .footer{margin-top:28px;font-size:13px;opacity:.82}
+  @media (max-width:980px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h1>B8s6 — Thematic ornament & reverse-frost glass study</h1>
+  <p>This case study explores two things together: <strong>theme-specific ornamental families</strong> for the backing field and <strong>satin cubby doors with reverse-frosted center motifs</strong>. The live study lets you mix a theme, border, center embellishment and glass treatment, while the comparison sections show curated ideas for each family.</p>
+
+  <div class="layout">
+    <section class="card stack">
+      <div>
+        <h2 style="margin-top:0">Live mixed preview</h2>
+        <p class="tiny">Use this panel to combine the ideas from the study. The cubby doors keep the satin-frost baseline and vary the themed reverse-frost ornament.</p>
+      </div>
+      <div class="controls">
+        <label>Theme
+          <select id="themeSelect">
+            <option value="astral">Astral</option>
+            <option value="cartographic">Cartographic</option>
+            <option value="botanical">Botanical</option>
+            <option value="architectural">Architectural</option>
+          </select>
+        </label>
+        <label>Border
+          <select id="borderSelect">
+            <option value="frame">Frame line</option>
+            <option value="corner">Corner marks</option>
+            <option value="segmented">Segmented border</option>
+          </select>
+        </label>
+        <label>Center
+          <select id="centerSelect">
+            <option value="medallion">Medallion</option>
+            <option value="vertical">Vertical emblem</option>
+            <option value="wide">Wide composition</option>
+          </select>
+        </label>
+        <label>Door motif
+          <select id="doorSelect">
+            <option value="subtle">Subtle reverse frost</option>
+            <option value="moderate">Moderate reverse frost</option>
+            <option value="clear">Clearer reverse frost</option>
+            <option value="graded">Graded reveal</option>
+            <option value="line">Linework reveal</option>
+          </select>
+        </label>
+        <label>Glass frost
+          <input id="frostRange" type="range" min="0.5" max="0.95" step="0.05" value="0.72">
+          <span id="frostOut" class="tiny">0.72</span>
+        </label>
+      </div>
+      <svg id="livePreview" class="thumb" viewBox="0 0 920 620" aria-label="Live shelf preview"></svg>
+      <div class="btnrow">
+        <button data-apply-family="astral">Try astral family</button>
+        <button data-apply-family="cartographic">Try cartographic family</button>
+        <button data-apply-family="botanical">Try botanical family</button>
+        <button data-apply-family="architectural">Try architectural family</button>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <div>
+        <h2 style="margin-top:0">Study notes</h2>
+        <p>Preferred direction from B8s5: <strong>satin frosted glass</strong>, with visible hinges and handle retained. New question: if the backing field is theme-specific, its <strong>border and center embellishment</strong> should be theme-specific too.</p>
+      </div>
+      <div class="stack tiny muted">
+        <div><span class="pill">Reverse frost</span> The ornament is less frosted than the surrounding pane, so it reveals a little more of the contents without becoming fully transparent.</div>
+        <div><span class="pill">Thematic family</span> Each family coordinates the border, corners and center motif rather than treating them as unrelated decorations.</div>
+        <div><span class="pill">Satin baseline</span> Most door treatments here assume a satin-frosted door plane rather than a bare opening.</div>
+        <div><span class="pill">Comparative intent</span> The goal is to identify parts worth carrying forward, not to lock in one final solution yet.</div>
+      </div>
+      <div class="sep"></div>
+      <div>
+        <h3>Families</h3>
+        <p class="tiny">Astral emphasizes circles, arcs and conjunctions. Cartographic uses compass geometry, calibrated ticks and directional symmetries. Botanical uses stems, leaves and scroll growth. Architectural keeps the language restrained through stepped inlay and measured geometry.</p>
+      </div>
+      <div>
+        <h3>Possible next-direction synthesis</h3>
+        <p class="tiny">A plausible integrated direction would be: theme-specific backing families, a lighter corner-led border, and satin frosted cubby doors with a moderate reverse-frost emblem.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="sep"></div>
+
+  <section>
+    <div class="family-head">
+      <h2>Theme family studies</h2>
+      <span class="pill">Panel + border + center ideas</span>
+    </div>
+    <p class="tiny">Each card shows one themed backing-field idea. Every family gets three distinct combinations of border and center treatment.</p>
+    <div id="themeStudies" class="grid theme-grid"></div>
+  </section>
+
+  <div class="sep"></div>
+
+  <section>
+    <div class="family-head">
+      <h2>Reverse-frost glass door studies</h2>
+      <span class="pill">Door-first treatment comparison</span>
+    </div>
+    <p class="tiny">All door samples use the same archive interior, with satin frosting as the baseline plane and a themed central reveal treatment.</p>
+    <div id="doorStudies" class="grid door-grid"></div>
+  </section>
+
+  <p class="footer">Standalone B8s6 study. This experiment focuses on visual direction only: no production-native blur performance assumptions, no opening animations and no content interaction beyond the comparative preview.</p>
+</main>
+
+<script>
+const THEMES = {
+  astral: {label:'Astral', panel:'#24363e', bg:'#0f191d', metal:'#8c6e5a', etch:'#9ab7b0', text:'#e6e1d8'},
+  cartographic: {label:'Cartographic', panel:'#2f3940', bg:'#171b20', metal:'#b89a67', etch:'#9eb7c7', text:'#ebe7dd'},
+  botanical: {label:'Botanical', panel:'#25352f', bg:'#121915', metal:'#8f7a56', etch:'#98b495', text:'#e9e5d9'},
+  architectural: {label:'Architectural', panel:'#2a3133', bg:'#13171a', metal:'#92816b', etch:'#9ca7a2', text:'#e7e1d8'}
+};
+
+const THEME_STUDIES = {
+  astral:[
+    {border:'corner', center:'medallion', title:'A1 — Orbital corners', note:'Corner-led structure with concentric astral medallion.'},
+    {border:'segmented', center:'wide', title:'A2 — Conjunction field', note:'Segmented ring-line border and broader center alignment.'},
+    {border:'frame', center:'vertical', title:'A3 — Meridian emblem', note:'A calmer frame with a tall stellar axis.'}
+  ],
+  cartographic:[
+    {border:'segmented', center:'medallion', title:'C1 — Compass registry', note:'Calibrated border pieces and centered rose.'},
+    {border:'frame', center:'wide', title:'C2 — Survey linework', note:'Measured frame with horizon-style interior graphing.'},
+    {border:'corner', center:'vertical', title:'C3 — Traversal axis', note:'Directional corners with a tall map-instrument emblem.'}
+  ],
+  botanical:[
+    {border:'corner', center:'medallion', title:'B1 — Vine corners', note:'Leafy corner sprouts around a floral center.'},
+    {border:'frame', center:'vertical', title:'B2 — Stem emblem', note:'Gentle frame and climbing central growth.'},
+    {border:'segmented', center:'wide', title:'B3 — Garden span', note:'Small organic intervals with a broader paired motif.'}
+  ],
+  architectural:[
+    {border:'frame', center:'medallion', title:'R1 — Stepped frame', note:'Restrained geometry and compact central seal.'},
+    {border:'corner', center:'vertical', title:'R2 — Corner inlays', note:'Measured corners and a tall, cut-stone axis.'},
+    {border:'segmented', center:'wide', title:'R3 — Masonry register', note:'Discrete divisions with a wide architectural spread.'}
+  ]
+};
+
+const DOOR_STUDIES = [
+  {theme:'astral', style:'subtle', title:'D1 — Subtle astral reveal', note:'Satin pane with a low-contrast orbital ornament.'},
+  {theme:'astral', style:'moderate', title:'D2 — Moderate astral reveal', note:'A clearer central motif without opening a full window.'},
+  {theme:'cartographic', style:'graded', title:'D3 — Graded cartographic reveal', note:'Directional geometry with more clarity near the center.'},
+  {theme:'botanical', style:'line', title:'D4 — Botanical line reveal', note:'Vine and leaf detail emerges through finer unfrosted lines.'},
+  {theme:'botanical', style:'clear', title:'D5 — Clearer floral reveal', note:'The emblem is notably easier to read through.'},
+  {theme:'architectural', style:'subtle', title:'D6 — Architectural stone-glass', note:'Restrained stepped emblem with quiet visibility.'}
+];
+
+function esc(s){return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
+function mix(a,b,t){
+  const A=a.match(/\w\w/g).map(x=>parseInt(x,16)), B=b.match(/\w\w/g).map(x=>parseInt(x,16));
+  return '#'+A.map((x,i)=>Math.round(x+(B[i]-x)*t).toString(16).padStart(2,'0')).join('');
+}
+function line(x1,y1,x2,y2,stroke,extra=''){return `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${stroke}" fill="none" ${extra}/>`}
+function circle(x,y,r,fill,stroke='none',extra=''){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" ${extra}/>`}
+function rect(x,y,w,h,fill,stroke='none',extra=''){return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" ${extra}/>`}
+function path(d,stroke,fill='none',extra=''){return `<path d="${d}" stroke="${stroke}" fill="${fill}" ${extra}/>`}
+
+function motifAstral(cx,cy,size,etch){
+  return [
+    circle(cx,cy,size*0.75,'none',etch,'opacity=".45"'),
+    circle(cx,cy,size*0.46,'none',etch,'opacity=".5"'),
+    path(`M${cx-size} ${cy}H${cx+size}M${cx} ${cy-size}V${cy+size}`,etch,'none','opacity=".3"'),
+    path(`M${cx-size*.8} ${cy-size*.28}Q${cx} ${cy-size*.65} ${cx+size*.8} ${cy-size*.28}`,etch,'none','opacity=".48"'),
+    path(`M${cx-size*.8} ${cy+size*.28}Q${cx} ${cy+size*.65} ${cx+size*.8} ${cy+size*.28}`,etch,'none','opacity=".48"'),
+    circle(cx+size*.82,cy-size*.08,size*.08,etch,'none','opacity=".8"'),
+    circle(cx-size*.72,cy+size*.16,size*.06,etch,'none','opacity=".8"')
+  ].join('');
+}
+function motifCartographic(cx,cy,size,etch){
+  return [
+    circle(cx,cy,size*0.18,etch,'none','opacity=".55"'),
+    circle(cx,cy,size*0.64,'none',etch,'opacity=".42"'),
+    path(`M${cx} ${cy-size*.78}L${cx+size*.14} ${cy-size*.14}L${cx} ${cy-size*.34}L${cx-size*.14} ${cy-size*.14}Z`,etch,'none','opacity=".6"'),
+    path(`M${cx} ${cy+size*.78}L${cx+size*.14} ${cy+size*.14}L${cx} ${cy+size*.34}L${cx-size*.14} ${cy+size*.14}Z`,etch,'none','opacity=".6"'),
+    path(`M${cx-size*.78} ${cy}L${cx-size*.14} ${cy-size*.14}L${cx-size*.34} ${cy}L${cx-size*.14} ${cy+size*.14}Z`,etch,'none','opacity=".6"'),
+    path(`M${cx+size*.78} ${cy}L${cx+size*.14} ${cy-size*.14}L${cx+size*.34} ${cy}L${cx+size*.14} ${cy+size*.14}Z`,etch,'none','opacity=".6"'),
+    path(`M${cx-size*.58} ${cy-size*.28}Q${cx} ${cy-size*.58} ${cx+size*.58} ${cy-size*.28}`,etch,'none','opacity=".5"'),
+    path(`M${cx-size*.58} ${cy+size*.28}Q${cx} ${cy+size*.58} ${cx+size*.58} ${cy+size*.28}`,etch,'none','opacity=".5"')
+  ].join('');
+}
+function motifBotanical(cx,cy,size,etch){
+  const leaf=(x,y,sx,sy)=>path(`M${x} ${y}q${10*sx} ${-20*sy} ${20*sx} ${-10*sy}q${-8*sx} ${16*sy} ${-20*sx} ${10*sy}Z`,etch,'none','opacity=".55"');
+  return [
+    path(`M${cx} ${cy+size*.7}Q${cx} ${cy} ${cx} ${cy-size*.66}`,etch,'none','opacity=".55"'),
+    leaf(cx,cy-size*.08,-1,1), leaf(cx,cy+size*.1,1,1),
+    leaf(cx,cy-size*.38,1,1), leaf(cx,cy+size*.38,-1,1),
+    circle(cx,cy-size*.72,size*.09,etch,'none','opacity=".68"'),
+    path(`M${cx-size*.44} ${cy+size*.56}Q${cx} ${cy+size*.34} ${cx+size*.44} ${cy+size*.56}`,etch,'none','opacity=".34"')
+  ].join('');
+}
+function motifArchitectural(cx,cy,size,etch){
+  return [
+    rect(cx-size*.48,cy-size*.48,size*.96,size*.96,'none',etch,'opacity=".38"'),
+    rect(cx-size*.24,cy-size*.24,size*.48,size*.48,'none',etch,'opacity=".46"'),
+    path(`M${cx-size*.62} ${cy}H${cx+size*.62}M${cx} ${cy-size*.62}V${cy+size*.62}`,etch,'none','opacity=".18"'),
+    path(`M${cx-size*.32} ${cy-size*.72}h${size*.64}v${size*.14}h${size*.14}v${size*.16}h-${size*.14}v${size*.56}h-${size*.64}v-${size*.56}h-${size*.14}v-${size*.16}h${size*.14}Z`,etch,'none','opacity=".55"')
+  ].join('');
+}
+
+function themedMotif(theme,cx,cy,size,etch){
+  return {
+    astral: motifAstral,
+    cartographic: motifCartographic,
+    botanical: motifBotanical,
+    architectural: motifArchitectural
+  }[theme](cx,cy,size,etch);
+}
+
+function themedCorner(theme,x,y,s,etch){
+  if(theme==='astral') return [path(`M${x+s} ${y}Q${x} ${y} ${x} ${y+s}`,etch,'none','opacity=".62"'),circle(x+s*0.72,y+s*0.28,s*0.09,etch,'none','opacity=".7"'),circle(x+s*0.28,y+s*0.72,s*0.07,etch,'none','opacity=".7"')].join('');
+  if(theme==='cartographic') return [path(`M${x+s} ${y}H${x+s*.36}Q${x} ${y} ${x} ${y+s*.36}V${y+s}`,etch,'none','opacity=".66"'),line(x+s*.48,y+1,x+s*.48,y+s*.24,etch,'stroke-dasharray="2 3" opacity=".55"'),line(x+1,y+s*.48,x+s*.24,y+s*.48,etch,'stroke-dasharray="2 3" opacity=".55"')].join('');
+  if(theme==='botanical') return [path(`M${x+s} ${y}Q${x+s*.42} ${y+s*.1} ${x+s*.24} ${y+s*.28}Q${x+s*.08} ${y+s*.46} ${x} ${y+s}`,etch,'none','opacity=".68"'),path(`M${x+s*.62} ${y+s*.1}q${-s*.12} ${s*.18} ${-s*.28} ${s*.18}q${s*.14} ${s*.06} ${s*.22} ${s*.18}`,etch,'none','opacity=".52"')].join('');
+  return [path(`M${x+s} ${y}H${x+s*.46}V${y+s*.14}H${x+s*.14}V${y+s*.46}H${x}V${y+s}`,etch,'none','opacity=".66"')].join('');
+}
+
+function border(theme,type,x,y,w,h,etch){
+  if(type==='frame'){
+    let s = rect(x,y,w,h,'none',etch,'opacity=".4"');
+    s += themedCorner(theme,x,y,32,etch);
+    s += `<g transform="translate(${x+w} ${y}) scale(-1 1)">${themedCorner(theme,0,0,32,etch)}</g>`;
+    s += `<g transform="translate(${x} ${y+h}) scale(1 -1)">${themedCorner(theme,0,0,32,etch)}</g>`;
+    s += `<g transform="translate(${x+w} ${y+h}) scale(-1 -1)">${themedCorner(theme,0,0,32,etch)}</g>`;
+    return s;
+  }
+  if(type==='corner'){
+    return themedCorner(theme,x,y,38,etch)+`<g transform="translate(${x+w} ${y}) scale(-1 1)">${themedCorner(theme,0,0,38,etch)}</g><g transform="translate(${x} ${y+h}) scale(1 -1)">${themedCorner(theme,0,0,38,etch)}</g><g transform="translate(${x+w} ${y+h}) scale(-1 -1)">${themedCorner(theme,0,0,38,etch)}</g>`;
+  }
+  // segmented
+  let s = line(x+46,y,x+w-46,y,etch,'opacity=".42"')+line(x+46,y+h,x+w-46,y+h,etch,'opacity=".42"')+line(x,y+46,x,y+h-46,etch,'opacity=".42"')+line(x+w,y+46,x+w,y+h-46,etch,'opacity=".42"');
+  for(let i=0;i<4;i++){
+    const px=x+90+i*(w-180)/3;
+    s+=circle(px,y,2.1,etch,'none','opacity=".72"')+circle(px,y+h,2.1,etch,'none','opacity=".72"');
+  }
+  s += themedCorner(theme,x,y,30,etch)+`<g transform="translate(${x+w} ${y}) scale(-1 1)">${themedCorner(theme,0,0,30,etch)}</g><g transform="translate(${x} ${y+h}) scale(1 -1)">${themedCorner(theme,0,0,30,etch)}</g><g transform="translate(${x+w} ${y+h}) scale(-1 -1)">${themedCorner(theme,0,0,30,etch)}</g>`;
+  return s;
+}
+
+function center(theme,type,cx,cy,w,h,etch){
+  if(type==='medallion') return themedMotif(theme,cx,cy,Math.min(w,h)*0.18,etch);
+  if(type==='vertical'){
+    return themedMotif(theme,cx,cy,Math.min(w,h)*0.13,etch)+path(`M${cx} ${cy-h*.2}V${cy+h*.2}`,etch,'none','opacity=".3"')+
+      circle(cx,cy-h*.26,3,etch,'none','opacity=".65"')+circle(cx,cy+h*.26,3,etch,'none','opacity=".65"');
+  }
+  // wide
+  return themedMotif(theme,cx-w*.14,cy,Math.min(w,h)*0.12,etch)+themedMotif(theme,cx+w*.14,cy,Math.min(w,h)*0.12,etch)+path(`M${cx-w*.07} ${cy}H${cx+w*.07}`,etch,'none','opacity=".34"');
+}
+
+function panelStudySVG(theme,borderType,centerType,wide=true){
+  const T=THEMES[theme], W=wide?330:240, H=210;
+  const etch=mix(T.etch,'#ffffff',.06), panel=T.panel, bg=T.bg;
+  return `
+  <svg class="thumb" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="${esc(T.label)} panel study">
+    ${rect(0,0,W,H,bg)}
+    ${rect(18,16,W-36,H-32,panel,mix(T.metal,bg,.15),'rx="3"')}
+    ${border(theme,borderType,32,30,W-64,H-60,etch)}
+    ${center(theme,centerType,W/2,H/2,W-64,H-60,etch)}
+  </svg>`;
+}
+
+function interiorSilhouettes(theme){
+  const T=THEMES[theme];
+  const shelf=mix(T.text,T.panel,.8), mass=mix(T.text,T.panel,.55), linec=mix(T.text,T.panel,.35);
+  return `
+    ${rect(18,105,184,5,shelf,'none','opacity=".6"')}
+    ${rect(24,38,84,52,mass,'none','opacity=".52" rx="3"')}
+    ${rect(34,48,64,32,'none',linec,'opacity=".45"')}
+    ${rect(126,46,24,46,mass,'none','opacity=".48" rx="2"')}
+    ${rect(156,46,22,46,mass,'none','opacity=".46" rx="2"')}
+    ${rect(183,58,18,34,mass,'none','opacity=".42" rx="2"')}
+    ${circle(74,122,18,mass,'none','opacity=".42"')}
+    ${rect(120,114,44,14,mass,'none','opacity=".4" rx="7"')}
+  `;
+}
+
+function glassDoorSVG(theme,style){
+  const T=THEMES[theme], W=250, H=220;
+  const pane='rgba(232,240,240,0.11)', fog='rgba(232,240,240,0.45)', frame=mix(T.panel,'#000',.08), revealLow='rgba(245,248,248,0.12)', revealMid='rgba(245,248,248,0.22)', revealHigh='rgba(245,248,248,0.34)';
+  let reveal = revealMid; if(style==='subtle') reveal=revealLow; if(style==='clear') reveal=revealHigh;
+  const defs = `
+    <defs>
+      <filter id="blur-${theme}-${style}"><feGaussianBlur stdDeviation="${style==='clear'?2.4:style==='subtle'?3.4:style==='graded'?3.2:style==='line'?2.8:4.1}"/></filter>
+      <linearGradient id="pane-${theme}-${style}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="rgba(255,255,255,.18)"/>
+        <stop offset="1" stop-color="rgba(255,255,255,.07)"/>
+      </linearGradient>
+      <radialGradient id="grad-${theme}-${style}" cx="50%" cy="50%" r="56%">
+        <stop offset="0" stop-color="rgba(255,255,255,.28)"/>
+        <stop offset="1" stop-color="rgba(255,255,255,.10)"/>
+      </radialGradient>
+    </defs>`;
+  let ornament='';
+  if(style==='graded') ornament = `<g opacity=".95">${circle(125,98,32,'url(#grad-'+theme+'-'+style+')','none')}<g opacity=".85">${center(theme,'medallion',125,98,90,90,'rgba(255,255,255,.42)')}</g></g>`;
+  else if(style==='line') ornament = `<g opacity=".98">${center(theme,'medallion',125,98,95,95,'rgba(255,255,255,.48)')}</g>`;
+  else ornament = `<g opacity=".98">${circle(125,98,40,reveal,'none')}${center(theme,'medallion',125,98,94,94,'rgba(255,255,255,'+(style==='subtle'?.28:style==='clear'?.58:.42)+')')}</g>`;
+
+  const extra = style==='line' ? '' : (style==='moderate'||style==='clear' ? circle(125,98,54,'none','rgba(255,255,255,.15)','opacity=".7"') : '');
+  const fluting = style==='fluted' ? Array.from({length:10},(_,i)=>rect(36+i*16,24,6,146,'rgba(255,255,255,.08)','none')).join('') : '';
+  return `
+  <svg class="thumb" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="${esc(T.label)} door study">
+    ${defs}
+    ${rect(0,0,W,H,T.bg)}
+    ${rect(20,14,210,176,frame,mix(T.metal,T.bg,.18),'rx="4"')}
+    <g filter="url(#blur-${theme}-${style})">${interiorSilhouettes(theme)}</g>
+    ${rect(30,24,190,146,'url(#pane-'+theme+'-'+style+')','rgba(255,255,255,.24)','rx="3"')}
+    ${rect(30,24,190,146,fog,'none','opacity=".55" rx="3"')}
+    ${fluting}
+    ${extra}
+    ${ornament}
+    ${line(44,20,206,20,'rgba(255,255,255,.16)','opacity=".9"')}
+    ${rect(18,14,6,176,mix(T.metal,T.panel,.3),mix(T.metal,T.bg,.1),'rx="1.5"')}
+    ${circle(21,62,2.3,mix(T.text,T.metal,.25))}${circle(21,142,2.3,mix(T.text,T.metal,.25))}
+    ${rect(213,86,6,22,mix(T.metal,T.panel,.25),mix(T.metal,T.bg,.1),'rx="3"')}
+  </svg>`;
+}
+
+function renderLive(){
+  const theme=document.getElementById('themeSelect').value;
+  const borderType=document.getElementById('borderSelect').value;
+  const centerType=document.getElementById('centerSelect').value;
+  const doorStyle=document.getElementById('doorSelect').value;
+  const frost=Number(document.getElementById('frostRange').value);
+  document.getElementById('frostOut').textContent=frost.toFixed(2);
+  const T=THEMES[theme], etch=mix(T.etch,'#fff',.04), bg=T.bg, panel=T.panel;
+  const live = document.getElementById('livePreview');
+  const W=920,H=620;
+  const door = (x,y,label)=>{
+    const innerSVG = glassDoorSVG(theme,doorStyle).replace('class="thumb" ','').replace(/viewBox="0 0 250 220"/,'viewBox="0 0 250 220" width="250" height="220" x="'+x+'" y="'+y+'"');
+    return innerSVG + `<text x="${x+125}" y="${y+235}" font-size="13" text-anchor="middle">${label}</text>`;
+  };
+  live.innerHTML = `
+    <defs>
+      <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${mix(panel,'#fff',.03)}"/><stop offset="1" stop-color="${panel}"/></linearGradient>
+    </defs>
+    ${rect(0,0,W,H,bg)}
+    ${rect(68,62,784,480,'url(#stone)',mix(T.metal,bg,.08),'rx="6"')}
+    ${rect(84,84,752,436,mix(panel,bg,.08),mix(T.etch,bg,.7),'rx="4"')}
+    ${border(theme,borderType,520,118,264,284,etch)}
+    ${center(theme,centerType,652,260,264,284,etch)}
+    ${door(108,136,'Left cubby')}
+    ${door(108,358,'Center cubby')}
+    ${door(376,136,'Right cubby')}
+    ${rect(372,358,238,138,mix(panel,bg,.18),mix(T.metal,bg,.24),'rx="4"')}
+    ${path('M392 446h198','rgba(255,255,255,.10)')}
+    ${circle(450,422,26,mix(T.text,panel,.6),'none','opacity=".4"')}
+    ${rect(494,410,62,18,mix(T.text,panel,.64),'none','opacity=".3" rx="8"')}
+    ${textNode(652,104,T.label+' backing family · '+labelize(borderType)+' · '+labelize(centerType),16)}
+    ${textNode(234,110,'Satin door treatment · '+labelize(doorStyle),16)}
+  `;
+  // apply dynamic frost overlay intensity inside each door pane
+  [...live.querySelectorAll('rect[fill="rgba(232,240,240,0.45)"]')].forEach(el=>el.setAttribute('opacity', String(Math.min(.85, frost))));
+}
+
+function textNode(x,y,s,size){return `<text x="${x}" y="${y}" font-size="${size}" text-anchor="middle">${esc(s)}</text>`}
+function labelize(x){return ({frame:'Frame line',corner:'Corner marks',segmented:'Segmented border',medallion:'Medallion',vertical:'Vertical emblem',wide:'Wide composition',subtle:'Subtle reverse frost',moderate:'Moderate reverse frost',clear:'Clearer reverse frost',graded:'Graded reveal',line:'Linework reveal'})[x]||x}
+
+function renderThemeStudies(){
+  const host=document.getElementById('themeStudies');
+  host.innerHTML='';
+  for(const [theme,list] of Object.entries(THEME_STUDIES)){
+    for(const item of list){
+      const card=document.createElement('div');
+      card.className='card';
+      card.innerHTML=`<div class="family-head"><h3>${esc(item.title)}</h3><span class="tiny">${esc(THEMES[theme].label)}</span></div>${panelStudySVG(theme,item.border,item.center)}<p class="tiny">${esc(item.note)}</p><div class="btnrow"><button data-apply-theme="${theme}" data-apply-border="${item.border}" data-apply-center="${item.center}">Use in live preview</button></div>`;
+      host.appendChild(card);
+    }
+  }
+}
+
+function renderDoorStudies(){
+  const host=document.getElementById('doorStudies');
+  host.innerHTML='';
+  for(const item of DOOR_STUDIES){
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`<div class="family-head"><h3>${esc(item.title)}</h3><span class="tiny">${esc(THEMES[item.theme].label)}</span></div>${glassDoorSVG(item.theme,item.style)}<p class="tiny">${esc(item.note)}</p><div class="btnrow"><button data-apply-theme="${item.theme}" data-apply-door="${item.style}">Use in live preview</button></div>`;
+    host.appendChild(card);
+  }
+}
+
+function attachEvents(){
+  ['themeSelect','borderSelect','centerSelect','doorSelect','frostRange'].forEach(id=>document.getElementById(id).addEventListener('input',renderLive));
+  document.querySelectorAll('button[data-apply-family]').forEach(btn=>btn.addEventListener('click',()=>{
+    const family=btn.dataset.applyFamily;
+    document.getElementById('themeSelect').value=family;
+    const defaults={astral:['corner','medallion','moderate'],cartographic:['segmented','medallion','graded'],botanical:['corner','medallion','line'],architectural:['frame','medallion','subtle']}[family];
+    document.getElementById('borderSelect').value=defaults[0];
+    document.getElementById('centerSelect').value=defaults[1];
+    document.getElementById('doorSelect').value=defaults[2];
+    renderLive();
+  }));
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-apply-theme]');
+    if(!b) return;
+    if(b.dataset.applyTheme) document.getElementById('themeSelect').value=b.dataset.applyTheme;
+    if(b.dataset.applyBorder) document.getElementById('borderSelect').value=b.dataset.applyBorder;
+    if(b.dataset.applyCenter) document.getElementById('centerSelect').value=b.dataset.applyCenter;
+    if(b.dataset.applyDoor) document.getElementById('doorSelect').value=b.dataset.applyDoor;
+    renderLive();
+  });
+}
+
+renderThemeStudies();
+renderDoorStudies();
+attachEvents();
+renderLive();
+</script>
+</body>
+</html>

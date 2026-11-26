@@ -1,5 +1,7 @@
 # B7 representation asset contract
 
+**S20 current design:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) preserves B7 accepted assets and fixture contracts. Independent supported application books use current native Book/catalogue art and distinct identities; eventual three coordinated theme colour variants required, exact swatches and bookmark motion unresolved. S18 browser samples are not replacements. Basic B8 holder presentation does not supersede B7u3.
+
 B7-C canonical assets are integrated; B7-N1/N2 implement isolated native representations and mixed ownership. Historical candidate wording below describes the earlier extraction and design contracts. See [current state](../development/CURRENT_STATE.md) for verification and outstanding N4.
 
 ## Canonical inputs

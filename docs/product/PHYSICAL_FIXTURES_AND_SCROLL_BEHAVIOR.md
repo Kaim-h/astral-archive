@@ -1,5 +1,7 @@
 # Physical fixtures, placement and scroll behavior
 
+**S20 current design:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) adds the recovered flat Lighting Lab general-purpose board, independent supported application books and valid implicit arrangement commits. Historical explicit Apply/Cancel for ordinary valid structural edits is superseded on Browse; retain confirmation/validation for evacuation, reflow, transfer and invalid geometry. Existing solver and rack dimensions remain authoritative; compact B8 study sizes are not native requirements.
+
 **Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** product requirements and prototype lessons from the November 17 cross-platform handoff. v5.4 is historical. B6r12b3 is the accepted scroll browser direction; B6 through B7-N2 are isolated native synthetic source. See [current state](../development/CURRENT_STATE.md) and [B7 asset contract](REPRESENTATION_ASSETS.md) for later evidence.
@@ -26,6 +28,8 @@ Reuse `quickshell/widgets/Book.qml` and `quickshell/shelves/Shelf.qml` rather th
 - Do not remove bookmarks / ribbons or let books float above the board.
 
 ## Scroll cell geometry
+
+**Owner-confirmed shared fixture contract (B8 review):** a rack is the same fixture in a Shelf or in a Cubby. Parent determines placement and available space, not scroll interaction capabilities. Reuse the existing B7 ownership, bounded cell geometry/physics, contextual customization, insertion, overflow and Case behavior; do not create a divergent Shelf-only rack. Rack exterior dimensions, cell geometry and individual scroll radii are separate properties; preserve file identities and scroll sizes, explicitly preview cell/rack resize and reject unresolved capacity without silent loss, shrink or transfer. The B8 Shelf browser studies deliberately omit live scroll manipulation; this is a prototype scope limitation, not a product requirement or implementation claim.
 
 - A rack contains connected tiled cells. Diamond / square / triangular / hex methods may be explored, but the cells must form a genuine shared tessellation, not independent polygons touching only at corners.
 - Cell boundaries and scroll centers/radii must be validated. Scrolls remain within the cell polygon and do not overlap beyond the chosen tolerance.
@@ -89,3 +93,7 @@ The Scroll Case is a universal portable file representation. A file travels as a
 - Hybrid transport: local direct movement within a cubby; use the universal Scroll Case between cubbies. Cradle presentation is not an additional owner. Invalid drop changes nothing.
 - Occupied shelf shrink: block invalid placement, offer conservative explicit rearrangement preview; preserve existing positions where possible, no silent scale changes, compaction or evacuation. Cancel and exact Undo required.
 - B7-N2 four checkpoints: ownership/validation, mixed scene and occupied arrangement, universal transfers/checkpoint compatibility, final actual verification. No new art, automatic persistence, Map Room, application identity conversion or real file operations.
+
+## November 25 — selected-object sizing and shared fixture clarification
+
+Rack and compatible fixtures have the same underlying behavior in a Shelf and a Cubby. The parent only determines placement and available space. Individual scrolls and books are not manually resizeable; resizing a selected adjustable representation or fixture must not rescale other objects. Dependents may translate with a changed support, with validation and explicit Apply/Cancel/Undo. The compact S10 browser rack and its static packing are prototype limitations, not a change to the established B6/B7 file-size tiers, cell dimensions, approval or live solver contracts. See the [B8 design contract](../research/prototypes/2026-11-24/b8/B8s9_ARRANGEMENT.md) for exact discrepancies and test scope.

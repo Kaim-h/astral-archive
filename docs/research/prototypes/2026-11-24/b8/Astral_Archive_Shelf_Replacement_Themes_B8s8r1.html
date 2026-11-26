@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Astral Archive — B8s8r1 Replacement Theme Case Study</title>
+<style>
+  :root{
+    --bg:#121e23; --panel:#263c37; --panel2:#263c37; --stone:#263c37; --metal:#8c6e5a;
+    --line:#91ada1; --text:#e6e1d8; --muted:#bfc9bf; --shadow:rgba(0,0,0,.28);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:linear-gradient(180deg,#121e23,#121e23 45%,#121e23); color:var(--text); font:15px/1.45 system-ui,sans-serif;}
+  main{max-width:1480px; margin:auto; padding:24px 20px 34px;}
+  h1,h2,h3{font-family:Georgia,serif; font-weight:500; letter-spacing:.02em; margin:.2em 0 .45em}
+  h1{font-size:32px} h2{font-size:22px} h3{font-size:17px}
+  p{margin:.35em 0 .9em; color:var(--muted)}
+  .layout{display:grid; grid-template-columns: minmax(320px,430px) minmax(600px,1fr); gap:18px; align-items:start}
+  .card{background:linear-gradient(180deg, rgba(38,60,55,.95), rgba(18,30,35,.96)); border:1px solid rgba(140,110,90,.38); border-radius:14px; box-shadow:0 14px 40px var(--shadow); overflow:hidden}
+  .card .inner{padding:16px 18px}
+  .controls{display:grid; gap:12px}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  label{display:grid; gap:5px; font-size:13px; color:var(--muted)}
+  select,button{font:inherit; color:var(--text); background:#121e23; border:1px solid rgba(140,110,90,.48); border-radius:8px; padding:8px 10px}
+  button{cursor:pointer}
+  button:hover{border-color:#91ada1}
+  .picker{display:grid; gap:10px; margin-top:10px}
+  .pickerHead{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .iconCards{display:grid; gap:10px}
+  .iconCard{display:grid; grid-template-columns:72px 1fr; gap:12px; align-items:center; padding:10px; background:rgba(0,0,0,.14); border:1px solid rgba(255,255,255,.06); border-radius:10px; cursor:pointer}
+  .iconCard.active{border-color:rgba(145,173,161,.9); background:rgba(145,173,161,.08)}
+  .thumb{width:72px; height:72px; border-radius:8px; background:#121e23; border:1px solid rgba(255,255,255,.06)}
+  .tiny{font-size:12px; color:var(--muted)}
+  .nav{display:flex; gap:8px}
+  .nav button{padding:7px 10px}
+  .pill{display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid rgba(140,110,90,.5); font-size:12px; color:var(--muted)}
+  .gallery{display:grid; gap:18px}
+  .familyGrid{display:grid; grid-template-columns:repeat(4,minmax(170px,1fr)); gap:12px}
+  .familyThumb{padding:10px; border-radius:10px; background:rgba(0,0,0,.16); border:1px solid rgba(255,255,255,.06)}
+  .familyThumb svg{display:block; width:100%; height:auto; background:#121e23; border-radius:8px; border:1px solid rgba(255,255,255,.05)}
+  .previewWrap{padding:14px; background:linear-gradient(180deg,#263c37,#263c37)}
+  #livePreview{display:block; width:100%; height:auto; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#121e23}
+  .subsections{display:grid; gap:14px}
+  .subsections .card{overflow:visible}
+  .familyNote{font-size:13px}
+  .footer{margin-top:20px; font-size:13px; color:var(--muted)}
+  @media (max-width:1180px){.layout{grid-template-columns:1fr}.familyGrid{grid-template-columns:repeat(2,minmax(160px,1fr))}}
+  @media (max-width:700px){.row{grid-template-columns:1fr}.familyGrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h1>B8s8r1 — Replacement theme case study</h1>
+  <p>This study explores possible replacements for the weak cartographic family. It compares three new directions: <strong>Bestiary</strong>, <strong>Horological</strong>, and <strong>Elemental</strong> (a broader development of the earlier tidal idea). Each family has eight candidate emblems, all engraved in the same single-color Twilight treatment. The live preview keeps the preferred defaults of ornamented corners and linework glass reveal.</p>
+
+  <div class="layout">
+    <section class="card">
+      <div class="inner controls">
+        <div>
+          <h2 style="margin-top:0">Family picker</h2>
+          <p class="familyNote" id="familyDescription"></p>
+        </div>
+        <div class="row">
+          <label>Replacement family
+            <select id="familySelect"></select>
+          </label>
+          <label>Variant shown on Shelf
+            <select id="variantSelect"></select>
+          </label>
+        </div>
+        <div class="picker">
+          <div class="pickerHead">
+            <div>
+              <span class="pill">4 visible at a time</span>
+              <span class="pill" id="pagerLabel">1–4</span>
+            </div>
+            <div class="nav">
+              <button id="prevBtn" type="button">◀ Prev</button>
+              <button id="nextBtn" type="button">Next ▶</button>
+            </div>
+          </div>
+          <div id="iconCards" class="iconCards"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card previewWrap">
+      <svg id="livePreview" viewBox="0 0 1220 770" aria-label="Live shelf preview"></svg>
+    </section>
+  </div>
+
+  <div class="subsections" style="margin-top:18px">
+    <section class="card"><div class="inner">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap">
+        <h2 style="margin-top:0">Bestiary</h2>
+        <span class="pill">library creatures · heraldic silhouettes</span>
+      </div>
+      <p>Bestiary draws from symbolic animals and winged forms. This family feels the most “storied” and could pair naturally with archives, myths and decorative woodwork.</p>
+      <div id="grid-bestiary" class="familyGrid"></div>
+    </div></section>
+
+    <section class="card"><div class="inner">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap">
+        <h2 style="margin-top:0">Horological</h2>
+        <span class="pill">antique instruments · measured time</span>
+      </div>
+      <p>Horological emphasizes dials, balances, pendulums and older clockwork symbolism rather than industrial steampunk clutter. It complements the Archive’s mechanical and contemplative sides.</p>
+      <div id="grid-horological" class="familyGrid"></div>
+    </div></section>
+
+    <section class="card"><div class="inner">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap">
+        <h2 style="margin-top:0">Elemental</h2>
+        <span class="pill">water, air, earth, fire</span>
+      </div>
+      <p>Elemental broadens the earlier tidal direction into the four elements. Water remains a strong branch, but the whole family can support atmospheric environmental themes, especially in the Map Room later.</p>
+      <div id="grid-elemental" class="familyGrid"></div>
+    </div></section>
+  </div>
+
+  <p class="footer">Notes: This is a separate replacement-family case study rather than an integrated Shelf redesign. The goal is to decide which broad family deserves to replace or supplement cartographic ornamentation in the future. The contour-map / topographic background idea remains reserved for a dedicated Map Room study.</p>
+</main>
+<script>
+const FAMILIES = {
+  bestiary: {
+    title:'Bestiary',
+    desc:'Symbolic creatures and heraldic forms. This direction is narrative, emblematic and likely the easiest to recognize at multiple scales.',
+    variants:[
+      ['owl','Owl','scholarly watcher'],
+      ['moth','Night moth','winged symmetry'],
+      ['fox','Fox mask','cunning heraldry'],
+      ['stag','Stag crest','antlered nobility'],
+      ['heron','Heron','stillness and reeds'],
+      ['serpent','Serpent knot','coiled knowledge'],
+      ['hare','Moon hare','swift lunar form'],
+      ['cat','Archive cat','familiar guardian']
+    ]
+  },
+  horological: {
+    title:'Horological',
+    desc:'Antique timekeeping and measured mechanics. This family is precise but can stay ornamental if it favors seals, dials and clean components over dense gearing.',
+    variants:[
+      ['sundial','Sundial','shadow and arc'],
+      ['balance','Balance wheel','measured cadence'],
+      ['hourglass','Hourglass','contained time'],
+      ['pendulum','Pendulum','swing and axis'],
+      ['moonphase','Moon-phase dial','cycle and time'],
+      ['escapement','Escapement','release and order'],
+      ['bell','Belfry bell','hour chime'],
+      ['calendar','Calendar rose','days arranged']
+    ]
+  },
+  elemental: {
+    title:'Elemental',
+    desc:'A broader four-elements branch derived from the earlier tidal idea. Water remains present, but fire, air and earth produce a more versatile, less repetitive family.',
+    variants:[
+      ['wave','Breaking wave','water / tide'],
+      ['nautilus','Nautilus spiral','water / shell'],
+      ['cloud','Cloud current','air / drift'],
+      ['gale','Gale knot','air / motion'],
+      ['ember','Ember seal','fire / coal'],
+      ['flame','Flame crest','fire / rise'],
+      ['mountain','Mountain strata','earth / stone'],
+      ['spring','Spring basin','earth / source']
+    ]
+  }
+};
+
+const familyOrder = ['bestiary','horological','elemental'];
+const state = {family:'bestiary', index:0, page:0};
+
+function line(x1,y1,x2,y2,c,w=1.6,o=1){return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" opacity="${o}"/>`;}
+function path(d,c,w=1.6,f='none',o=1, extra=''){if(typeof f==='number'){o=f;f='none';}return `<path d="${d}" stroke="${c}" stroke-width="${w}" fill="${f}" stroke-linecap="round" stroke-linejoin="round" opacity="${o}" ${extra}/>`;}
+function circle(cx,cy,r,c,w=1.6,f='none',o=1){if(typeof f==='number'){o=f;f='none';}return `<circle cx="${cx}" cy="${cy}" r="${r}" stroke="${c}" stroke-width="${w}" fill="${f}" opacity="${o}"/>`;}
+function rect(x,y,w,h,c,sw=1.6,f='none',o=1,rx=0){return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" stroke="${c}" stroke-width="${sw}" fill="${f}" opacity="${o}"/>`;}
+function poly(pts,c,w=1.6,f='none',o=1){return `<polygon points="${pts}" stroke="${c}" stroke-width="${w}" fill="${f}" opacity="${o}" stroke-linejoin="round"/>`;}
+
+function motif(id, c='#91ada1'){
+  const accent=c; // A single engraving color, independent of the material palette.
+  switch(id){
+    case 'owl': return circle(0,0,34,c,1.7,'none',.86)+circle(-14,-6,11,c,1.6)+circle(14,-6,11,c,1.6)+circle(-14,-6,2.8,accent,1.6)+circle(14,-6,2.8,accent,1.6)+path('M-30 18Q-11 14 0 30Q11 14 30 18',c,1.5)+path('M-5 8L0 15L5 8',c,1.5)+line(-6,35,-6,41,c,1.6,.8)+line(6,35,6,41,c,1.6,.8);
+    case 'moth': return path('M0 -18C-16 -44 -42 -42 -38 -10Q-33 4 -11 9Q-34 6 -28 29Q-12 40 0 12Q12 40 28 29Q34 6 11 9Q33 4 38 -10C42 -42 16 -44 0 -18Z',c,1.5)+line(0,-18,0,28,c,1.4,.9)+path('M0 -17Q-4 -31 -12 -34',c,1.4)+path('M0 -17Q4 -31 12 -34',c,1.4)+circle(-22,-10,5,accent,1.4)+circle(22,-10,5,accent,1.4);
+    case 'fox': return path('M-34 -28L-8 -17Q0 -21 8 -17L34 -28L28 5L0 35L-28 5Z',c,1.5)+path('M-34 -28L-21 -2L-8 -17M34 -28L21 -2L8 -17',c,1.4)+path('M-27 4L-12 8L0 35L12 8L27 4',c,1.4)+line(-15,0,-8,4,accent,1.8,.95)+line(15,0,8,4,accent,1.8,.95)+path('M-4 26H4L0 31Z',c,1.3,c,.85);
+    case 'stag': return path('M0 -9Q-18 -34 -26 -5Q-29 17 -16 28Q-2 39 0 18Q2 39 16 28Q29 17 26 -5Q18 -34 0 -9Z',c,1.5)+path('M-8 -8Q-18 -18 -22 -35M-13 -3Q-25 -8 -33 -22M8 -8Q18 -18 22 -35M13 -3Q25 -8 33 -22',c,1.4)+circle(-6,0,2.2,accent,1.4)+circle(6,0,2.2,accent,1.4);
+    case 'heron': return path('M-18 28Q-9 10 0 -11Q12 -39 31 -35Q15 -24 11 -5Q8 15 14 35',c,1.5)+path('M-4 -10Q-2 -20 5 -28',c,1.4)+line(31,-35,41,-39,accent,1.8,.9)+line(-7,35,-9,44,c,1.5,.9)+line(4,35,2,44,c,1.5,.9)+path('M-19 28Q-28 18 -29 10',c,1.4,.85);
+    case 'serpent': return path('M-34 10Q-25 -17 1 -17Q24 -17 24 1Q24 17 4 18Q-12 19 -10 31Q-7 42 10 41Q28 40 34 23',c,1.6)+circle(22,-6,2.1,accent,1.4)+path('M29 14L35 18L29 22',accent,1.4)+path('M-17 -17Q-11 -27 -1 -31Q13 -36 21 -29',c,1.3,.75);
+    case 'hare': return path('M2 -29Q14 -49 18 -12M-8 -27Q-17 -47 -19 -18',c,1.4)+path('M0 -12Q-22 -15 -28 3Q-33 20 -18 31Q-1 42 16 33Q33 24 29 5Q26 -10 12 -12Q6 -13 0 -12Z',c,1.5)+circle(-8,0,2.1,accent,1.3)+path('M14 18Q20 14 25 17',c,1.3,.7);
+    case 'cat': return path('M-22 -27L-9 -11Q0 -17 9 -11L22 -27L26 7Q28 28 0 35Q-28 28 -26 7Z',c,1.5)+circle(-8,1,2.2,accent,1.4)+circle(8,1,2.2,accent,1.4)+path('M-4 11L0 14L4 11',c,1.4)+line(-17,11,-34,8,c,1.2,.7)+line(-17,15,-34,18,c,1.2,.7)+line(17,11,34,8,c,1.2,.7)+line(17,15,34,18,c,1.2,.7);
+
+    case 'sundial': return path('M-34 20Q0 -30 34 20',c,1.5)+line(-30,18,30,18,c,1.5,.9)+line(0,-8,0,24,accent,1.8,.95)+line(-22,7,-27,3,c,1.2,.7)+line(-10,-4,-13,-9,c,1.2,.7)+line(10,-4,13,-9,c,1.2,.7)+line(22,7,27,3,c,1.2,.7);
+    case 'balance': return circle(0,0,32,c,1.5)+circle(0,0,20,c,1.4,.9)+circle(0,0,8,accent,1.6)+path('M0 -32V-40M0 32V40M-32 0H-40M32 0H40',c,1.4,.75)+path('M-12 0A12 12 0 0 0 12 0',accent,1.5,.9);
+    case 'hourglass': return rect(-20,-33,40,8,c,1.4,'none',.9,1)+rect(-20,25,40,8,c,1.4,'none',.9,1)+path('M-18 -25Q-4 -8 0 0Q4 -8 18 -25M-18 25Q-4 8 0 0Q4 8 18 25',c,1.5)+path('M-8 -10Q0 -5 8 -10M-5 9Q0 14 5 9',accent,1.4);
+    case 'pendulum': return line(0,-38,0,-2,c,1.6,.85)+circle(0,-39,2,accent,1.3)+path('M0 -2Q-4 18 -14 35',c,1.5)+circle(-18,40,10,c,1.4)+path('M9 -27Q18 -30 25 -25Q31 -21 31 -13',c,1.2,.7);
+    case 'moonphase': return circle(0,0,34,c,1.5)+circle(-11,0,18,accent,1.2,'none',.5)+circle(10,0,18,c,1.3,'none',.85)+line(-38,0,-29,0,c,1.1,.6)+line(29,0,38,0,c,1.1,.6)+line(0,-38,0,-29,c,1.1,.6)+line(0,29,0,38,c,1.1,.6);
+    case 'escapement': return circle(0,0,11,c,1.3)+path('M-27 -19L-6 -6M27 -19L6 -6M-27 19L-6 6M27 19L6 6',c,1.5)+poly('-30,-24 -21,-18 -18,-28',accent,1.4,'none',.9)+poly('30,-24 21,-18 18,-28',accent,1.4,'none',.9)+poly('-30,24 -21,18 -18,28',accent,1.4,'none',.9)+poly('30,24 21,18 18,28',accent,1.4,'none',.9);
+    case 'bell': return path('M-20 18Q-20 -20 0 -28Q20 -20 20 18Z',c,1.6)+rect(-24,18,48,6,c,1.4,'none',.9,1)+circle(0,25,4,accent,1.3,accent,.9)+path('M-8 -29Q0 -39 8 -29',c,1.3,.85);
+    case 'calendar': return circle(0,0,31,c,1.4)+path('M0 -31V31M-31 0H31',c,1.2,.65)+path('M-22 -22Q0 -16 22 -22Q16 0 22 22Q0 16 -22 22Q-16 0 -22 -22Z',c,1.4)+circle(0,0,6,accent,1.4)+circle(0,-16,2,accent,1.2)+circle(16,0,2,accent,1.2)+circle(0,16,2,accent,1.2)+circle(-16,0,2,accent,1.2);
+
+    case 'wave': return path('M-37 10Q-26 11 -17 -10Q-7 -32 13 -26Q33 -20 22 1Q11 18 1 1Q6 -13 18 -11Q8 -20 -2 -11Q-16 0 -17 16',c,1.5)+path('M-38 24Q-26 15 -14 24T10 24T37 24',accent,1.4)+path('M-38 35Q-26 27 -14 35T10 35T37 35',c,1.2,.65);
+    case 'nautilus': return path('M9 4C1 -13 -18 -1 -12 15C0 34 28 16 27 -8C24 -39 -22 -43 -36 -11C-51 23 -15 49 29 30',c,1.6)+line(-36,-11,-46,-16,accent,1.5,.9)+line(-25,-26,-31,-35,accent,1.5,.9)+line(-6,-35,-7,-46,accent,1.5,.9)+line(12,-31,18,-41,accent,1.5,.9)+line(26,-18,36,-22,accent,1.5,.9);
+    case 'cloud': return path('M-28 17Q-39 15 -39 4Q-39 -9 -27 -10Q-23 -24 -9 -24Q2 -24 8 -15Q15 -22 27 -18Q38 -15 38 -3Q38 12 23 13Z',c,1.5)+path('M-20 28Q-7 16 6 28T32 28',accent,1.4)+path('M-30 38Q-16 29 -4 38T22 38',c,1.2,.65);
+    case 'gale': return path('M-35 -9Q-11 -27 13 -9Q26 1 14 11Q4 18 -11 8Q-24 0 -35 12',c,1.5)+path('M-24 -24Q-4 -38 21 -24Q36 -15 27 -5',accent,1.3)+path('M-33 19Q-8 6 17 20Q28 25 35 16',c,1.3,.8)+circle(0,-2,3,accent,1.2);
+    case 'ember': return path('M0 -35Q-13 -17 -13 -4Q-13 12 -3 22Q10 14 20 23Q34 12 34 -6Q34 -27 17 -40Q9 -30 0 -35Z',c,1.5)+path('M1 -9Q-4 0 -2 10Q0 18 8 23Q15 15 16 6Q18 -6 8 -16Q5 -11 1 -9Z',accent,1.5)+path('M-22 28Q0 18 22 28',c,1.2,.6);
+    case 'flame': return path('M0 -38Q16 -18 12 -4Q28 -7 31 12Q34 30 14 39Q2 31 0 13Q-3 30 -14 39Q-34 30 -31 12Q-27 -8 -10 -4Q-13 -18 0 -38Z',c,1.5)+path('M0 -14Q8 -4 6 8Q13 5 15 16Q17 26 7 32Q2 27 0 18Q-2 27 -7 32Q-17 26 -15 16Q-13 5 -6 8Q-8 -4 0 -14Z',accent,1.3,.92);
+    case 'mountain': return poly('-36,27 -12,-7 0,7 18,-20 36,27',c,1.6,'none',.9)+line(-28,27,28,27,accent,1.4,.8)+path('M-11 -6L-3 3M18 -20L7 -3',c,1.2,.7)+path('M-30 38Q0 31 30 38',c,1.2,.6);
+    case 'spring': return circle(0,6,30,c,1.4)+circle(0,6,16,c,1.2,.8)+path('M0 -34Q-10 -19 0 -8Q10 -19 0 -34Z',accent,1.4)+path('M-30 26Q0 40 30 26',c,1.2,.65)+path('M-21 35Q0 46 21 35',accent,1.2,.5);
+    default: return circle(0,0,22,c,1.5);
+  }
+}
+
+function motifThumb(id, title, subtitle){
+  return `<div class="familyThumb"><svg viewBox="0 0 140 120" aria-label="${title}"><rect x="0" y="0" width="140" height="120" rx="8" fill="#121e23"/><g transform="translate(70 56)">${motif(id)}</g></svg><div style="margin-top:8px;font-size:13px"><strong>${title}</strong></div><div class="tiny">${subtitle}</div></div>`;
+}
+
+function iconCard(id,title,subtitle, active){
+  return `<div class="iconCard ${active?'active':''}" data-id="${id}"><svg class="thumb" viewBox="0 0 72 72" aria-hidden="true"><rect width="72" height="72" rx="8" fill="#121e23"/><g transform="translate(36 36) scale(.82)">${motif(id)}</g></svg><div><div><strong>${title}</strong></div><div class="tiny">${subtitle}</div></div></div>`;
+}
+
+function currentFamily(){return FAMILIES[state.family];}
+function selectedVariant(){return currentFamily().variants[state.index];}
+
+function updateFamilySelect(){
+  const fs=document.getElementById('familySelect');
+  const vs=document.getElementById('variantSelect');
+  fs.innerHTML = familyOrder.map(k=>`<option value="${k}">${FAMILIES[k].title}</option>`).join('');
+  fs.value=state.family;
+  vs.innerHTML = currentFamily().variants.map((v,i)=>`<option value="${i}">${i+1}. ${v[1]}</option>`).join('');
+  vs.value=state.index;
+  document.getElementById('familyDescription').textContent = currentFamily().desc;
+}
+
+function renderVisibleIcons(){
+  const list=currentFamily().variants; const start=state.page*4; const slice=list.slice(start,start+4);
+  document.getElementById('pagerLabel').textContent = `${start+1}–${Math.min(start+4,list.length)} of ${list.length}`;
+  document.getElementById('iconCards').innerHTML = slice.map(v=>iconCard(v[0],v[1],v[2], list[state.index][0]===v[0])).join('');
+  document.querySelectorAll('.iconCard').forEach(card=>card.addEventListener('click',()=>{
+    const id=card.dataset.id; const idx=list.findIndex(v=>v[0]===id); if(idx>=0){state.index=idx; document.getElementById('variantSelect').value=String(idx); renderVisibleIcons(); renderPreview();}
+  }));
+}
+
+function renderFamilyGrids(){
+  familyOrder.forEach(key=>{
+    const host=document.getElementById('grid-'+key); host.innerHTML='';
+    FAMILIES[key].variants.forEach(v=>host.insertAdjacentHTML('beforeend', motifThumb(v[0], v[1], v[2])));
+  });
+}
+
+function cornerOrnament(x,y,w,h, stroke){
+  return [
+    path(`M${x+42} ${y}Q${x+15} ${y+4} ${x+4} ${y+16}Q${x} ${y+25} ${x} ${y+42}`,stroke,1.4),
+    path(`M${x+w-42} ${y}Q${x+w-15} ${y+4} ${x+w-4} ${y+16}Q${x+w} ${y+25} ${x+w} ${y+42}`,stroke,1.4),
+    path(`M${x+42} ${y+h}Q${x+15} ${y+h-4} ${x+4} ${y+h-16}Q${x} ${y+h-25} ${x} ${y+h-42}`,stroke,1.4),
+    path(`M${x+w-42} ${y+h}Q${x+w-15} ${y+h-4} ${x+w-4} ${y+h-16}Q${x+w} ${y+h-25} ${x+w} ${y+h-42}`,stroke,1.4),
+    circle(x+28,y+18,2.2,stroke,1.4,'#91ada1',.9), circle(x+w-28,y+18,2.2,stroke,1.4,'#91ada1',.9),
+    circle(x+28,y+h-18,2.2,stroke,1.4,'#91ada1',.9), circle(x+w-28,y+h-18,2.2,stroke,1.4,'#91ada1',.9)
+  ].join('');
+}
+
+function glassDoor(x,y,id,label){
+  const key=`${x}-${y}`, blurId=`blur-${key}`, clearId=`clear-${key}`, maskId=`mask-${key}`, clipId=`pane-${key}`;
+  const motifMarkup = `<g transform="translate(${x+118} ${y+88}) scale(1.16)">${motif(id,'white')}</g>`;
+  const interior = `<rect x="${x+28}" y="${y+28}" width="88" height="54" rx="4" fill="rgba(230,232,230,.36)"/><rect x="${x+126}" y="${y+24}" width="18" height="64" rx="3" fill="rgba(230,232,230,.26)"/><rect x="${x+150}" y="${y+34}" width="18" height="54" rx="3" fill="rgba(230,232,230,.22)"/><rect x="${x+48}" y="${y+104}" width="44" height="28" rx="14" fill="rgba(230,232,230,.18)"/><rect x="${x+112}" y="${y+108}" width="60" height="18" rx="9" fill="rgba(230,232,230,.16)"/>`;
+  const pane=(fill)=>`<rect x="${x+22}" y="${y+20}" width="192" height="144" rx="4" fill="${fill}"/>`;
+  const aperture=`<clipPath id="${clipId}">${pane('white')}</clipPath>`;
+  const blurDef=`<filter id="${blurId}"><feGaussianBlur stdDeviation="4.2"/></filter><filter id="${clearId}"><feGaussianBlur stdDeviation="1.15"/></filter>`;
+  return `
+    <defs>${blurDef}${aperture}<mask id="${maskId}" maskUnits="userSpaceOnUse" x="${x+22}" y="${y+20}" width="192" height="144">${pane('black')}${motifMarkup}</mask></defs>
+    <g>
+      <rect x="${x}" y="${y}" width="236" height="188" rx="6" fill="#121e23" stroke="#8c6e5a" stroke-width="1.5"/>
+      <g clip-path="url(#${clipId})">
+        <g filter="url(#${blurId})">${interior}</g>
+        ${pane('rgba(145,173,161,.42)')}
+        <g mask="url(#${maskId})">${pane('#121e23')}<g filter="url(#${clearId})">${interior}</g>${pane('rgba(145,173,161,.22)')}</g>
+      </g>
+      <rect x="${x+22}" y="${y+20}" width="192" height="144" rx="4" fill="none" stroke="#91ada1" stroke-opacity=".35"/>
+      <rect x="${x+1}" y="${y}" width="7" height="188" rx="2" fill="#8c6e5a" opacity=".95"/>
+      <circle cx="${x+4.5}" cy="${y+52}" r="2.2" fill="#e6e1d8"/><circle cx="${x+4.5}" cy="${y+132}" r="2.2" fill="#e6e1d8"/>
+      <rect x="${x+200}" y="${y+74}" width="7" height="28" rx="4" fill="#8c6e5a" opacity=".9"/>
+      <text x="${x+118}" y="${y+206}" text-anchor="middle" font-size="14" fill="#e6e1d8" font-family="Georgia,serif">${label}</text>
+    </g>`;
+}
+
+function renderPreview(){
+  const svg=document.getElementById('livePreview');
+  const [id,title] = selectedVariant();
+  const familyTitle = currentFamily().title;
+  svg.innerHTML = `
+    <rect width="1220" height="770" fill="#121e23"/>
+    <rect x="58" y="42" width="1102" height="676" rx="18" fill="#263c37" stroke="#91ada1" stroke-opacity=".4"/>
+    <rect x="84" y="68" width="540" height="622" rx="14" fill="#121e23" stroke="#8c6e5a"/>
+    <rect x="648" y="68" width="480" height="622" rx="14" fill="#263c37" stroke="#8c6e5a"/>
+    <text x="354" y="94" text-anchor="middle" font-size="22" fill="#e6e1d8" font-family="Georgia,serif">${familyTitle} glass reveal · ${title}</text>
+    <text x="888" y="94" text-anchor="middle" font-size="22" fill="#e6e1d8" font-family="Georgia,serif">${familyTitle} backing family · ornamented corners</text>
+
+    ${glassDoor(110,126,id,'Left cubby')}
+    ${glassDoor(110,340,id,'Center cubby')}
+    ${glassDoor(350,126,id,'Right cubby')}
+
+    <rect x="352" y="342" width="234" height="172" rx="8" fill="#263c37" stroke="#8c6e5a" stroke-opacity=".65"/>
+    <path d="M390 428H548" stroke="#91ada1" stroke-width="2" opacity=".5"/>
+    <circle cx="450" cy="389" r="36" fill="#91ada1" opacity=".72"/>
+    <rect x="513" y="370" width="90" height="38" rx="16" fill="#91ada1" opacity=".72"/>
+
+    <rect x="700" y="132" width="376" height="376" rx="8" fill="#263c37" stroke="#91ada1" stroke-opacity=".28"/>
+    ${cornerOrnament(728,160,320,320,'#91ada1')}
+    <g transform="translate(888 320) scale(2.85)">${motif(id,'#91ada1')}</g>
+    <g transform="translate(888 555) scale(.7)">${motif(id,'#91ada1')}</g>
+    <text x="888" y="605" text-anchor="middle" font-size="14" fill="#e6e1d8">miniature crest preview</text>
+    <text x="888" y="635" text-anchor="middle" font-size="16" fill="#e6e1d8" font-family="Georgia,serif">${title}</text>
+    <text x="888" y="656" text-anchor="middle" font-size="13" fill="#e6e1d8">${selectedVariant()[2]}</text>
+  `;
+}
+
+function syncPageToIndex(){ state.page = Math.floor(state.index / 4); }
+
+function wire(){
+  document.getElementById('familySelect').addEventListener('change', e=>{
+    state.family = e.target.value; state.index = 0; state.page = 0; updateFamilySelect(); renderVisibleIcons(); renderPreview();
+  });
+  document.getElementById('variantSelect').addEventListener('change', e=>{
+    state.index = Number(e.target.value); syncPageToIndex(); renderVisibleIcons(); renderPreview();
+  });
+  document.getElementById('prevBtn').addEventListener('click', ()=>{ if(state.page>0){ state.page--; renderVisibleIcons(); }});
+  document.getElementById('nextBtn').addEventListener('click', ()=>{ const pages=Math.ceil(currentFamily().variants.length/4); if(state.page<pages-1){ state.page++; renderVisibleIcons(); }});
+}
+
+updateFamilySelect();
+renderFamilyGrids();
+wire();
+renderVisibleIcons();
+renderPreview();
+</script>
+</body>
+</html>

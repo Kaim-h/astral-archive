@@ -1,5 +1,7 @@
 # Project vision and design language
 
+**S20 current design:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) records canonical palettes, per-layer explicit palette overrides, immediate-parent family inheritance, related/distinct architecture, flat inspection art, shared-front Room-to-Shelf navigation and implicit commits. Earlier appearance Apply/Cancel and generic short crossfade are historical where superseded; preserve N3r1 evidence. Future hex pickers/imported backgrounds and book colour variants do not approve new assets or algorithms.
+
 **Provenance:** Consolidated project design decisions and November 17, 2026 research. Historical prototypes may contain superseded material.
 
 **Status:** consolidated from the November 17 cross-platform handoff and the existing design decisions. This page separates settled principles from flexible visual direction.

@@ -1,5 +1,7 @@
 # Map Room and recursive container model
 
+**S20 current design:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) governs conflicting B8 directions below. Map is strictly top-down; Room has plan and centered perspective; Shelf is first frontal level. B8 Room furniture is Shelf-only. Optional aligned shared doorways, direct focus and assisted arrangement, valid implicit commit and geometry-aware navigation supersede earlier proposed controls and timing. Older dated material remains provenance; B9 furniture and irregular architecture deferred. Existing identity, support and file safety contracts remain.
+
 **Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** approved product direction consolidated from the November 17 handoff. The wider Map Room is not implemented; B6 through B7-N2 supply an isolated synthetic recursive cubby study with mixed fixtures and universal Case transport. Higher-level Shelf/Room/Map Room implementation and real directory binding remain future work. See current state.
@@ -8,8 +10,8 @@
 
 ```text
 Map Room                         expanding, top-down user-authored floorplan
-├── The Main Hall                suggested starter-room name; renameable
-│   ├── Shelf A                   one screen of coherent modular furniture
+├── The Main Hall                top-down Room furnishing plan; renameable
+│   ├── Shelf A                   first frontal inspection view of modular furniture
 │   │   ├── Cubby 1               one unified configurable container type
 │   │   │   ├── shelf fixtures    sculptures, shelved artwork, parcels, books, upright holders and display cradles
 │   │   │   ├── divider cells     physical scroll-storage partitions
@@ -23,13 +25,13 @@ Map Room                         expanding, top-down user-authored floorplan
 
 - Map Room is a user-authored top-down floorplan. Rooms can be moved, resized, recolored and renamed; the map may expand / pan / zoom as needed.
 - A starter room is present. “The Main Hall” is a strong suggested default, not an immutable system term.
-- A Room opens to one screen of orderly shelves, not an endless list of floating cards.
-- A Shelf opens to one screen of aligned, plausible furniture and cubbies.
+- A Room opens to a **top-down architectural furnishing plan** of Shelf footprints and other compatible Room-scale fixtures, not a frontal row of Shelf faces or floating cards.
+- A Shelf opens to a frontal inspection view of aligned, plausible furniture and cubbies. This is the first ordinary level of full file representation; directly supported objects can be represented here without an additional Cubby.
 - **Cubby is the single modular core container type.** “Rack” generally means a fixture, divider scheme or visual configuration inside a cubby, not a parallel container hierarchy.
 - A Cubby may contain mixed fixtures and recursively nested cubbies.
 - Nested cubbies bound to actual directories represent filesystem subdirectories. The model must still distinguish real directory identity, virtual visual organization and visual placement.
 - Divider cells in a scroll rack are physical partitions, **not filesystem directories**.
-- Files / books may be left loose in an appropriate parent view when intentionally uncontained; this is an exception, not permission to scatter floating UI objects.
+- Files / books may be left loose in an appropriate representational parent view (Shelf or Cubby) when intentionally uncontained. Map and Room plans do not display loose file representations; do not scatter floating UI objects.
 
 ## Browse and Arrange
 
@@ -75,3 +77,17 @@ Growth is the common case: interior width/height may increase independently of a
 ## Later B8 design direction — not implemented
 
 The accepted direction is a higher-order recursive Shelf containing compatible mixed furniture and supported representations directly, not only named cubbies. Suitable module tops may act as support surfaces where clearance permits; ornament is primarily additive outside the usable rectangular envelope. Manual dimensions remain authoritative, with any expansion explicitly previewed. Exact support eligibility, dependent movement/resize/removal, contact and clearance rules, and final visual treatment remain open for the separate B8 design handoff. These are not claims of completed B8 implementation or approval of a specific prototype. The existing B7 cubby board-support contract remains the implemented baseline; broader support generalization requires review.
+
+## November 25 — owner-confirmed plan / inspection distinction
+
+Both Map Room and Room are top-down architectural drawings. The Map Room organizes Rooms; a Room organizes Shelf footprints, orientation and Room-scale furnishing. Shelf is the first frontal inspection level. Cubby or compatible fixtures expose detailed representations and file interaction. Two plan levels before direct file representation are intentional. No forced miniature file thumbnails or floating objects at the upper levels. Existing direct Shelf representations remain valid. Search/Open/Locate shortcuts, summary previews and navigation details remain separate design work; do not make them prerequisites for testing plan geometry.
+
+Room-plan width and depth are distinct axes from Shelf frontal width and height. A plan footprint has position and facing direction; changing plan depth is not changing frontal height. Exact footprint-width reconciliation with a populated Shelf, including occupied bounds and expansion/shrink, needs a shared contract before runtime integration. Never silently scale or discard nested content. The S12 browser study deliberately uses empty synthetic footprints and a rectangular Room, quarter-turn rotations, collision and wall-boundary checks, relative drag increments and exact numeric entry independent of snapping. It is not an implementation specification for irregular walls, door clearance, aisle constraints or production placement. See the [B8 research record](../research/prototypes/2026-11-24/b8/README.md). Tooltips, selection-driven navigation, contents and persistence are intentionally deferred in this study.
+
+## November 25 — mixed Room furniture and reading-table direction
+
+Owner accepted the S12r1 rotation correction and authorized S13 mixed Room furniture research. A Room may contain non-Shelf fixtures; not every furnishing is a recursive storage container. Candidate roles: reading table (temporary presentation), display cabinet (curated storage/display), chest of drawers (alternative storage), writing desk (documents/journal), surveying table (map tools/puzzle box), pedestal (individual display), bench and column (decoration), and rug (floor decoration). Exact contents and interactions remain future study, not implementation requirements.
+
+Owner specifically identifies reading tables as a place to inspect files already in the Scroll Case. Proposed contract: enter the table, select or carry a Case record into a temporary presentation, inspect its metadata/preferred representation and explicitly open when supported. Presentation does not transfer ownership, duplicate a file identity, consume another storage slot, change the file or remove the record from the Case; ending presentation leaves Case state intact. Reuse the B7 representation and ownership contracts. Comparison and representation editing are later candidates, not approved native scope. Room plans remain architectural footprints; entering a functional fixture may lead to its own inspection surface, without requiring an intervening Shelf. No actual table interaction in S13.
+
+S13 tests solid footprint exclusion and a separate nonblocking rug layer. Rugs may underlie solids; rug-to-rug overlap and room-wall crossings are blocked. This is a reversible design experiment, not an accepted production floor-layer rule. No aisle/door clearance, layered storage, or native filesystem operations. See the B8 research record for exact artifacts and limits.
