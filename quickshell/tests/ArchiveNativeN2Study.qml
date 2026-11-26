@@ -460,13 +460,15 @@ Rectangle {
     Connections {
         target:archive
         function onSnapshotChanged(){
+            var interrupted=study.mapNavigating
             study.abortRoomNavigation();study.abortMapNavigation()
-            if(archive.resetting){study.roomPlanOpen=false;study.roomPerspective=false;study.resetMapView()}
-            if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.resetMapView()}
+            if(archive.resetting){study.roomPlanOpen=false;study.roomPerspective=false;study.resetMapView();if(study.mapEnabled)study.focusActiveLayer()}
+            if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.resetMapView();if(study.mapEnabled)study.focusActiveLayer()}
             else if(study.activeRoomId&&!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,study.activeRoomId)){
                 study.activeRoomId=""
-                if(study.showRoomPlan){study.roomPlanOpen=false;study.mapOpen=study.mapEnabled}
+                if(study.showRoomPlan){study.roomPlanOpen=false;study.mapOpen=study.mapEnabled;study.focusActiveLayer()}
             }
+            if(interrupted)study.focusActiveLayer()
         }
         function onStructuralProposalChanged(){
             study.structureApplyError=""
@@ -905,7 +907,7 @@ Rectangle {
         anchors.fill:sceneView
         visible:study.showRoomPlan||study.roomNavigating
         opacity:study.roomNavigating?study.roomLayers.room:1
-        enabled:study.viewSwitchReady
+        enabled:study.showRoomPlan&&study.viewSwitchReady&&!study.checkpointLoadPending
         snapshot:archive.snapshot
         roomId:study.currentRoomId
         colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index

@@ -296,6 +296,23 @@ Item {
                 clickNamed("structure-apply")
                 compare(ctl.snapshot.spatial.rooms[empty].w,r.w-100)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                // North edge: a perpendicular-only drag must be a true no-op.
+                clickNamed("map-focus");verify(!!map.focusState)
+                var north=findChild(map,"map-room-resize-n");tryVerify(function(){return north.visible})
+                var n=north.mapToItem(map,north.width/2,north.height/2)
+                var sideways=map.pointFor(r.x+r.w/2+100,r.y)
+                mousePress(map,n.x,n.y,Qt.LeftButton);mouseMove(map,sideways.x,sideways.y,20,Qt.LeftButton)
+                mouseRelease(map,sideways.x,sideways.y,Qt.LeftButton)
+                verify(!ctl.structuralProposal);compare(JSON.stringify(ctl.snapshot),before)
+                var lower=map.pointFor(r.x+r.w/2,r.y+100)
+                mousePress(map,n.x,n.y,Qt.LeftButton);mouseMove(map,lower.x,lower.y,20,Qt.LeftButton)
+                mouseRelease(map,lower.x,lower.y,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                compare(ctl.structuralProposal.command.patch.y,r.y+100)
+                compare(ctl.structuralProposal.command.patch.h,r.h-100)
+                clickNamed("structure-apply")
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                clickNamed("map-overview")
                 clickNamed("map-magnetic");verify(map.magnetic)
                 clickNamed("map-grid");verify(map.showGrid&&map.snapEnabled)
                 study.parent.width=740;tryVerify(function(){return map.width===740})
@@ -433,6 +450,19 @@ Item {
                 study.mapEnabled=true;clickNamed("open-map-room");tryVerify(function(){return map.visible})
                 compare(map.zoom,1);verify(!map.focusState)
                 compare(JSON.stringify(ctl.snapshot),before)
+                // The same physical-profile checkpoint without optional upper
+                // view metadata is still valid and returns to the Shelf.
+                var legacy=JSON.parse(savedMap);delete legacy.view.mapView
+                payload=JSON.stringify(legacy)
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                tryVerify(function(){return study.scene.visible&&study.scene.activeFocus&&!plan.enabled&&!map.visible})
+                compare(JSON.stringify(ctl.snapshot),before)
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                map.selectedRoom=empty
+                study.reducedRoomMotion=false;clickNamed("map-enter-room");verify(study.mapNavigating)
+                ctl.reset(Sample.roomFixture())
+                tryVerify(function(){return !study.mapNavigating&&study.scene.visible&&study.scene.activeFocus&&!plan.visible&&!map.visible})
+                verify(!map.focusState)
             }finally{study.mapEnabled=false;study.reducedRoomMotion=oldMotion;study.checkpointStore=oldStore;study.roomPreferenceStore=oldPref}
         }
         function test_map_integrated_horizontal_and_resources(){

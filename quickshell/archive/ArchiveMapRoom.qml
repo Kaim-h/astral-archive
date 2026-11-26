@@ -107,7 +107,7 @@ Item {
         updateGesture(x,y);var g=gesture,p=dragPatch;cancelGesture()
         if(p&&Object.keys(p).length){
             if(g.door){var d=snapshot.spatial.doors[g.data.id];if(d&&(p.start!==d.start||p.end!==d.end))editDoor(g.data.id,p)}
-            else editRoom(g.data.id,p)
+            else {var r=snapshot.spatial.rooms[g.data.id];if(r&&Object.keys(p).some(k=>p[k]!==r[k]))editRoom(g.data.id,p)}
         }
     }
     function pointFor(x,y){return camera?Qt.point(camera.x+x*camera.scale,camera.y+y*camera.scale):Qt.point(-1,-1)}
