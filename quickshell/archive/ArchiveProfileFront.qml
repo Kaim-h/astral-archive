@@ -28,6 +28,21 @@ Canvas {
             ctx.closePath()
             ctx.fillStyle=View.profilePartColor(part.role,String(frameColor),colors)
             ctx.fill()
+            // Fine edge entirely inside the existing polygon. Clip the
+            // stroke to the supporting profile so overhang/aperture stay open.
+            if(part.role!=="foot"&&part.role!=="capital"&&part.role!=="base"){
+                ctx.save();ctx.clip()
+                ctx.strokeStyle=View.mix(String(frameColor),colors.metal,.52)
+                ctx.lineWidth=Math.min(2.4,profileGeometry.inscription.h*.10)
+                ctx.stroke();ctx.restore()
+            }
+            if(part.role==="left-post"||part.role==="right-post"){
+                var x=pts[0][0],y=pts[0][1],w=pts[1][0]-x,h=pts[2][1]-y
+                var inset=w*.22,thin=Math.min(1.1,w*.09)
+                ctx.fillStyle=View.mix(String(frameColor),colors.engraving,.42)
+                ctx.fillRect(x+inset,y+inset,thin,Math.max(0,h-2*inset))
+                ctx.fillRect(x+w-inset-thin,y+inset,thin,Math.max(0,h-2*inset))
+            }
         }
         // Restrained in-envelope rules. These are fills, not outward strokes.
         var g=profileGeometry,band=Math.min(1.4,g.inscription.h*.08)
@@ -35,5 +50,14 @@ Canvas {
         ctx.fillRect(g.inscription.x,g.inscription.y+band,g.inscription.w,band)
         ctx.fillRect(g.inscription.x,g.inscription.y+g.inscription.h-2*band,g.inscription.w,band)
         ctx.fillRect(g.aperture.x,g.aperture.y+g.aperture.h+band,g.aperture.w,band)
+        // Subtle balanced lintel accents, well outside ordinary title center.
+        if(g.inscription.w>g.inscription.h*16){
+            var r=g.inscription.h*.13,cy=g.inscription.y+g.inscription.h/2
+            ctx.fillStyle=View.mix(String(frameColor),colors.engraving,.60)
+            for(var cx of [g.inscription.x+g.inscription.h*.8,g.inscription.x+g.inscription.w-g.inscription.h*.8]){
+                ctx.beginPath();ctx.moveTo(cx-r,cy);ctx.lineTo(cx,cy-r)
+                ctx.lineTo(cx+r,cy);ctx.lineTo(cx,cy+r);ctx.closePath();ctx.fill()
+            }
+        }
     }
 }

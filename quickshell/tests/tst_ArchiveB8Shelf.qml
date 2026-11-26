@@ -89,19 +89,89 @@ Item {
                 for(var w of [1366,740]){
                     // Resize the test root; keep the study's fill binding.
                     study.parent.width=w
-                    tryVerify(function(){return tools.width===w-20&&tools.height>=tools.implicitHeight&&tools.height===study.reservedToolbarHeight(tools)})
+                    var last=""
+                    tryVerify(function(){
+                        var key=[tools.width,tools.height,tools.implicitHeight,scene.y,scene.height].join(",")
+                        var stable=last===key;last=key
+                        return stable&&tools.width===w-20&&tools.height>=tools.implicitHeight&&tools.height===study.reservedToolbarHeight(tools)
+                    })
                     var h=scene.height,y=scene.y,bar=tools.height
+                    console.log("B8 reserved viewport",w,"toolbar",bar,"scene",y,h)
                     clickNamed("toggle-room-plan")
                     var plan=findChild(study,"archive-room-plan")
                     tryVerify(function(){return plan.visible&&!scene.visible})
-                    compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
+                    wait(50);compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
                     clickNamed("toggle-room-perspective")
-                    compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
+                    wait(50);compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
                     clickNamed("toggle-room-plan")
                     tryVerify(function(){return scene.visible&&!plan.visible})
-                    compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
+                    wait(50);compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
                 }
             }finally{study.parent.width=original;study.roomPlanOpen=false}
+        }
+        function test_room_full_fit_crest_handoff(){
+            var ctl=study.controller,scene=study.scene,original=study.parent.width
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            var roomId=ctl.snapshot.spatial.shelves.root.roomId
+            function edit(cmd){verify(ctl.proposeStructure(cmd));verify(ctl.applyStructure())}
+            edit({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}})
+            // Comparative test-only basis; no change to persisted profile-v1.
+            edit({kind:"spatialShelfEdit",containerId:"root",patch:{b:24}})
+            edit({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest"}})
+            var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+            var g=Spatial.shelfGeometry(ctl.snapshot,"root"),p=ctl.snapshot.spatial.shelves.root
+            scene.zoom=1;scene.pan=Qt.point(0,0)
+            var plan=findChild(study,"archive-room-plan"),animation=findChild(study,"room-navigation-animation")
+            function sample(name,values){
+                verify(study.roomNavigating)
+                animation.pause()
+                var dst=study.roomNavigation.geometry.destination
+                verify(dst.x>=15.99&&dst.y>=15.99&&dst.x+g.w*dst.scale<=scene.width-15.99&&dst.y+g.h*dst.scale<=scene.height-42-15.99)
+                // Explicit staged phase sampling while paused, not a claim
+                // of observed 500ms frame pacing. Timed motion test retained.
+                for(var v of values){
+                    study.roomProgress=v;wait(70)
+                    verify(Math.abs(study.roomProgress-v)<.0001)
+                    compare(scene.camera,dst)
+                    grabImage(study).save("archive-b8-native-shelf-handoff-"+name+"-"+Math.round(v*100)+".png")
+                }
+                clickNamed("room-navigation-skip")
+            }
+            try{
+                for(var w of [1366,740]){
+                    study.parent.width=w;wait(80)
+                    study.reducedRoomMotion=true
+                    clickNamed("toggle-room-plan")
+                    tryVerify(function(){return plan.visible&&!scene.visible})
+                    var box=Spatial.footprint(ctl.snapshot,"root")
+                    var pt=plan.pointFor(box.x+box.w/2,box.y+box.h/2)
+                    mouseClick(plan,pt.x,pt.y);tryCompare(plan,"selectedShelf","root")
+                    study.reducedRoomMotion=false
+                    clickNamed("plan-inspect-shelf")
+                    sample(w+"-plan-in",[.59,.60,.69,.70])
+                    tryVerify(function(){return scene.visible&&!plan.visible&&!study.roomNavigating})
+                    grabImage(study).save("archive-b8-native-shelf-handoff-"+w+"-settled.png")
+                    clickNamed("toggle-room-plan")
+                    sample(w+"-plan-out",[.70,.69,.60,.59])
+                    tryVerify(function(){return plan.visible&&!scene.visible&&!study.roomNavigating})
+                    compare(plan.selectedShelf,"root")
+                    if(w===1366){
+                        clickNamed("toggle-room-perspective")
+                        tryVerify(function(){return !!plan.perspectiveData})
+                        var q=Projection.project([p.x+g.w/2,p.y+g.depth,g.h-g.inscription.y-g.inscription.h/2],plan.perspectiveData.frame)
+                        mouseClick(plan,q[0],q[1]);tryCompare(plan,"selectedShelf","root")
+                        clickNamed("plan-inspect-shelf")
+                        sample(w+"-perspective-in",[.59,.60,.69,.70])
+                        clickNamed("toggle-room-plan")
+                        sample(w+"-perspective-out",[.70,.69,.60,.59])
+                        clickNamed("toggle-room-perspective")
+                    }
+                    study.reducedRoomMotion=true
+                    clickNamed("plan-inspect-shelf")
+                    tryVerify(function(){return scene.visible&&!plan.visible})
+                    compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                }
+            }finally{study.abortRoomNavigation();study.reducedRoomMotion=true;study.parent.width=original;study.roomPlanOpen=false}
         }
         function test_room_continuous_carrier(){
             var ctl=study.controller,scene=study.scene

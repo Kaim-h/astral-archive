@@ -31,6 +31,7 @@ Canvas {
         ctx.reset();ctx.clearRect(0,0,width,height)
         var colorsByFace=r.faces.map(f=>View.roomPerspectiveColor(snapshot,f,palettes,desktopPalette,colors))
         var floor=View.roomFloorColor(colors),last=""
+        var edgeColors=r.faces.map((f,i)=>View.roomEdgeColor(colorsByFace[i],f.shelfId?View.spatialPalette(snapshot,f.shelfId,palettes,desktopPalette):colors))
         // QML Canvas ImageData mutation is not assumed to behave like a
         // browser's typed array. Use the already proven integer fillRect
         // path; all runs are disjoint and derive from the visible IDs.
@@ -38,6 +39,12 @@ Canvas {
             var c=key>=0?colorsByFace[key]:floor
             if(c!==last){ctx.fillStyle=c;last=c}
             ctx.fillRect(x,y,w,1)
+            // In-owner edge pixels only: never draw across a nearer face or
+            // doorway. Keep narrow runs and frontal color samples untouched.
+            if(key>=0&&r.faces[key].side!=="front"&&w>=8){
+                ctx.fillStyle=edgeColors[key];last=edgeColors[key]
+                ctx.fillRect(x,y,1,1);ctx.fillRect(x+w-1,y,1,1)
+            }
         })
         paintCount++
     }

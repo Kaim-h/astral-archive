@@ -233,7 +233,9 @@ export function roomPerspective(s,plan,width,height){
 export function roomPerspectiveHit(scene,x,y){
     const face=RoomProjection.faceAt(scene,x,y);return face?face.shelfId:'';
 }
-export function roomFloorColor(p){return mix(p.background,p.panel,.52);}
+export function roomFloorColor(p){return mix(p.background,p.panel,.72);}
+// Paint-only edge color for the same visible surface owner.
+export function roomEdgeColor(fill,p){return mix(fill,p.metal,.34);}
 export function roomPerspectiveColor(s,face,palettes,desktop,roomColors){
     if(!face.shelfId)return face.side==='north'||face.side==='east'?mix(roomColors.panel,roomColors.metal,.13):mix(roomColors.background,roomColors.metal,.32);
     const p=spatialPalette(s,face.shelfId,palettes,desktop),c=s.cubbies[face.shelfId];

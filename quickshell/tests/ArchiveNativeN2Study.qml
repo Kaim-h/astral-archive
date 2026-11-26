@@ -552,15 +552,25 @@ Rectangle {
         anchors.right:parent.right
         anchors.margins:10
         spacing:6
+        // A fixed explicit header extent in the physical study; do not let
+        // a positioner's implicitHeight or delayed polish refit the camera.
+        height:Spatial.physicalProfiles(archive.snapshot)?
+            headingTitle.height+primarySlot.height+(rootTools.visible?rootTools.height:0)+pathTools.height+(rootTools.visible?3:2)*spacing:implicitHeight
         Text {
+            id:headingTitle
             color:study.colors.text; font.pixelSize:15
             text:study.spatialEnabled?"Astral Archive · Native Shelf study":"Astral Archive · Native cubby study"
         }
-        Flow {
+        Item {
+            id:primarySlot
+            objectName:"archive-primary-slot"
+            width:parent.width
+            height:Spatial.physicalProfiles(archive.snapshot)?study.reservedToolbarHeight(primaryTools):primaryTools.implicitHeight
+            Flow {
             id:primaryTools
             objectName:"archive-primary-tools"
             width:parent.width; spacing:5
-            height:Spatial.physicalProfiles(archive.snapshot)?study.reservedToolbarHeight(primaryTools):implicitHeight
+            height:primarySlot.height
             Archive.ArchiveButton { colors:study.colors; label:"Browse"; active:sceneView.mode==="browse"; onClicked:study.switchMode("browse") }
             Archive.ArchiveButton { colors:study.colors; label:"Arrange"; active:sceneView.mode==="arrange"; onClicked:study.switchMode("arrange") }
             Archive.ArchiveButton { colors:study.colors; label:"Back"; visible:!study.showRoomPlan; enabled:!archive.draft&&(sceneView.viewPath.length>1||Spatial.physicalProfiles(archive.snapshot)&&study.viewSwitchReady); onClicked:if(sceneView.viewPath.length>1)sceneView.back();else study.toggleRoom() }
@@ -577,8 +587,10 @@ Rectangle {
             Archive.ArchiveButton {objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange"&&!study.showRoomPlan;enabled:study.structureReady;onClicked:study.openContext(12,12)}
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
+            }
         }
         Flow {
+            id:rootTools
             visible:study.spatialEnabled
             width:parent.width;spacing:5
             Repeater {
@@ -595,6 +607,7 @@ Rectangle {
             }
         }
         Flow {
+            id:pathTools
             width:parent.width;spacing:5
             height:26
             property bool caseSelected:!study.showRoomPlan&&sceneView.mode==="browse"&&archive.snapshot.caseItems.some(function(s){return s.id===sceneView.selectedScrollId})
