@@ -84,6 +84,11 @@ Rectangle {
     readonly property var materialProposal:archive.structuralProposal&&archive.structuralProposal.command.kind==="materialBatch"?archive.structuralProposal:null
     readonly property var materialSnapshot:materialProposal&&materialProposal.snapshot?materialProposal.snapshot:archive.snapshot
     readonly property var appearanceColors: View.appearancePalette(colors,materialSnapshot.materials)
+    function paletteFor(id){
+        return spatialEnabled&&Spatial.enabled(materialSnapshot)?View.spatialPalette(materialSnapshot,id,Themes.Theme.palettes,Themes.Theme.index):appearanceColors
+    }
+    readonly property var sceneColors:paletteFor(sceneView.cubbyId)
+    readonly property var localMaterialColors:materialCubby?paletteFor(materialCubby.id):sceneColors
     property string materialPanel: ""
     property string materialTarget: ""
     property string materialNotice: ""
@@ -478,7 +483,9 @@ Rectangle {
     Archive.ArchiveScene {
         id:sceneView
         controller:archive
-        colors:study.appearanceColors
+        colors:study.sceneColors
+        paletteOptions:Themes.Theme.palettes
+        desktopPaletteIndex:Themes.Theme.index
         appearanceSnapshot:study.materialProposal?study.materialSnapshot:null
         anchors.top:heading.bottom
         anchors.bottom:footer.top
@@ -682,8 +689,8 @@ Rectangle {
                         expanded:study.materialPickerRole===modelData.key
                         onTogglePicker:study.toggleMaterialPicker(modelData.key)
                         currentColor:study.materialPanel==="roles"?study.appearanceColors.materials[modelData.key]:
-                            study.materialPanel==="cubby"?(modelData.key==="innerColor"?View.backingColor(study.materialCubby,study.appearanceColors,study.materialDepth):View.frameColor(study.materialCubby,study.appearanceColors,study.materialDepth)):
-                            study.materialFixture?(study.materialFixture.type==="rack"?View.rackColor(study.materialFixture,study.appearanceColors):View.shelfColor(study.materialFixture,study.appearanceColors)):study.colors.panel
+                            study.materialPanel==="cubby"?(modelData.key==="innerColor"?View.backingColor(study.materialCubby,study.localMaterialColors,study.materialDepth):View.frameColor(study.materialCubby,study.localMaterialColors,study.materialDepth)):
+                            study.materialFixture?(study.materialFixture.type==="rack"?View.rackColor(study.materialFixture,study.sceneColors):View.shelfColor(study.materialFixture,study.sceneColors)):study.colors.panel
                         onApplyColor:function(value){if(study.materialPanel==="roles")study.setRoleColor(modelData.key,value);else study.setLocalColor(modelData.key,value)}
                     }
                 }

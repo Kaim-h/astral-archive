@@ -12,6 +12,13 @@ Item {
     id: scene
     required property var controller
     required property var colors
+    property var paletteOptions:[]
+    property int desktopPaletteIndex:1
+    readonly property bool spatialStyle:Spatial.enabled(controller.snapshot)
+    readonly property bool architectural:spatialStyle&&Spatial.kind(controller.snapshot,cubbyId)==="shelf"
+    function childColors(id){
+        return spatialStyle&&paletteOptions.length===3?View.spatialPalette(appearanceSnapshot||controller.snapshot,id,paletteOptions,desktopPaletteIndex):colors
+    }
     property string mode: "browse"
     property var viewPath: ["root"]
     // Always render an existing reachable cubby, even during snapshot reset.
@@ -451,6 +458,18 @@ Item {
             color:View.frameColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
             border.color:View.mix(scene.colors.metal,scene.colors.text,.20)
         }
+        // Initial restrained straight-cornice treatment, confined to the
+        // existing frame. Decorative lines never alter camera or footprint.
+        Item {
+            objectName:"architectural-frame-detail"
+            anchors.fill:parent;visible:scene.architectural
+            readonly property real b:Number(scene.displayCubby.b)||11
+            Rectangle {x:1;y:Math.max(1,parent.b*.27);width:Math.max(0,parent.width-2);height:1;color:scene.colors.metal}
+            Rectangle {x:parent.b;y:Math.max(1,parent.b*.70);width:Math.max(0,parent.width-2*parent.b);height:1;color:scene.colors.engraving;opacity:.65}
+            Rectangle {x:1;y:parent.height-Math.max(2,parent.b*.30);width:Math.max(0,parent.width-2);height:1;color:scene.colors.metal}
+            Rectangle {x:Math.max(1,parent.b*.40);y:parent.b+4;width:1;height:Math.max(0,parent.height-2*parent.b-8);color:scene.colors.engraving;opacity:.55}
+            Rectangle {x:parent.width-Math.max(2,parent.b*.40);y:parent.b+4;width:1;height:Math.max(0,parent.height-2*parent.b-8);color:scene.colors.engraving;opacity:.55}
+        }
         Item {
             id: interior
             objectName:"cubby-interior"
@@ -542,6 +561,7 @@ Item {
                         id:shelfComponent
                         ArchiveShelf {
                             module:scene.materialModule(moduleLoader.modelData)
+                            spatialStyle:scene.spatialStyle
                             colors:scene.colors
                             browse:scene.mode==="browse"
                             selected:scene.selectedModuleId===module.id
@@ -553,6 +573,7 @@ Item {
                     Component {
                         id:mixedShelfComponent
                         B7.B7MixedShelf {
+                            spatialStyle:scene.spatialStyle
                             module:scene.materialModule(moduleLoader.modelData)
                             colors:scene.colors;plaqueHost:interior;gestureHost:scene
                             apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
@@ -581,7 +602,7 @@ Item {
                         ArchiveCubbyFace {
                             module:scene.materialModule(moduleLoader.modelData)
                             child:(scene.appearanceSnapshot||scene.interiorPreviewSnapshot||scene.controller.snapshot).cubbies[module.childId]
-                            colors:scene.colors
+                            colors:scene.childColors(module.childId)
                             depth:scene.viewPath.length
                             previewMode:scene.cubbyPreviewMode
                             selected:scene.selectedModuleId===module.id
@@ -601,6 +622,7 @@ Item {
                 B7.B7MixedShelf {
                     required property var modelData
                     module:scene.topModule(modelData)
+                    spatialStyle:scene.spatialStyle
                     showBoard:false
                     apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
                     colors:scene.colors;plaqueHost:interior;gestureHost:scene

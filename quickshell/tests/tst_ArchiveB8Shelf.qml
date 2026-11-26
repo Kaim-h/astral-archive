@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import "../themes" as Themes
 import "../archive/ArchiveCore.mjs" as Core
 import "../archive/ArchiveSpatial.mjs" as Spatial
 import "ArchiveB8ShelfFixture.mjs" as Sample
@@ -153,6 +154,46 @@ Item {
             mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("unplace-selected-book");clickNamed("structure-apply")
             tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")},3000,study.structureApplyError+" / "+ctl.errorText)
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+        }
+        function test_spatial_theme_comparison(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot),oldTheme=Themes.Theme.index
+            var covers=[]
+            try{
+                for(var i=0;i<3;i++){
+                    Themes.Theme.index=i
+                    tryVerify(function(){return scene.colors.name===Themes.Theme.palettes[i].name})
+                    var book=findChild(scene,"archive-book-org.example.Reader")
+                    var board=findChild(scene,"shelf-mixed-board")
+                    var face=findChild(board,"flat-board-face")
+                    verify(!!book&&!!board&&!!face&&face.visible)
+                    verify(findChild(scene,"architectural-frame-detail").visible)
+                    covers.push(String(book.coverColor))
+                    compare(board.supportY,0)
+                    // Read composed pixels in the actual board face, not just
+                    // its QML colour property. Count a broad flat-fill region.
+                    tryVerify(function(){
+                        var shot=grabImage(face),matched=0,c=face.fillColor
+                        for(var y=1;y<shot.height-1;y++)for(var x=1;x<shot.width-1;x++){
+                            if(Math.abs(shot.red(x,y)-Math.round(c.r*255))<8&&Math.abs(shot.green(x,y)-Math.round(c.g*255))<8&&Math.abs(shot.blue(x,y)-Math.round(c.b*255))<8)matched++
+                        }
+                        return matched>20
+                    },3000,"Flat board uses resolved material colour")
+                    var frame=grabImage(study);verify(frame.width>0&&frame.height>0)
+                    frame.save("archive-b8-native-shelf-"+Themes.Theme.palettes[i].name.toLowerCase()+".png")
+                    compare(JSON.stringify(ctl.snapshot),before)
+                }
+                verify(covers[0]!==covers[1]&&covers[1]!==covers[2]&&covers[0]!==covers[2])
+                Themes.Theme.index=1
+                verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{palette:0}}))
+                verify(ctl.applyStructure())
+                tryVerify(function(){return scene.colors.name==="Evening"})
+                var faceChild=findChild(scene,"cubby-cubby-child")
+                verify(!!faceChild);compare(faceChild.colors.name,"Twilight")
+                verify(scene.openChild("child"));tryVerify(function(){return scene.colors.name==="Twilight"})
+                verify(scene.back());tryVerify(function(){return scene.colors.name==="Evening"})
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                tryVerify(function(){return scene.colors.name==="Twilight"})
+            }finally{Themes.Theme.index=oldTheme}
         }
         function test_shelf_input_and_support(){
             var scene=study.scene,ctl=study.controller

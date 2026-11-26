@@ -271,12 +271,13 @@ jobs:
         run: |
           /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8Shelf.qml
           test -s archive-b8-native-shelf.png
+          for theme in evening twilight midnight; do test -s "archive-b8-native-shelf-$theme.png" || exit 1; done
       - name: Attach B8 native Shelf capture
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: archive-b8-native-shelf
-          path: archive-b8-native-shelf.png
+          path: archive-b8-native-shelf*.png
           retention-days: 21
       - name: Attach derived sculpture assets and provenance
         uses: actions/upload-artifact@v4

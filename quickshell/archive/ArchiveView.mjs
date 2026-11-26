@@ -36,6 +36,26 @@ export function materialRoles(p,preferences){
 export function appearancePalette(p,preferences){
     return Object.assign({},p,{materials:materialRoles(p,preferences)});
 }
+// Resolve only the requested container's local palette. Family inheritance
+// is independent; no parent palette is propagated to a child.
+export function spatialPalette(snapshot,id,palettes,desktop){
+    const resolved=Spatial.resolveAppearance(snapshot,id,desktop);
+    return appearancePalette(palettes[resolved.palette],snapshot.materials);
+}
+// Provisional three-theme book treatment: preserve the stable binding hue
+// supplied by AppMatching, coordinate its cover with the current panel.
+// The production launcher and native ribbon mechanics are unchanged.
+export function bookColors(binding,p){
+    const amount=p.name==="Evening"?.12:p.name==="Midnight"?.32:.22;
+    const cover=mix(binding,p.panel,amount);
+    function luminance(hex){
+        const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));
+        return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
+    }
+    const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+    const inscription=contrast(cover,p.text)>=4.5?p.text:contrast(cover,"#ffffff")>=contrast(cover,"#080f10")?"#ffffff":"#080f10";
+    return {cover,inscription,ornament:p.metal};
+}
 export function frameColor(c,p,depth){return c.color||(depth?(p.materials?p.materials.cubby:mix(p.panel,p.metal,.24)):p.panel);}
 export function backingColor(c,p,depth){return c.innerColor||(depth%2?mix(p.background,p.engraving,.20):mix(p.background,p.panel,.25));}
 export function rackColor(m,p){return m.color||(p.materials?p.materials.rack:mix(p.panel,p.engraving,.18));}

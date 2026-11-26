@@ -470,5 +470,19 @@ export function run(){
  eq(Core.undo(movedBook).snapshot,sample,'drag Undo exact');
  refuse(sampleState,{kind:'spatialAppPlace',appId:'org.example.Reader',containerId:'root',moduleId:sampleRack.id,patch:{x:0}});
  refuse(sampleState,{kind:'spatialAppPlace',appId:'org.example.Reader',containerId:'root',moduleId:sampleRack.id,patch:{x:300}});
+ const palettes=[
+ {name:'Evening',background:'#343c43',panel:'#3f524f',metal:'#c2aa78',engraving:'#b7a2c8',text:'#f0f0e8'},
+ {name:'Twilight',background:'#121e23',panel:'#263c37',metal:'#8c6e5a',engraving:'#91ada1',text:'#e6e1d8'},
+ {name:'Midnight',background:'#080f10',panel:'#101c1b',metal:'#869c9c',engraving:'#568f80',text:'#dadfd9'}];
+ const themed=apply(sampleState,{kind:'spatialAppearance',containerId:'root',patch:{palette:0}});
+ eq(View.spatialPalette(themed.snapshot,'root',palettes,1).name,'Evening','local Shelf palette resolved');
+ eq(View.spatialPalette(themed.snapshot,'child',palettes,1).name,'Twilight','parent palette not propagated');
+ eq(View.spatialPalette(themed.snapshot,otherRoot,palettes,2).name,'Midnight','unrelated Shelf global palette');
+ eq(Core.owners(themed.snapshot),Core.owners(sample),'appearance preserves file owners');
+ eq(Core.undo(themed).snapshot,sample,'appearance exact Undo');
+ const swatches=palettes.map(p=>View.bookColors('#526f63',p));
+ eq(new Set(swatches.map(v=>v.cover)).size,3,'three coordinated covers');
+ eq(View.bookColors('#526f63',palettes[1]),swatches[1],'deterministic cover identity');
+ yes(View.bookColors('#526f63',palettes[1]).cover!==View.bookColors('#836b54',palettes[1]).cover,'base identity hue retained');
  return checks;
 }

@@ -4,6 +4,7 @@ import "../../widgets" as Widgets
 import "../../services/AppMatching.js" as Matching
 import "B7Ownership.mjs" as Mixed
 import "B7Layout.mjs" as Layout
+import "../ArchiveView.mjs" as View
 
 // The wrapper covers the supported objects as well as the board. Each
 // placement remains shelf-local; the model owns every record.
@@ -14,6 +15,7 @@ Item {
     required property Item plaqueHost
     property Item gestureHost:null
     property bool showBoard:true
+    property bool spatialStyle:false
     property var apps: ({})
     signal appActivated(string appId)
     property bool browse:true
@@ -34,7 +36,7 @@ Item {
     }
     Archive.ArchiveShelf {
         module:Object.assign({},shelf.module,{x:0,y:shelf.supportY})
-        colors:shelf.colors;browse:shelf.browse;selected:shelf.selected
+        colors:shelf.colors;browse:shelf.browse;selected:shelf.selected;spatialStyle:shelf.spatialStyle
         visible:shelf.showBoard;enabled:shelf.showBoard&&shelf.interactive
         onActivated:shelf.activated("")
     }
@@ -53,8 +55,14 @@ Item {
                     appId:entry.value.appId
                     title:shelf.apps[appId]?shelf.apps[appId].title:appId
                     x:entry.value.x-width/2;y:shelf.supportY-height
-                    coverColor:Matching.bindingColor(appId)
-                    metalColor:shelf.colors.metal;inscriptionColor:shelf.colors.engraving
+                    readonly property var coordinated:View.bookColors(Matching.bindingColor(appId),shelf.colors)
+                    coverColor:shelf.spatialStyle?coordinated.cover:Matching.bindingColor(appId)
+                    metalColor:shelf.colors.metal
+                    inscriptionColor:shelf.spatialStyle?coordinated.inscription:shelf.colors.engraving
+                    ornamentColor:shelf.spatialStyle?coordinated.ornament:metalColor
+                    spineLabel:shelf.spatialStyle?title.slice(0,7).toUpperCase():""
+                    selectionColor:shelf.colors.engraving
+                    runningColor:shelf.colors.engraving;focusedColor:shelf.colors.metal
                     running:false;focused:false;windowCount:0
                     enabled:shelf.interactive
                     onActivated:function(id){if(shelf.browse)shelf.appActivated(id);else if(!shelf.gestureHost||!shelf.gestureHost.bookDrag)shelf.appActivated(id)}
