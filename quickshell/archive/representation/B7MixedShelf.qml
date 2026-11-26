@@ -57,7 +57,29 @@ Item {
                     metalColor:shelf.colors.metal;inscriptionColor:shelf.colors.engraving
                     running:false;focused:false;windowCount:0
                     enabled:shelf.interactive
-                    onActivated:function(id){shelf.appActivated(id)}
+                    onActivated:function(id){if(shelf.browse)shelf.appActivated(id);else if(!shelf.gestureHost||!shelf.gestureHost.bookDrag)shelf.appActivated(id)}
+                    keyboardSelected:!!shelf.gestureHost&&shelf.gestureHost.selectedAppId===appId
+                    // Keep the original delegate alive while dragging. The
+                    // scene draws one outline; release creates the proposal.
+                    MouseArea {
+                        anchors.fill:parent;z:10
+                        enabled:!shelf.browse&&shelf.interactive&&!!shelf.gestureHost
+                        acceptedButtons:Qt.LeftButton
+                        preventStealing:true
+                        cursorShape:pressed?Qt.ClosedHandCursor:Qt.OpenHandCursor
+                        onPressed:function(mouse){
+                            var p=mapToItem(shelf.gestureHost,mouse.x,mouse.y)
+                            mouse.accepted=shelf.gestureHost.beginBookDrag(shelf.module.id,entry.value.appId,p.x,p.y)
+                        }
+                        onPositionChanged:function(mouse){
+                            if(pressed){var p=mapToItem(shelf.gestureHost,mouse.x,mouse.y);shelf.gestureHost.updateBookDrag(p.x,p.y)}
+                        }
+                        onReleased:function(mouse){
+                            var p=mapToItem(shelf.gestureHost,mouse.x,mouse.y)
+                            shelf.gestureHost.finishBookDrag(p.x,p.y)
+                        }
+                        onCanceled:if(shelf.gestureHost)shelf.gestureHost.cancelBookDrag()
+                    }
                 }
             }
             Component {

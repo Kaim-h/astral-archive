@@ -48,6 +48,54 @@ Item {
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"])
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
+        function test_book_drag_preview_cancel_apply(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
+            study.switchMode("arrange")
+            scene.snapEnabled=true;scene.snapDistance=20
+            var book=findChild(scene,"archive-book-org.example.Reader")
+            verify(!!book)
+            // Use scene coordinates throughout the gesture, not a moving item.
+            var p=book.mapToItem(scene,book.width/2,book.height/2)
+            var dx=Math.round(60*scene.camera.scale)
+            mousePress(scene,p.x,p.y,Qt.LeftButton)
+            tryVerify(function(){return !!scene.bookDrag})
+            mouseMove(scene,p.x+dx,p.y,20,Qt.LeftButton)
+            tryVerify(function(){return !!scene.bookDrag&&scene.bookDrag.active})
+            compare(scene.bookDrag.targetX,160)
+            verify(findChild(scene,"book-drag-outline").visible)
+            verify(!ctl.structuralProposal);compare(JSON.stringify(ctl.snapshot),before)
+            mouseRelease(scene,p.x+dx,p.y,Qt.LeftButton)
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+            compare(ctl.structuralProposal.command.appId,"org.example.Reader")
+            compare(ctl.structuralProposal.command.patch.x,160)
+            compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("structure-cancel")
+            compare(JSON.stringify(ctl.snapshot),before)
+            // Repeat with actual pointer input, then Apply and Undo.
+            book=findChild(scene,"archive-book-org.example.Reader");p=book.mapToItem(scene,book.width/2,book.height/2)
+            mousePress(scene,p.x,p.y,Qt.LeftButton);mouseMove(scene,p.x+dx,p.y,20,Qt.LeftButton);mouseRelease(scene,p.x+dx,p.y,Qt.LeftButton)
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+            clickNamed("structure-apply")
+            tryVerify(function(){return !ctl.structuralProposal&&Spatial.appPlacements(ctl.snapshot).some(a=>a.appId==="org.example.Reader"&&a.x===160)})
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            // Invalid placement stays uncommitted and refuses Apply.
+            book=findChild(scene,"archive-book-org.example.Reader");p=book.mapToItem(scene,book.width/2,book.height/2)
+            var left=Math.round(100*scene.camera.scale)
+            mousePress(scene,p.x,p.y,Qt.LeftButton);mouseMove(scene,p.x-left,p.y,20,Qt.LeftButton);mouseRelease(scene,p.x-left,p.y,Qt.LeftButton)
+            tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
+            verify(!findChild(study,"structure-apply").enabled)
+            compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("structure-cancel")
+            // Escape during an active press cancels without a release proposal.
+            book=findChild(scene,"archive-book-org.example.Reader");p=book.mapToItem(scene,book.width/2,book.height/2)
+            mousePress(scene,p.x,p.y,Qt.LeftButton);mouseMove(scene,p.x+dx,p.y,20,Qt.LeftButton)
+            tryVerify(function(){return !!scene.bookDrag&&scene.bookDrag.active})
+            keyClick(Qt.Key_Escape)
+            tryVerify(function(){return !scene.bookDrag})
+            mouseRelease(scene,p.x+dx,p.y,Qt.LeftButton)
+            verify(!ctl.structuralProposal);compare(JSON.stringify(ctl.snapshot),before)
+            scene.snapEnabled=false
+        }
         function test_picker_and_support_controls(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
             study.switchMode("arrange")

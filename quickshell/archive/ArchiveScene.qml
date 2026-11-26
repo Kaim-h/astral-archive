@@ -59,6 +59,8 @@ Item {
     property bool pointerActive: false
     property point ghostPoint: Qt.point(0,0)
     property var furnitureDrag: null
+    property var bookDrag:null
+    signal bookPlacementProposed(real position)
     property var prepared: null
     property var insertionContext: null
     property var insertionHover: null
@@ -96,7 +98,7 @@ Item {
     property int snapDistance:20
     function quantize(v){return Core.snapCoordinate(v,snapDistance,snapEnabled)}
     function contextAt(x,y){
-        if(mode!=="arrange"||live.busy||controller.draft||controller.structuralProposal||furnitureDrag)return
+        if(mode!=="arrange"||live.busy||controller.draft||controller.structuralProposal||furnitureDrag||bookDrag)return
         var p=interior.mapFromItem(scene,x,y),m=cubby.mods.find(function(q){return Mixed.fixtureRects(q).some(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)})
         clearSelection()
         if(m){
@@ -151,6 +153,34 @@ Item {
         var app=controller.snapshot.spatial.apps[appId]
         message="Application book · "+app.title+" (synthetic)"
     }
+    function beginBookDrag(moduleId,appId,x,y){
+        if(mode!=="arrange"||!Spatial.enabled(controller.snapshot)||!mixedInteractive||furnitureDrag||bookDrag)return false
+        var m=cubby.mods.find(v=>v.id===moduleId),e=m&&(m.items||[]).find(v=>v.kind==="app"&&v.appId===appId)
+        if(!e||!Mixed.supportsTop(m))return false
+        selectApp(moduleId,appId)
+        forceActiveFocus()
+        bookDrag={revision:controller.archiveState.revision,containerId:cubbyId,moduleId:moduleId,appId:appId,
+            startX:x,startY:y,baseX:e.x,worldX:m.x,worldY:m.y,scale:camera.scale,
+            interval:snapDistance,snap:snapEnabled,active:false,targetX:e.x}
+        return true
+    }
+    function updateBookDrag(x,y){
+        if(!bookDrag)return
+        var d=bookDrag,dx=x-d.startX,dy=y-d.startY
+        if(!d.active&&Math.hypot(dx,dy)<6)return
+        bookDrag=Object.assign({},d,{active:true,targetX:Core.bookDragPosition(d.baseX,dx/d.scale,d.interval,d.snap)})
+    }
+    function cancelBookDrag(){bookDrag=null}
+    function finishBookDrag(x,y){
+        if(!bookDrag)return
+        updateBookDrag(x,y)
+        var d=bookDrag;bookDrag=null
+        if(!d.active||d.targetX===d.baseX)return
+        if(d.revision!==controller.archiveState.revision||d.containerId!==cubbyId||mode!=="arrange"||controller.draft||controller.structuralProposal)return
+        // Publish one validated proposal on release; never mutate while moving.
+        controller.proposeStructure({kind:"spatialAppPlace",appId:d.appId,containerId:d.containerId,moduleId:d.moduleId,patch:{x:d.targetX}})
+        bookPlacementProposed(d.targetX)
+    }
     function topModule(m){
         var v=materialModule(m)
         // The solver's ready proposal has passed occupied rack bounds.
@@ -189,23 +219,23 @@ Item {
     readonly property var shelfRoots: Spatial.roots(controller.snapshot)
     function openShelf(id) {
         if(!Spatial.enabled(controller.snapshot)||!shelfRoots.includes(id)||live.busy||
-           controller.draft||controller.structuralProposal||pointer||furnitureDrag||prepared)return false
+           controller.draft||controller.structuralProposal||pointer||furnitureDrag||bookDrag||prepared)return false
         if(viewPath.length===1&&viewPath[0]===id)return true
         saveCamera();viewPath=[id];restoreCamera();clearSelection();return true
     }
     function openChild(id) {
-        if(live.busy||controller.draft||controller.structuralProposal||!cubby.mods.some(function(m){return m.type==="cubby"&&m.childId===id}))return false
+        if(live.busy||controller.draft||controller.structuralProposal||bookDrag||!cubby.mods.some(function(m){return m.type==="cubby"&&m.childId===id}))return false
         saveCamera();viewPath=viewPath.concat([id]);restoreCamera();clearSelection();return true
     }
     function back() {
-        if(live.busy||controller.draft||controller.structuralProposal||viewPath.length<=1)return false
+        if(live.busy||controller.draft||controller.structuralProposal||bookDrag||viewPath.length<=1)return false
         saveCamera();viewPath=viewPath.slice(0,-1);restoreCamera();clearSelection();return true
     }
     function enterSelected() {
         var m=cubby.mods.find(function(q){return q.id===selectedModuleId})
         return !!m&&m.type==="cubby"&&openChild(m.childId)
     }
-    function setZoom(value) { zoom=Math.max(.5,Math.min(2.5,value));pinnedRecord=null;hoveredRecord=null }
+    function setZoom(value) { if(bookDrag)return;zoom=Math.max(.5,Math.min(2.5,value));pinnedRecord=null;hoveredRecord=null }
     function showRecord(record,point,pin) {
         if(pin){pinnedRecord=pinnedRecord&&pinnedRecord.id===record.id?null:record;selectedScrollId=record.id}
         else hoveredRecord=record
@@ -281,12 +311,13 @@ Item {
         live.abort("Drop canceled · original arrangement restored")
     }
     function abortGesture(){
+        cancelBookDrag()
         pointer=null;pointerActive=false;caseView.dragNear=false
         if(live.busy)live.abort()
         if(furnitureDrag){furnitureDrag=null;controller.cancel()}
     }
     function beginFurniture(id,action,x,y){
-        if(live.busy||controller.structuralProposal||mode!=="arrange"||(controller.draft&&controller.draft.rackId!==id))return
+        if(bookDrag||live.busy||controller.structuralProposal||mode!=="arrange"||(controller.draft&&controller.draft.rackId!==id))return
         forceActiveFocus()
         var rack=controller.draft?controller.draft.proposed:Core.rackAt(controller.snapshot,cubbyId,id)
         if(!rack)return
@@ -365,6 +396,7 @@ Item {
     }
     Keys.onPressed:function(event){
         if(event.key===Qt.Key_Escape){abortGesture();cancelInsertion();if(controller.draft||controller.structuralProposal)controller.cancel();clearSelection();event.accepted=true}
+        else if(bookDrag){event.accepted=true}
         else if(event.key===Qt.Key_Menu||(event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier))){
             var m=cubby.mods.find(function(q){return q.id===selectedModuleId})
             var p=m?interior.mapToItem(scene,m.x+m.w/2,m.y+m.h/2):interior.mapToItem(scene,interior.width/2,interior.height/2)
@@ -378,12 +410,13 @@ Item {
     }
     Connections {
         target:scene.Window.window
-        function onActiveChanged(){if(scene.Window.window&&!scene.Window.window.active&&scene.pointer)scene.abortGesture()}
+        function onActiveChanged(){if(scene.Window.window&&!scene.Window.window.active&&(scene.pointer||scene.bookDrag))scene.abortGesture()}
     }
     onModeChanged: {abortGesture();clearSelection()}
     Connections {
         target: scene.controller
         function onSnapshotChanged() {
+            scene.cancelBookDrag()
             var next=scene.controller.snapshot,previous=scene.cameraSnapshot
             if(scene.controller.resetting){
                 scene.cameras=View.copyCameras({});scene.viewPath=Spatial.enabled(next)?View.reachablePath(next,next.path):["root"];scene.restoreCamera();scene.clearSelection()
@@ -401,7 +434,7 @@ Item {
             if(scene.selectedAppId&&!scene.cubby.mods.some(m=>(m.items||[]).some(e=>e.kind==="app"&&e.appId===scene.selectedAppId)))scene.selectedAppId=""
             scene.pinnedRecord=null;scene.hoveredRecord=null
         }
-        function onDraftChanged(){if(scene.controller.draft){scene.pinnedRecord=null;scene.hoveredRecord=null}}
+        function onDraftChanged(){if(scene.controller.draft){scene.cancelBookDrag();scene.pinnedRecord=null;scene.hoveredRecord=null}}
     }
 
     Rectangle { anchors.fill:parent; color:scene.colors.background }
@@ -579,6 +612,15 @@ Item {
                     onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
                 }
             }
+            Rectangle {
+                objectName:"book-drag-outline"
+                visible:!!scene.bookDrag&&scene.bookDrag.active
+                x:scene.bookDrag?scene.bookDrag.worldX+scene.bookDrag.targetX-21:0
+                y:scene.bookDrag?scene.bookDrag.worldY-160:0
+                width:42;height:160
+                color:"#3040788f";border.color:scene.colors.engraving;border.width:2
+                z:9
+            }
             // A mixed destination is already owned by the private draft, but
             // its final symbolic delegate is not published until settling ends.
             // Keep a single scroll cue at the destination, not a second object.
@@ -658,7 +700,7 @@ Item {
         property point start:Qt.point(0,0)
         property point original:Qt.point(0,0)
         onPressed:function(mouse){start=Qt.point(mouse.x,mouse.y);original=scene.pan;scene.pinnedRecord=null;scene.hoveredRecord=null}
-        onPositionChanged:function(mouse){if(pressed)scene.pan=Qt.point(original.x+mouse.x-start.x,original.y+mouse.y-start.y)}
+        onPositionChanged:function(mouse){if(pressed&&!scene.bookDrag)scene.pan=Qt.point(original.x+mouse.x-start.x,original.y+mouse.y-start.y)}
         onWheel:function(wheel){scene.setZoom(scene.zoom*(wheel.angleDelta.y>0?1.12:1/1.12));wheel.accepted=true}
     }
     ArchiveCase {
@@ -710,7 +752,7 @@ Item {
     }
     MouseArea {
         anchors.fill:parent;z:24
-        visible:scene.mode==="arrange"&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy
+        visible:scene.mode==="arrange"&&!scene.bookDrag&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy
         acceptedButtons:Qt.RightButton
         onClicked:function(mouse){scene.contextAt(mouse.x,mouse.y)}
         onWheel:function(wheel){wheel.accepted=false}

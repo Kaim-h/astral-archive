@@ -21,7 +21,7 @@ Rectangle {
     property var checkpointStore:null
     property bool checkpointLoadPending:false
     readonly property bool checkpointReady:!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
-        !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker
+        !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker
     onCheckpointReadyChanged:if(!checkpointReady)checkpointLoadPending=false
     function checkpointView(){
         // Prune deleted cubby cameras and capture the currently open camera
@@ -225,7 +225,7 @@ Rectangle {
     }
 
     readonly property var selectedFixture: sceneView.cubby.mods.find(function(m){return m.id===sceneView.selectedModuleId})||null
-    readonly property bool structureReady: sceneView.mode==="arrange"&&!sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!archive.draft&&!archive.structuralProposal
+    readonly property bool structureReady: sceneView.mode==="arrange"&&!sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal
     readonly property bool selectedSupport:!!selectedFixture&&Mixed.supportsTop(selectedFixture)
     property bool bookPicker:false
     property int bookPage:0
@@ -415,7 +415,7 @@ Rectangle {
 
     Column {
         id:heading
-        enabled:study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker
+        enabled:study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
         anchors.top:parent.top
         anchors.left:parent.left
         anchors.right:parent.right
@@ -486,6 +486,7 @@ Rectangle {
         anchors.right:parent.right
         eligibleKeys:study.pickId&&study.activeIssue?study.activeIssue.options:[]
         onFurnitureContext:function(x,y){study.openContext(x,y)}
+        onBookPlacementProposed:function(position){study.bookPositionText=String(position);structurePanel.forceActiveFocus()}
         onDestinationPressed:function(rackId,key){if(archive.draft&&rackId===archive.draft.rackId)study.chooseCell(key)}
     }
     MouseArea {

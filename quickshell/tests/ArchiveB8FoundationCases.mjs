@@ -460,5 +460,15 @@ export function run(){
  yes(Core.applyStructure(sampleState,different).error,'changed value remains rejected');
  refuse(sampleState,Object.assign({},bookCommand,{patch:{x:null}}));
  refuse(sampleState,Object.assign({},bookCommand,{patch:{x:-1}}));
+ eq(Core.bookDragPosition(100.5,39,20,true),140.5,'relative snap retains fractional anchor');
+ eq(Core.bookDragPosition(100.5,-31,20,true),60.5,'relative negative displacement');
+ eq(Core.bookDragPosition(100.5,12.6,20,false),113.5,'unsnapped integer movement retains anchor');
+ eq(Core.bookDragPosition(100.5,2,20,true),100.5,'sub-grid motion no displacement');
+ const movedBook=apply(sampleState,{kind:'spatialAppPlace',appId:'org.example.Reader',containerId:'root',moduleId:sampleRack.id,patch:{x:160}});
+ eq(Core.owners(movedBook.snapshot),Core.owners(sample),'drag preserves file identity and location');
+ eq(Spatial.appPlacements(movedBook.snapshot).find(a=>a.appId==='org.example.Reader').x,160,'support-local drag destination');
+ eq(Core.undo(movedBook).snapshot,sample,'drag Undo exact');
+ refuse(sampleState,{kind:'spatialAppPlace',appId:'org.example.Reader',containerId:'root',moduleId:sampleRack.id,patch:{x:0}});
+ refuse(sampleState,{kind:'spatialAppPlace',appId:'org.example.Reader',containerId:'root',moduleId:sampleRack.id,patch:{x:300}});
  return checks;
 }

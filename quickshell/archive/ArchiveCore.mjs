@@ -1045,6 +1045,14 @@ export function snapCoordinate(value,interval,enabled){
  return enabled?Math.round(value/interval)*interval:Math.round(value);
 }
 
+// Relative, support-local book movement. Preserve the original fractional
+// anchor, snap only the displacement; exact numeric entry is independent.
+// No clamping through other objects or mutation of the committed placement.
+export function bookDragPosition(x,delta,interval,snap){
+ if(!Number.isFinite(x)||!Number.isFinite(delta))throw Error('Invalid book movement');
+ return x+snapCoordinate(delta,interval,snap);
+}
+
 // Both rack and structural drags consume interior-local deltas. Snap the
 // moved origin or the moving far edge, never the size in isolation.
 // Shelf board thickness is invariant. Validation remains with the caller.
