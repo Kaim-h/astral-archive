@@ -8,6 +8,7 @@ import * as Motion from "../archive/ArchiveMotion.mjs";
 import * as Capacity from "../archive/ArchiveCapacity.mjs";
 import * as Doors from "../archive/ArchiveDoors.mjs";
 import * as View from "../archive/ArchiveView.mjs";
+import * as Architecture from "../archive/ArchiveArchitecture.mjs";
 import * as ShelfSample from "./ArchiveB8ShelfFixture.mjs";
 export function run(){
  let checks=0;
@@ -543,5 +544,41 @@ export function run(){
  eq(View.cubbyPreviewSummary(nestedInventory.cubbies.root).items,20,'actual furnished child includes top books and files');
  eq(View.cubbyPreviewSummary(nestedInventory.cubbies.child).items,1,'descendant counted only in its own inventory');
  eq(Core.owners(nestedInventory).length,20,'inventory not ownership mutation');
+ // N3a shared physical-profile candidate: no persisted migration.
+ const originalSample=JSON.stringify(sample),geometryCases=[{w:130,h:100,b:4},{w:700.5,h:500.5,b:11.25},{w:1800,h:1500,b:40},sample.cubbies.root];
+ for(const c of geometryCases){
+  const profiles=Spatial.shelfProfiles.map(p=>Architecture.shelfGeometry(c,p,160));
+  yes(profiles[1].h>profiles[0].h,'crest has real additive height');
+  yes(profiles[2].w>profiles[0].w,'pilaster has real additive width');
+  for(const g of profiles){
+   eq([g.aperture.w,g.aperture.h],[c.w,c.h],'unaltered interior');
+   eq(g.depth,160,'independent depth');
+   for(const part of g.parts)for(const p of part.points)
+    yes(p[0]>=-.00001&&p[1]>=-.00001&&p[0]<=g.w+.00001&&p[1]<=g.h+.00001,'profile vertex within occupied front');
+   const fit=Architecture.fitFront(g,1000,700);
+   yes(fit.scale>0&&fit.x>=16-.00001&&fit.y>=16-.00001,'uniform front fit');
+   for(const orientation of [0,90,180,270]){
+    const p={x:10,y:20,orientation},box=Architecture.profileFootprint(g,p);
+    eq([box.w,box.h],orientation%180?[g.depth,g.w]:[g.w,g.depth],'rotated occupied dimensions');
+    const glyph=Architecture.planGlyph(g,p);
+    for(const layer of glyph.layers)for(const q of layer.points)yes(q[0]>=box.x-.00001&&q[1]>=box.y-.00001&&q[0]<=box.x+box.w+.00001&&q[1]<=box.y+box.h+.00001,'H glyph in real footprint');
+    const a=Architecture.frontPoint(g,p,0,g.h),b=Architecture.frontPoint(g,p,g.w,g.h);
+    eq(a[2],0,'floor datum');eq(b[2],0,'floor datum far end');
+    yes(Math.abs(Math.hypot(a[0]-b[0],a[1]-b[1])-g.w)<.00001,'front width preserved in Room');
+    eq(Architecture.frontPoint(g,p,0,0)[2],g.h,'front height preserved');
+   }
+   const changedDepth=Architecture.shelfGeometry(c,g.profile,300);
+   eq([changedDepth.w,changedDepth.h,changedDepth.aperture],[g.w,g.h,g.aperture],'depth does not stretch front');
+  }
+ }
+ const profileReport=Architecture.inspectProfileLayout(sample);
+ yes(profileReport.ok,'existing furnished specimen can accommodate candidate profiles');
+ eq(JSON.stringify(sample),originalSample,'profile inspection never mutates');
+ const tight=Core.clone(sample),rootAttachment=tight.spatial.shelves.root,oldBox=Spatial.footprint(tight,'root');
+ tight.spatial.rooms[rootAttachment.roomId].w=Math.ceil(oldBox.x+oldBox.w);
+ eq(Core.validate(tight),null,'old envelope can fit snugly');
+ const tightBefore=JSON.stringify(tight),blocked=Architecture.inspectProfileLayout(tight);
+ yes(!blocked.ok&&blocked.conflicts.some(x=>x.kind==='wall'&&x.shelfId==='root'),'physical expansion detects wall collision');
+ eq(JSON.stringify(tight),tightBefore,'invalid candidate never migrates');
  return checks;
 }
