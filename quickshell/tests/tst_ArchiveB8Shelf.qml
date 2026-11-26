@@ -113,6 +113,49 @@ Item {
                 }
             }finally{study.parent.width=original;study.roomPlanOpen=false}
         }
+        function test_checkpoint_preference_write_failure(){
+            var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
+            var payload=null,persisted=false,attempts=0,rejectWrite=true
+            study.checkpointStore={read:function(){return payload},write:function(v){payload=v}}
+            study.roomPreferenceStore={
+                readRoomPerspective:function(){return persisted},
+                writeRoomPerspective:function(v){
+                    attempts++
+                    if(rejectWrite)throw Error("injected preference write failure")
+                    persisted=v
+                }
+            }
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var savedSnapshot=JSON.stringify(ctl.snapshot)
+                study.roomPerspective=true
+                verify(study.saveCheckpoint())
+                var saved=payload
+                compare(JSON.parse(saved).version,5)
+                ctl.reset(Sample.fixture())
+                verify(!study.roomPerspective)
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                compare(JSON.stringify(ctl.snapshot),savedSnapshot)
+                verify(study.roomPerspective);verify(!persisted)
+                compare(attempts,1);compare(payload,saved)
+                verify(scene.message.indexOf("Study checkpoint loaded")===0)
+                verify(scene.message.indexOf("Room preference not saved")>=0)
+                verify(scene.message.indexOf("injected preference write failure")>=0)
+                // A failed decode must not try writing the preference.
+                payload="{bad"
+                verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
+                compare(attempts,1);verify(!persisted&&study.roomPerspective)
+                compare(JSON.stringify(ctl.snapshot),savedSnapshot)
+                verify(scene.message.indexOf("Checkpoint not loaded")===0)
+                // Retry with healthy preference storage: no stale warning.
+                payload=saved;rejectWrite=false
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                compare(attempts,2);verify(persisted&&study.roomPerspective)
+                compare(JSON.stringify(ctl.snapshot),savedSnapshot);compare(payload,saved)
+                compare(scene.message,"Study checkpoint loaded")
+            }finally{study.roomPlanOpen=false;study.checkpointStore=oldStore;study.roomPreferenceStore=oldPref}
+        }
         function test_independent_sqlite_preference(){
             var ctl=study.controller,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
             try{

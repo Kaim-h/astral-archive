@@ -30,7 +30,12 @@ Rectangle {
     function setRoomPerspective(value){
         roomPerspective=value===true
         if(roomPreferenceStore)try{roomPreferenceStore.writeRoomPerspective(roomPerspective)}
-        catch(e){sceneView.message="Room preference not saved · "+String(e)}
+        catch(e){
+            var warning="Room preference not saved · "+String(e)
+            sceneView.message=warning
+            return warning
+        }
+        return ""
     }
     // View-only motion preference and transition state. Not arrangement data.
     property bool reducedRoomMotion:false
@@ -192,13 +197,13 @@ Rectangle {
             sceneView.cameras=View.copyCameras(view.cameras)
             sceneView.restoreCamera()
             Themes.Theme.index=view.theme
-            study.setRoomPerspective(view.roomPerspective===true)
+            var preferenceWarning=study.setRoomPerspective(view.roomPerspective===true)
             sceneView.cubbyPreviewMode=view.cubbyPreviewMode||"veiled"
             sceneView.snapEnabled=view.snapEnabled===true
             sceneView.showGrid=view.showGrid===true
             sceneView.snapDistance=view.snapDistance===undefined?20:view.snapDistance
             sceneView.clearSelection()
-            sceneView.message="Study checkpoint loaded"
+            sceneView.message="Study checkpoint loaded"+(preferenceWarning?" · "+preferenceWarning:"")
             return true
         }catch(e){sceneView.message="Checkpoint not loaded · "+String(e);return false}
     }

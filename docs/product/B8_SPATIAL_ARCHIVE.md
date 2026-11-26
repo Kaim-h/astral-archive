@@ -38,7 +38,7 @@ Move/resize/rename Rooms, focus selected Room or door, restore preceding camera 
 
 ## 5. Room and navigation
 
-2D plan is the default Room view. Persist the user's explicit 2D/perspective preference across restarts (separate from arrangement and Undo; missing/legacy preference defaults to 2D). Current native study remembers the choice only within a session; global versus per-Room preference remains to be resolved before persistence implementation.
+2D plan is the default Room view. The isolated B8 native study now persists a global explicit 2D/perspective preference separately from arrangement and structural Undo, with 2D when absent. The selected provisional policy and checkpoint precedence are documented below; actual standalone restart and target-native validation remain pending. A successfully loaded arrangement is retained if the separate preference write fails, with explicit unsaved-preference feedback.
 
 Accepted H stepped-cornice plan glyph, centered shallow perspective with actual selected Shelf profile/theme, no independent Room-side Shelf appearance. Nine stone floors and eight walls from S14, minimal grout, no timber. Zero yaw/roll, initial tilt 22 degrees (20–30 range); camera distance 2.6× larger dimension and cutaway details provisional. Common projection for floor/walls/furniture/openings, inverse floor mapping, frozen gesture camera. Native renderer open; event-driven caching, avoid idle/hidden work. CPU rasterizer is research, not mandatory architecture.
 
