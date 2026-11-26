@@ -49,6 +49,8 @@ jobs:
         run: node scripts/check-b7-native.mjs
       - name: B7-N2 generalized ownership and occupied geometry
         run: node scripts/check-b7-n2.mjs
+      - name: B8-N1 spatial foundation contract
+        run: node scripts/check-b8-n1.mjs
       - name: Native Archive B6-N1 pure logic
         run: node scripts/check-archive-n1.mjs
       - name: Native Archive B6-N2 visual adapter and fixture
@@ -226,6 +228,8 @@ jobs:
           sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml qml6-module-qtqml-models qml6-module-qtqml-workerscript qml6-module-qttest qml6-module-qtquick-localstorage libqt6sql6-sqlite libqt6svg6
       - name: Execute actual Qt Quick synthetic Archive tests
         run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN1.qml
+      - name: Execute isolated B8 spatial foundation contract
+        run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8Foundation.qml
       - name: Execute native illustrated Archive scene tests
         run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN2.qml
       - name: Execute native live Archive interaction tests

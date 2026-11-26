@@ -1,4 +1,5 @@
 // Shared persisted-state preflight; no Core import or geometry solver.
+import * as Spatial from "./ArchiveSpatial.mjs";
 export const limits=Object.freeze({cubbies:128,modulesPerCubby:64,fixtures:8192,cells:12000,records:4096,snapshotChars:2000000,viewChars:96000,envelopeChars:2100000,legacyChars:2000000});
 function fail(msg){throw Error(msg);}
 function plain(v){return !!v&&typeof v==='object'&&!Array.isArray(v);}
@@ -6,7 +7,7 @@ function id(v){return typeof v==='string'&&v.length>0&&v.length<=128&&!['__proto
 function finite(v,min,max){return Number.isFinite(v)&&v>=min&&v<=max;}
 function color(v){return v===null||v===undefined||(typeof v==='string'&&/^#[0-9a-fA-F]{6}$/.test(v));}
 export function pathValid(s,path){
- return Array.isArray(path)&&path.length>0&&path.length<=128&&path[0]==='root'&&path.every((v,i)=>id(v)&&s.cubbies[v]&&(!i||s.cubbies[path[i-1]].mods.some(m=>m.type==='cubby'&&m.childId===v)));
+ return Array.isArray(path)&&path.length>0&&path.length<=128&&Spatial.roots(s).includes(path[0])&&path.every((v,i)=>id(v)&&Object.prototype.hasOwnProperty.call(s.cubbies,v)&&(!i||s.cubbies[path[i-1]].mods.some(m=>m.type==='cubby'&&m.childId===v)));
 }
 function record(v,placed){
  if(!plain(v)||!id(v.id)||!finite(v.r,.1,200)||typeof v.name!=='string'||v.name.length>512)fail('Invalid record');
@@ -14,7 +15,9 @@ function record(v,placed){
 }
 export function preflight(s,formatVersion=2){
  if(!plain(s)||!plain(s.cubbies)||!Array.isArray(s.caseItems)||s.caseItems.length>limits.records||!Number.isSafeInteger(s.next)||s.next<1)fail('Invalid checkpoint state');
- const keys=Object.keys(s.cubbies);if(!keys.length||keys.length>limits.cubbies||!keys.includes('root'))fail('Cubby budget or root');
+ const spatial=Spatial.enabled(s);
+ if(spatial!==(formatVersion===3))fail('Spatial state requires version 3');
+ const keys=Object.keys(s.cubbies);if(!keys.length||keys.length>limits.cubbies||(!spatial&&!keys.includes('root')))fail('Physical container budget or root');
  let count=0,cells=0,fixtures=0;const children=new Set();
  function addRecord(v,placed){record(v,placed);if(++count>limits.records)fail('Record budget exceeded');}
  for(const key of keys){
@@ -22,7 +25,7 @@ export function preflight(s,formatVersion=2){
   for(const m of c.mods){
    if(!plain(m)||!id(m.id)||![m.x,m.y,m.w,m.h].every(Number.isFinite)||!color(m.color))fail('Invalid fixture');
    if(++fixtures>limits.fixtures)fail('Fixture budget exceeded');
-   if(m.type==='cubby'){if(!id(m.childId)||m.childId==='root')fail('Invalid child');children.add(m.childId);continue;}
+   if(m.type==='cubby'){if(!id(m.childId)||(!spatial&&m.childId==='root'))fail('Invalid child');children.add(m.childId);continue;}
    if(m.type==='artwork'){
     if(formatVersion===1)fail('Version 1 cannot contain artwork mounts');
     if(m.record!==null)addRecord(m.record,false);
@@ -48,7 +51,8 @@ export function preflight(s,formatVersion=2){
    for(const records of Object.values(m.scrollCells)){if(!Array.isArray(records)||records.length>96)fail('Invalid cell records');for(const v of records)addRecord(v,true);}
   }
  }
- if(keys.some(k=>k!=='root'&&!children.has(k)))fail('Unattached cubby');
+ if(spatial){const err=Spatial.validate(s);if(err)fail(err);}
+ else if(keys.some(k=>k!=='root'&&!children.has(k)))fail('Unattached cubby');
  for(const v of s.caseItems)addRecord(v,false);
  if(!pathValid(s,s.path))fail('Invalid navigation path');
  const serialized=JSON.stringify(s);
@@ -56,5 +60,5 @@ export function preflight(s,formatVersion=2){
 }
 
 export function error(s){
- try{preflight(s);return null}catch(e){return String(e.message||e)}
+ try{preflight(s,Spatial.enabled(s)?3:2);return null}catch(e){return String(e.message||e)}
 }

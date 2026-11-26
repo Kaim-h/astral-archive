@@ -5,6 +5,7 @@
 // filesystem paths, browser globals, persistence or production shell wiring.
 import * as Mixed from "./representation/B7Ownership.mjs";
 import * as Capacity from "./ArchiveCapacity.mjs";
+import * as Spatial from "./ArchiveSpatial.mjs";
 const RACK_PAD=11, B6_WALL=3.2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const FIXED_STEP=1/120;
@@ -702,6 +703,7 @@ export function paintCell(s,cubbyId,rackId,key,color,depth){
 function structuralError(s,message){return updateSession(s,{error:message});}
 function editorId(next,prefix){
  const used=new Set(Object.keys(next.cubbies));
+ if(Spatial.enabled(next))for(const k of Object.keys(next.spatial.rooms))used.add(k);
  for(const c of Object.values(next.cubbies))for(const m of c.mods){
   used.add(m.id);for(const meta of Object.values(m.cellMeta||{}))used.add(meta.id);
   for(const entry of m.items||[])if(entry.kind==='holder')used.add(entry.id);
@@ -803,6 +805,23 @@ export function editStructure(s,command){
    }
    if(JSON.stringify(candidate.snapshot)===JSON.stringify(s.snapshot))return updateSession(s,{error:''});
    return commit(s,candidate.snapshot);
+  }
+  if(typeof command.kind==='string'&&command.kind.indexOf('spatial')===0){
+   let candidate=s;
+   // Reuse the established recursive fixture deletion and Case provenance
+   // logic on unpublished values, then commit once from the original state.
+   if(command.kind==='spatialShelfDelete'){
+    const k=command.containerId;
+    if(!Spatial.enabled(s.snapshot)||!Object.prototype.hasOwnProperty.call(s.snapshot.spatial.shelves,k)||Object.keys(s.snapshot.spatial.shelves).length<=1)throw Error('Keep at least one architectural Shelf');
+    for(const m of s.snapshot.cubbies[k].mods){
+     candidate=editStructure(candidate,{kind:'delete',cubbyId:k,moduleId:m.id});
+     if(candidate.error)throw Error(candidate.error);
+    }
+   }
+   const next=clone(candidate.snapshot);
+   Spatial.edit(next,command,prefix=>editorId(next,prefix));
+   if(JSON.stringify(next)===JSON.stringify(s.snapshot))return updateSession(s,{error:''});
+   return commit(s,next);
   }
   const next=clone(s.snapshot),c=next.cubbies[command.cubbyId];
   if(!c)throw Error('Cubby no longer exists');

@@ -2,11 +2,15 @@ import QtQuick
 import QtQml.WorkerScript
 import "ArchiveCore.mjs" as Core
 import "ArchiveCheckpoint.mjs" as Checkpoint
+import "ArchiveSpatial.mjs" as Spatial
 
 // Research-only N1 controller. Replace whole values to notify QML bindings.
 // At most one worker request runs; queued edits coalesce to the latest draft.
 Item {
     id: model
+    // Existing B6/B7 study windows do not render the architectural hierarchy.
+    // Only explicitly opted-in test/controllers may import spatial checkpoints.
+    property bool spatialEnabled: false
     property var archiveState: Core.session(Core.fixture())
     readonly property var snapshot: archiveState.snapshot
     readonly property var draft: archiveState.draft
@@ -25,7 +29,7 @@ Item {
     property bool resetting:false
     property bool restoringUndo:false
     function proposeStructure(command) {
-        if(draft)return false
+        if(draft||(!spatialEnabled&&command&&String(command.kind).indexOf("spatial")===0))return false
         structuralProposal=Core.previewStructure(archiveState,command)
         return structuralProposal.ok
     }
@@ -36,7 +40,7 @@ Item {
         return !archiveState.error
     }
     function applyStructure() {
-        if(!structuralProposal)return false
+        if(!structuralProposal||(!spatialEnabled&&String(structuralProposal.command.kind).indexOf("spatial")===0))return false
         archiveState=Core.applyStructure(archiveState,structuralProposal)
         if(!archiveState.error)structuralProposal=null
         return !archiveState.error
@@ -60,6 +64,7 @@ Item {
 
     function reset(value) {
         // Do not reuse revision numbers across resets while a worker may reply.
+        if(Spatial.enabled(value)&&!spatialEnabled)throw Error("Spatial checkpoint requires an opted-in controller")
         var fresh = Core.session(value)
         fresh.revision = archiveState.revision + 1
         queued = null
