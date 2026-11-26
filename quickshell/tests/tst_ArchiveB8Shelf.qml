@@ -358,6 +358,34 @@ Item {
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),initial);compare(ctl.archiveState.history.length,history)
             }finally{study.mapEnabled=false;study.switchMode("browse");scene.snapEnabled=oldSnap}
         }
+        function test_map_cartography(){
+            var ctl=study.controller,original=Themes.Theme.index
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length,map=findChild(study,"archive-map-room")
+                var initialPaints=map.mapPaints
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.mapPaints>initialPaints&&map.contourSegmentCount>0})
+                var builds=map.contourBuilds
+                for(var i=0;i<3;i++){
+                    var paints=map.mapPaints,changed=Themes.Theme.index!==i
+                    Themes.Theme.index=i
+                    if(changed)tryVerify(function(){return map.mapPaints>paints})
+                    grabImage(study).save("archive-b8-native-shelf-map-chart-"+i+".png")
+                }
+                compare(map.contourBuilds,builds)
+                clickNamed("map-chart");var paints=map.mapPaints;clickNamed("map-contour-none")
+                tryVerify(function(){return map.mapPaints>paints})
+                compare(map.contourBuilds,builds)
+                clickNamed("map-contour-engraved");clickNamed("map-contour-more")
+                clickNamed("map-mark-family");clickNamed("map-chart-close")
+                clickNamed("map-zoom-in");clickNamed("map-zoom-in");clickNamed("map-zoom-in")
+                tryVerify(function(){return map.contourBuilds>builds})
+                grabImage(study).save("archive-b8-native-shelf-map-chart-detail.png")
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+            }finally{Themes.Theme.index=original;study.mapEnabled=false;var m=findChild(study,"archive-map-room");m.contourMode="subtle";m.contourDensity=55;m.chartOrnament="compass"}
+        }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
             var payload=null,persisted=false,attempts=0,rejectWrite=true

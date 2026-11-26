@@ -8,6 +8,7 @@ import * as Motion from "../archive/ArchiveMotion.mjs";
 import * as Capacity from "../archive/ArchiveCapacity.mjs";
 import * as Doors from "../archive/ArchiveDoors.mjs";
 import * as View from "../archive/ArchiveView.mjs";
+import * as Terrain from "../archive/ArchiveMapTerrain.mjs";
 import * as Architecture from "../archive/ArchiveArchitecture.mjs";
 import * as Projection from "../archive/ArchiveRoomProjection.mjs";
 import * as Transition from "../archive/ArchiveRoomTransition.mjs";
@@ -1127,6 +1128,33 @@ export function run(){
   eq(View.mapDoorMergeChoices(contact.snapshot,d.id),[otherId],'only contacting same pair');
   const merge=apply(contact,{kind:'spatialDoorMerge',doorId:d.id,patch:{otherId}});
   eq(Core.undo(merge).snapshot,contact.snapshot,'shared merge exact Undo');
+ }
+ {
+  // N4d: fixed world field, bounded cached tile, exact decorative wall gaps.
+  const state=apply(Core.session(ShelfSample.roomFixture()),{kind:'spatialAdoptIndependentProfiles'}),s=state.snapshot,data=View.mapPlan(s);
+  const f=View.mapFrame(data,1366,745,1),spec=Terrain.contourSpec(f,1366,745,55);
+  yes(spec&&spec.nx<=116&&spec.ny<=116,'bounded terrain tile');
+  eq(Terrain.terrainHeight(-1200,800),Terrain.terrainHeight(-1200,800),'world field deterministic');
+  const paths=Terrain.contourSegments(spec);
+  yes(paths.segments>0&&paths.segments<=Terrain.contourBudget,'bounded contour segments');
+  eq(Terrain.contourSegments(spec),paths,'deterministic contour geometry');
+  eq(Terrain.contourSpec(f,1366,745,0),null,'density zero no work');
+  const close=View.mapFrame(data,1366,745,4),fine=Terrain.contourSpec(close,1366,745,100);
+  yes(fine.step<=spec.step&&fine.stride<=spec.stride,'closer contour LOD');
+  const pan=Object.assign({},f,{x:f.x+.01});
+  eq(Terrain.contourSpec(pan,1366,745,55).key,spec.key,'small pan cached tile');
+  for(const r of data.rooms){
+   for(const d of data.doors)for(const opening of d.openings.filter(o=>o.roomId===r.id)){
+    const runs=View.mapWallRuns(data,r),line=r[opening.side==='north'||opening.side==='south'?'y':'x']+(opening.side==='south'?r.h:opening.side==='east'?r.w:0);
+    yes(!runs.some(q=>q.vertical===d.vertical&&q.line===line&&q.start<d.end&&q.end>d.start),'no wall across shared opening');
+   }
+   for(const shelf of r.shelves){
+    const original=Architecture.planGlyph(Spatial.shelfGeometry(s,shelf.id),s.spatial.shelves[shelf.id]);
+    eq(shelf.glyph.front,original.front.map(q=>[q[0]+r.x,q[1]+r.y]),'map uses actual H glyph');
+   }
+  }
+  eq(View.mapRoomDetail(data.rooms[0],f,1),false,'overview suppresses detail');
+  yes(View.mapRoomDetail(data.rooms[0],close,4),'close detail');
  }
  return checks;
 }

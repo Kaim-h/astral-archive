@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Window
 import "ArchiveView.mjs" as View
+import "ArchiveMapTerrain.mjs" as Terrain
 
 // Isolated atlas. Room edits emit proposals; no arrangement writes here.
 // Camera and gesture previews are transient; final cartography follows.
@@ -9,6 +10,21 @@ Item {
     required property var snapshot
     required property var colors
     property bool atlasEnabled:false
+    property var palettes:[]
+    property int desktopPalette:0
+    property string chartTitle:"The Map Room"
+    property string chartSubtitle:""
+    property string chartOrnament:"compass"
+    property string chartFamily:"Astral"
+    property string mapFrameStyle:"engraved"
+    property string contourMode:"subtle"
+    property int contourDensity:55
+    property bool appearanceOpen:false
+    readonly property int contourBuilds:art.contourBuilds
+    readonly property int mapPaints:art.paintCount
+    readonly property int contourSegmentCount:art.contourCache?art.contourCache.data.segments:0
+    function roomColors(room){return room.palette!==null&&palettes[room.palette]?palettes[room.palette]:colors}
+    function closeAppearance(){appearanceOpen=false;forceActiveFocus()}
     property string selectedRoom:""
     property string selectedDoor:""
     property int suggestionIndex:0
@@ -102,14 +118,14 @@ Item {
         zoom=next
     }
     onDataModelChanged:{cancelGesture();if(!dataModel||!dataModel.rooms.some(r=>r.id===selectedRoom))selectedRoom="";if(!dataModel||!dataModel.doors.some(d=>d.id===selectedDoor))selectedDoor=""}
-    onVisibleChanged:if(!visible)cancelGesture()
+    onVisibleChanged:if(!visible){cancelGesture();appearanceOpen=false}
     onWidthChanged:cancelGesture()
     onHeightChanged:cancelGesture()
-    onEnabledChanged:if(!enabled)cancelGesture();else if(visible)forceActiveFocus()
+    onEnabledChanged:if(!enabled){cancelGesture();appearanceOpen=false}else if(visible)forceActiveFocus()
     onArrangingChanged:cancelGesture()
     onActiveFocusChanged:if(!activeFocus)cancelGesture()
     Connections {target:map.Window.window;function onActiveChanged(){if(map.Window.window&&!map.Window.window.active)map.cancelGesture()}}
-    Keys.onEscapePressed:function(event){if(gesture||press){cancelGesture();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
+    Keys.onEscapePressed:function(event){if(appearanceOpen){closeAppearance();event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
     Keys.onDeletePressed:function(event){if(activeFocus&&removeSelectedDoor())event.accepted=true}
     Keys.onPressed:function(event){if(event.key===Qt.Key_Backspace&&activeFocus&&removeSelectedDoor())event.accepted=true}
     Rectangle {anchors.fill:parent;color:map.colors.background}
@@ -117,12 +133,20 @@ Item {
         id:art
         objectName:"map-room-art"
         anchors.fill:parent
+        property var contourCache:null
+        property int contourBuilds:0
+        property int paintCount:0
         function refresh(){if(visible&&available)requestPaint()}
         Connections {
             target:map
             function onDataModelChanged(){art.refresh()}
             function onCameraChanged(){art.refresh()}
             function onColorsChanged(){art.refresh()}
+            function onPalettesChanged(){art.refresh()}
+            function onDesktopPaletteChanged(){art.refresh()}
+            function onContourModeChanged(){art.refresh()}
+            function onContourDensityChanged(){art.refresh()}
+            function onMapFrameStyleChanged(){art.refresh()}
             function onSelectedRoomChanged(){art.refresh()}
             function onOutlineChanged(){art.refresh()}
             function onDoorOutlineChanged(){art.refresh()}
@@ -136,12 +160,22 @@ Item {
         onVisibleChanged:refresh()
         onPaint:{
             if(!visible)return
+            paintCount++
             var ctx=getContext("2d");ctx.reset();ctx.clearRect(0,0,width,height)
             var m=map.dataModel,f=map.camera;if(!m||!f)return
             var k=f.scale
             ctx.save();ctx.translate(f.x,f.y);ctx.scale(k,k)
+            if(map.contourMode!=="none"&&map.contourDensity>0){
+                var spec=Terrain.contourSpec(f,width,height,map.contourDensity)
+                if(spec){
+                    if(!contourCache||contourCache.key!==spec.key){contourCache={key:spec.key,data:Terrain.contourSegments(spec)};contourBuilds++}
+                    ctx.save();ctx.globalAlpha=(map.contourMode==="engraved"?.28:.16)*spec.alpha;ctx.strokeStyle=map.colors.engraving;ctx.lineCap="round"
+                    for(var level of contourCache.data.levels){ctx.lineWidth=(level.n%8===0?1.15:.65)/k;ctx.beginPath();for(var seg of level.segments){ctx.moveTo(seg[0],seg[1]);ctx.lineTo(seg[2],seg[3])}ctx.stroke()}
+                    ctx.restore()
+                }
+            }
             // Grid is drawn over Room fills, under labels and openings.
-            for(var room of m.rooms){ctx.fillStyle=map.colors.panel;ctx.fillRect(room.x,room.y,room.w,room.h)}
+            for(var room of m.rooms){var palette=map.roomColors(room);ctx.fillStyle=View.mapRoomDetail(room,f,map.zoom)?palette.background:palette.panel;ctx.fillRect(room.x,room.y,room.w,room.h)}
             if(map.showGrid){
                 var step=Math.max(5,map.snapDistance)
                 while(step*k<12)step*=2
@@ -150,13 +184,34 @@ Item {
                 for(var gy=Math.ceil(top/step)*step;gy<=bottom;gy+=step){ctx.moveTo(left,gy);ctx.lineTo(right,gy)}
                 ctx.strokeStyle=map.colors.metal;ctx.lineWidth=.5/k;ctx.stroke()
             }
+            function wall(r,inset,color,weight,alpha){
+                ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=weight/k;ctx.beginPath()
+                for(var line of View.mapWallRuns(m,r,inset)){
+                    if(line.vertical){ctx.moveTo(line.line,line.start);ctx.lineTo(line.line,line.end)}
+                    else{ctx.moveTo(line.start,line.line);ctx.lineTo(line.end,line.line)}
+                }
+                ctx.stroke();ctx.restore()
+            }
             for(var r of m.rooms){
-                ctx.strokeStyle=map.selectedRoom===r.id?map.colors.text:map.colors.metal
-                ctx.lineWidth=(map.selectedRoom===r.id?2:1.5)/k;ctx.strokeRect(r.x,r.y,r.w,r.h)
-                for(var s of r.shelves){
-                    var b=s.box
-                    ctx.fillStyle=map.colors.background;ctx.fillRect(b.x,b.y,b.w,b.h)
-                    ctx.strokeStyle=map.colors.engraving;ctx.lineWidth=.8/k;ctx.strokeRect(b.x,b.y,b.w,b.h)
+                var palette=map.roomColors(r),detail=View.mapRoomDetail(r,f,map.zoom),selected=map.selectedRoom===r.id
+                wall(r,0,selected?palette.text:palette.metal,selected?2:1.5,1)
+                var inset=Math.min(8/k,r.w*.06,r.h*.06)
+                if(map.mapFrameStyle!=="plain")wall(r,inset,palette.engraving,.75,.55)
+                if(map.mapFrameStyle==="engraved"&&Math.min(r.w,r.h)*k>76){
+                    var d=Math.min(14/k,r.w*.1,r.h*.1),pad=inset*1.6
+                    ctx.save();ctx.globalAlpha=.65;ctx.strokeStyle=palette.engraving;ctx.lineWidth=.8/k
+                    for(var corner of [[r.x+pad,r.y+pad,1,1],[r.x+r.w-pad,r.y+pad,-1,1],[r.x+pad,r.y+r.h-pad,1,-1],[r.x+r.w-pad,r.y+r.h-pad,-1,-1]]){
+                        ctx.beginPath();ctx.moveTo(corner[0]+corner[2]*d,corner[1]);ctx.lineTo(corner[0],corner[1]);ctx.lineTo(corner[0],corner[1]+corner[3]*d);ctx.stroke()
+                    }
+                    ctx.restore()
+                }
+                if(detail)for(var shelf of r.shelves){
+                    var sp=map.palettes.length?View.spatialPalette(map.snapshot,shelf.id,map.palettes,map.desktopPalette):palette
+                    for(var layer of shelf.glyph.layers){
+                        var q=layer.points;ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(var i=1;i<q.length;i++)ctx.lineTo(q[i][0],q[i][1]);ctx.closePath()
+                        ctx.fillStyle=layer.role==="frame"?sp.metal:layer.role==="recess"?sp.background:sp.panel;ctx.fill()
+                    }
+                    var lip=shelf.glyph.front;ctx.beginPath();ctx.moveTo(lip[0][0],lip[0][1]);ctx.lineTo(lip[1][0],lip[1][1]);ctx.strokeStyle=sp.engraving;ctx.lineWidth=1.2/k;ctx.stroke()
                 }
             }
             // Openings use the exact shared world interval, not an inferred
@@ -165,8 +220,9 @@ Item {
                 ctx.beginPath()
                 if(door.vertical){ctx.moveTo(door.line,door.start);ctx.lineTo(door.line,door.end)}
                 else{ctx.moveTo(door.start,door.line);ctx.lineTo(door.end,door.line)}
-                ctx.strokeStyle=map.colors.panel;ctx.lineWidth=4/k;ctx.stroke()
                 ctx.strokeStyle=map.selectedDoor===door.id?map.colors.text:map.colors.engraving;ctx.lineWidth=(map.selectedDoor===door.id?3:1)/k;ctx.stroke()
+                // Short jamb marks, not a second wall across the opening.
+                ctx.beginPath();for(var endpoint of [door.start,door.end]){if(door.vertical){ctx.moveTo(door.line-4/k,endpoint);ctx.lineTo(door.line+4/k,endpoint)}else{ctx.moveTo(endpoint,door.line-4/k);ctx.lineTo(endpoint,door.line+4/k)}}ctx.lineWidth=1/k;ctx.stroke()
             }
             function drawOpening(d,color,lineWidth){
                 if(!d)return;ctx.beginPath()
@@ -189,16 +245,27 @@ Item {
             width:map.camera?modelData.w*map.camera.scale:0
             height:map.camera?modelData.h*map.camera.scale:0
             visible:width>=44&&height>=16
-            color:map.colors.text;text:modelData.name
-            font.pixelSize:Math.max(1,Math.min(14,height*.28))
+            color:map.roomColors(modelData).text;text:modelData.name
+            font.family:"serif";font.pixelSize:Math.max(1,Math.min(19,height*.20))
             horizontalAlignment:Text.AlignHCenter;verticalAlignment:Text.AlignVCenter
             elide:Text.ElideRight;clip:true
+        }
+    }
+    Repeater {
+        model:map.visible&&map.dataModel?map.dataModel.rooms:[]
+        Image {
+            required property var modelData
+            readonly property point origin:map.pointFor(modelData.x,modelData.y)
+            x:origin.x+12;y:origin.y+12;width:22;height:22;opacity:.62
+            visible:!!source.toString()&&map.camera&&Math.min(modelData.w,modelData.h)*map.camera.scale>=100
+            source:map.camera&&Math.min(modelData.w,modelData.h)*map.camera.scale>=100?View.ornamentAsset(modelData.family,map.roomColors(modelData).name):""
+            fillMode:Image.PreserveAspectFit;asynchronous:false
         }
     }
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.LeftButton|Qt.MiddleButton
         onPressed:function(mouse){
-            if(!map.camera)return
+            if(!map.camera||map.appearanceOpen)return
             map.forceActiveFocus();map.moved=false
             if(map.arranging&&mouse.button===Qt.LeftButton){
                 var doorId=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y)
@@ -263,9 +330,42 @@ Item {
             }
         }
     }
-    Text {
+    Column {
         anchors.top:parent.top;anchors.topMargin:8;anchors.horizontalCenter:parent.horizontalCenter
-        text:"The Map Room";color:map.colors.text;font.pixelSize:16
+        width:Math.max(60,parent.width-220);spacing:2
+        Text {width:parent.width;text:map.chartTitle.trim()||"The Map Room";horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight;color:map.colors.text;font.family:"serif";font.pixelSize:20}
+        Text {width:parent.width;text:map.chartSubtitle;visible:!!text;horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight;color:map.colors.engraving;font.family:"serif";font.pixelSize:12}
+    }
+    Item {
+        x:12;y:12;width:48;height:48;visible:map.chartOrnament!=="none"
+        Canvas {
+            id:compassArt;anchors.fill:parent;visible:map.chartOrnament==="compass"
+            function refresh(){if(visible&&available)requestPaint()}
+            onVisibleChanged:refresh();onAvailableChanged:refresh()
+            Connections {target:map;function onColorsChanged(){compassArt.refresh()}}
+            onPaint:{var c=getContext("2d");c.reset();c.clearRect(0,0,width,height);c.strokeStyle=map.colors.engraving;c.lineWidth=1;c.beginPath();c.arc(24,26,14,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(24,7);c.lineTo(28,22);c.lineTo(43,26);c.lineTo(28,30);c.lineTo(24,45);c.lineTo(20,30);c.lineTo(5,26);c.lineTo(20,22);c.closePath();c.stroke();c.fillStyle=map.colors.engraving;c.beginPath();c.moveTo(24,7);c.lineTo(28,22);c.lineTo(24,26);c.closePath();c.fill()}
+        }
+        Text {x:20;y:0;text:"N";color:map.colors.engraving;font.pixelSize:9;visible:map.chartOrnament==="compass"}
+        Image {anchors.fill:parent;anchors.margins:5;visible:map.chartOrnament==="family";source:visible?View.ornamentAsset(map.chartFamily,map.colors.name):"";fillMode:Image.PreserveAspectFit}
+    }
+    ArchiveButton {objectName:"map-chart";anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:map.colors;label:"Chart…";enabled:!map.dragging&&!map.panning;onClicked:map.appearanceOpen=!map.appearanceOpen}
+    Rectangle {
+        id:chartPanel;objectName:"map-chart-panel";z:6
+        anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;anchors.topMargin:42
+        width:238;height:252;radius:5;color:map.colors.panel;border.color:map.colors.metal
+        visible:map.appearanceOpen
+        MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons;onWheel:function(wheel){wheel.accepted=true}}
+        Column {
+            anchors.fill:parent;anchors.margins:8;spacing:4
+            Text {text:"Chart inscription";color:map.colors.engraving;font.pixelSize:11}
+            Rectangle {width:parent.width;height:26;radius:3;color:map.colors.background;border.color:map.colors.metal;TextInput {objectName:"map-chart-title";anchors.fill:parent;anchors.margins:4;clip:true;text:map.chartTitle;color:map.colors.text;maximumLength:80;onTextEdited:map.chartTitle=text;Keys.onEscapePressed:map.closeAppearance()}}
+            Rectangle {width:parent.width;height:26;radius:3;color:map.colors.background;border.color:map.colors.metal;TextInput {objectName:"map-chart-subtitle";anchors.fill:parent;anchors.margins:4;clip:true;text:map.chartSubtitle;color:map.colors.text;maximumLength:120;onTextEdited:map.chartSubtitle=text;Keys.onEscapePressed:map.closeAppearance()}}
+            Row {spacing:4;Repeater {model:["none","subtle","engraved"];ArchiveButton {required property string modelData;objectName:"map-contour-"+modelData;colors:map.colors;label:modelData;active:map.contourMode===modelData;onClicked:map.contourMode=modelData}}}
+            Row {spacing:5;ArchiveButton {objectName:"map-contour-less";colors:map.colors;label:"−";enabled:map.contourDensity>0;onClicked:map.contourDensity=Math.max(0,map.contourDensity-20)}Text {text:"Density "+map.contourDensity;color:map.colors.text;anchors.verticalCenter:parent.verticalCenter;font.pixelSize:11}ArchiveButton {objectName:"map-contour-more";colors:map.colors;label:"+";enabled:map.contourDensity<100;onClicked:map.contourDensity=Math.min(100,map.contourDensity+20)}}
+            Row {spacing:4;Repeater {model:["plain","inset","engraved"];ArchiveButton {required property string modelData;objectName:"map-frame-"+modelData;colors:map.colors;label:modelData;active:map.mapFrameStyle===modelData;onClicked:map.mapFrameStyle=modelData}}}
+            Row {spacing:4;Repeater {model:["none","family","compass"];ArchiveButton {required property string modelData;objectName:"map-mark-"+modelData;colors:map.colors;label:modelData;active:map.chartOrnament===modelData;onClicked:map.chartOrnament=modelData}}}
+            ArchiveButton {objectName:"map-chart-close";colors:map.colors;label:"Done";onClicked:map.closeAppearance()}
+        }
     }
     // Explicit, non-overlapping hit rectangles. Do not reposition the
     // navigation row when Arrange reveals its additional controls.
@@ -275,7 +375,7 @@ Item {
         anchors.bottom:parent.bottom;anchors.bottomMargin:8
         anchors.horizontalCenter:parent.horizontalCenter
         width:336;height:116
-        enabled:!map.dragging&&!map.panning
+        enabled:!map.dragging&&!map.panning&&!map.appearanceOpen
         Item {
             objectName:"map-door-actions"
             width:parent.width;height:26;y:0;visible:map.arranging;enabled:map.arranging

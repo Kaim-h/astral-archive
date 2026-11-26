@@ -368,12 +368,15 @@ export function reconcileCameras(previous,next,history,cameras,undoing,activeId,
 // and one shared door record. No copied arrangement or renderer-side solver.
 export function mapPlan(s){
     if(!Spatial.physicalProfiles(s))return null;
-    const rooms=Object.values(s.spatial.rooms).map(r=>({id:r.id,name:r.name,x:r.x,y:r.y,w:r.w,h:r.h,shelves:[]}));
+    const rooms=Object.values(s.spatial.rooms).map(r=>({id:r.id,name:r.name,x:r.x,y:r.y,w:r.w,h:r.h,
+        family:r.appearance&&r.appearance.family!=null?r.appearance.family:s.spatial.appearance&&s.spatial.appearance.family!=null?s.spatial.appearance.family:"Architectural",
+        palette:r.appearance&&r.appearance.palette!=null?r.appearance.palette:null,shelves:[]}));
     if(!rooms.length)return null;
     const byId=new Map(rooms.map(r=>[r.id,r]));
     for(const [id,p] of Object.entries(s.spatial.shelves)){
         const room=byId.get(p.roomId),box=Spatial.footprint(s,id);
-        room.shelves.push({id,box:{x:room.x+box.x,y:room.y+box.y,w:box.w,h:box.h}});
+        const glyph=Architecture.planGlyph(Spatial.shelfGeometry(s,id),p),world=q=>[q[0]+room.x,q[1]+room.y];
+        room.shelves.push({id,box:{x:room.x+box.x,y:room.y+box.y,w:box.w,h:box.h},glyph:{layers:glyph.layers.map(l=>({role:l.role,points:l.points.map(world)})),front:glyph.front.map(world)}});
     }
     const doors=Object.keys(s.spatial.doors||{}).map(id=>Object.assign({id},Spatial.doorGeometry(s,id)));
     const x=Math.min(...rooms.map(r=>r.x)),y=Math.min(...rooms.map(r=>r.y)),
@@ -530,4 +533,20 @@ export function mapDoorCommandOutline(s,cmd){
         return {vertical:a.vertical,line:a.line,start:Math.min(a.start,b.start),end:Math.max(a.end,b.end)};
     }
     return null;
+}
+
+// Map decorative insets never change the authoritative boundary or opening.
+export function mapWallRuns(data,r,inset=0){
+    if(!data||!r||!Number.isFinite(inset)||inset<0||inset*2>=Math.min(r.w,r.h))return [];
+    const out=[];
+    for(const [side,vertical,line,lo,hi,draw] of [['north',false,r.y,r.x,r.x+r.w,r.y+inset],['south',false,r.y+r.h,r.x,r.x+r.w,r.y+r.h-inset],['west',true,r.x,r.y,r.y+r.h,r.x+inset],['east',true,r.x+r.w,r.y,r.y+r.h,r.x+r.w-inset]]){
+        const gaps=data.doors.filter(d=>d.openings.some(o=>o.roomId===r.id&&o.side===side)).sort((a,b)=>a.start-b.start);
+        let cursor=lo+inset,end=hi-inset;
+        for(const d of gaps){const to=Math.min(end,d.start);if(to>cursor)out.push({vertical,line:draw,start:cursor,end:to});cursor=Math.max(cursor,d.end);}
+        if(end>cursor)out.push({vertical,line:draw,start:cursor,end});
+    }
+    return out;
+}
+export function mapRoomDetail(r,frame,zoom){
+    return !!r&&!!frame&&zoom>=1.3&&Math.min(r.w,r.h)*frame.scale>=56;
 }

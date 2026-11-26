@@ -900,7 +900,7 @@ Rectangle {
         visible:study.showMap
         enabled:study.showMap&&study.viewSwitchReady
         atlasEnabled:study.mapEnabled
-        snapshot:archive.snapshot;colors:study.colors
+        snapshot:archive.snapshot;colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
         arranging:sceneView.mode==="arrange"
         snapEnabled:sceneView.snapEnabled;showGrid:sceneView.showGrid;snapDistance:sceneView.snapDistance
         proposalCommand:structurePanel.mapRoomCommand?structurePanel.cmd:null
