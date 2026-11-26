@@ -21,6 +21,32 @@ Use ordinary language before project abbreviations. Define a milestone or audit 
 
 Use a descriptive title that remains accurate as checkpoints advance. Examples: Development: Spatial Archive; Design: Architectural customization; Fix: Checkpoint write recovery; Audit: Stable-main regression backlog; Docs: Implementation consolidation; CI: Regression workflow efficiency; Research: Irregular Room geometry. Include milestone identifiers where useful, but not as the only explanation. One continuing topic keeps its branch and PR; a checkpoint is not a new topic. See [topic workflow](TOPIC_WORKFLOW_AND_HANDOFF.md).
 
+## PR classification and metadata
+
+Make each topic recognizable in the PR list without opening its description. The principal contributor maintains metadata alongside the living summary. Apply classification when opening a PR and revisit it at meaningful scope/status changes and closeout. This applies to API-created PRs as well as the web interface.
+
+Use existing equivalent repository labels before requesting new ones. The following is the recommended vocabulary, not a claim that every label is already configured.
+
+| Category | Suggested labels | Rule |
+|---|---|---|
+| Contribution type | development (or existing enhancement), design, bug, documentation, audit, research, ci | At least one primary type; add another only for substantive overlapping scope. |
+| Affected component | archive, launcher, capsule, utility-shelf, veranda, gallery, infrastructure | Apply relevant component labels when available; repository-wide documentation need not name every component. |
+| Outstanding conditions | blocked, needs-decision, needs-review, target-validation, regression, breaking-change | Apply only when the condition genuinely exists; remove or update resolved conditions. |
+
+Do not create synonyms merely to match this table. Use GitHub's own draft, review, check and merge indicators rather than duplicating them with status labels. A target-validation label denotes outstanding actual target evidence, not a failed check or a new approval gate. Labels do not replace explicit limitations in the description.
+
+| Other identification tool | Use |
+|---|---|
+| Milestone | Associate with an existing major development objective when relevant; do not invent release dates or milestones for individual checkpoints. |
+| Assignee | Identify a real responsible GitHub contributor when appropriate; do not invent accounts for conversational roles. |
+| Draft / ready for review | Keep active implementation draft where appropriate; readiness is not merge authorization. |
+| Linked issues and PRs | Link actual requirements, defects and related topics; use automatic closing keywords only when closure on integration is intended. |
+| Review requests | Request relevant actual GitHub reviewers when available; preserve independent review comments and dispositions. |
+| Title and branch | Use descriptive topic-level identifiers and existing branch conventions; avoid renaming a live branch merely for classification. |
+| Projects | Optional if useful; no duplicate tracking system required. |
+
+If metadata access or a suitable label/milestone is unavailable, record the intended classification and limitation in the PR description or handoff, and coordinate with the maintainer. Repository-wide label creation, renaming, deletion and milestone administration require owner coordination. Do not bulk-relabel historical PRs or disturb live topics solely to apply this standard; adopt it at their next authorized checkpoint. Metadata must be publication-safe.
+
 ## Living summary, durable evidence
 
 The principal contributor maintains the description; a successor inherits that responsibility. Refresh at meaningful checkpoints, review/disposition changes, failed checks or changed limitations, handoff, readiness requests and closeout. Date or pin status when it may become stale. Do not label an entire topic complete because one stage or a test suite passed. Draft, review, implementation and integration are distinct.
