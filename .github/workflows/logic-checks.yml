@@ -233,7 +233,7 @@ jobs:
       - name: Install distribution Qt Quick test runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml qml6-module-qtqml-models qml6-module-qtqml-workerscript qml6-module-qttest qml6-module-qtquick-localstorage libqt6sql6-sqlite libqt6svg6
+          sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml qml6-module-qtqml-models qml6-module-qtqml-workerscript qml6-module-qttest qml6-module-qtquick-localstorage qml6-module-qtquick-shapes libqt6sql6-sqlite libqt6svg6
       - name: Execute actual Qt Quick synthetic Archive tests
         run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN1.qml
       - name: Execute isolated B8 spatial foundation contract

@@ -367,7 +367,7 @@ Item {
         function onSnapshotChanged() {
             var next=scene.controller.snapshot,previous=scene.cameraSnapshot
             if(scene.controller.resetting){
-                scene.cameras=View.copyCameras({});scene.viewPath=View.reachablePath(next,next.path);scene.restoreCamera();scene.clearSelection()
+                scene.cameras=View.copyCameras({});scene.viewPath=Spatial.enabled(next)?View.reachablePath(next,next.path):["root"];scene.restoreCamera();scene.clearSelection()
             }else if(previous){
                 var activeId=scene.viewPath[scene.viewPath.length-1]
                 scene.cameras=View.reconcileCameras(previous,next,scene.controller.archiveState.history,scene.cameras,
@@ -547,7 +547,7 @@ Item {
                 model:scene.cubby.mods.filter(m=>m.type!=="shelf"&&Mixed.supportsTop(m)&&(m.items||[]).length)
                 B7.B7MixedShelf {
                     required property var modelData
-                    module:modelData.type==="rack"?View.displayRack(scene.controller,scene.cubbyId,scene.materialModule(modelData)):scene.materialModule(modelData)
+                    module:scene.materialModule(modelData)
                     showBoard:false
                     apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
                     colors:scene.colors;plaqueHost:interior;gestureHost:scene

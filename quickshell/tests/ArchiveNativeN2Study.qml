@@ -801,7 +801,8 @@ Rectangle {
                 Text {
                     width:parent.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
                     text:!structurePanel.proposal?"":structurePanel.removing?
-                        "Remove this fixture and its contents? "+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case. No disk files are deleted.":
+                        "Remove this fixture and its contents? "+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
+                        (study.spatialEnabled&&structurePanel.proposal.appUnplacementCount?" "+structurePanel.proposal.appUnplacementCount+" application book(s) will be unplaced; application identities retained.":"")+" No disk files are deleted.":
                         structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
                         structurePanel.cubbyEdit?"Grow the interior without changing furniture or its outer footprint. Apply when ready.":"Drag the preview to move; drag its lower-right handle to resize. Apply when valid."
                 }

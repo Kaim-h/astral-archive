@@ -40,6 +40,9 @@ Item {
             compare(JSON.stringify(ctl.snapshot),before)
             scene.zoom=1;scene.pan=Qt.point(0,0)
             tryVerify(function(){return !!findChild(scene,"archive-book-org.example.Notes")})
+            tryVerify(function(){return !!findChild(scene,"archive-book-org.example.Reader")})
+            // Wait for the actual composed cover rather than assuming a
+            // delegate's existence means its scene-graph frame is ready.
             var frame=grabImage(study)
             verify(frame.width>0&&frame.height>0)
             frame.save("archive-b8-native-shelf.png")
@@ -48,11 +51,16 @@ Item {
             var p=book.mapToItem(study,book.width/2,book.height/2)
             verify(p.x>0&&p.y>0&&p.x<study.width&&p.y<study.height)
             var a=book.mapToItem(study,8,8),b=book.mapToItem(study,book.width-8,book.height-8)
-            var matched=0
-            for(var y=Math.ceil(a.y);y<Math.floor(b.y);y++)for(var x=Math.ceil(a.x);x<Math.floor(b.x);x++){
-                if(Math.abs(frame.red(x,y)-Math.round(book.coverColor.r*255))<8&&Math.abs(frame.green(x,y)-Math.round(book.coverColor.g*255))<8&&Math.abs(frame.blue(x,y)-Math.round(book.coverColor.b*255))<8)matched++
-            }
-            verify(matched>20,"Book cover visible in actual composed frame")
+            tryVerify(function(){
+                frame=grabImage(study);frame.save("archive-b8-native-shelf.png")
+                var matched=0
+                var left=Math.max(0,Math.ceil(a.x*frame.width/study.width)),right=Math.min(frame.width-1,Math.floor(b.x*frame.width/study.width))
+                var topY=Math.max(0,Math.ceil(a.y*frame.height/study.height)),bottom=Math.min(frame.height-1,Math.floor(b.y*frame.height/study.height))
+                for(var y=topY;y<bottom;y++)for(var x=left;x<right;x++){
+                    if(Math.abs(frame.red(x,y)-Math.round(book.coverColor.r*255))<8&&Math.abs(frame.green(x,y)-Math.round(book.coverColor.g*255))<8&&Math.abs(frame.blue(x,y)-Math.round(book.coverColor.b*255))<8)matched++
+                }
+                return matched>20
+            },3000,"Book cover visible in actual composed frame")
         }
     }
 }
