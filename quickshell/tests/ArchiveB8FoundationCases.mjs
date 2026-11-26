@@ -1176,5 +1176,31 @@ export function run(){
   }
   const legacyView=Core.clone(view);delete legacyView.mapView;eq(Checkpoint.decode(Checkpoint.encode(state,legacyView)).view,legacyView,'older upper field absent remains compatible');
  }
+ {
+  // N4f: multi-neighbor actual rotated profile footprints, exact gaps and
+  // cross-domain transactions in the same committed synthetic snapshot.
+  const state=Core.session(ShelfSample.mapFixture()),s=state.snapshot,hall=s.spatial.shelves.root.roomId;
+  const south=Object.values(s.spatial.rooms).find(r=>r.name==='South Reading Room').id;
+  const horizontal=Object.values(s.spatial.doors).filter(d=>d.a.roomId===hall&&d.a.side==='south'&&d.b.roomId===south);
+  const d=horizontal[0],other=horizontal[1];
+  eq(horizontal.length,2,'multiple openings same wall');
+  eq(Doors.clearSpans(s,d.a,d.b,Spatial.footprint),[{start:0,end:100},{start:250,end:300},{start:450,end:500},{start:660,end:700},{start:860,end:900}],'rotated profiles obstruct both horizontal faces');
+  for(const [start,end] of [[520,600],[730,800]])refuse(state,{kind:'spatialDoorCreate',patch:{a:d.a,b:d.b,start,end}});
+  refuse(state,{kind:'spatialDoorEdit',doorId:other.id,patch:{start:670,end:695}});
+  const boundary=apply(state,{kind:'spatialDoorCreate',patch:{a:d.a,b:d.b,start:450,end:500}});
+  eq(Core.undo(boundary).snapshot,s,'exact occupied boundary and undo');
+  const data=View.mapPlan(s),p=View.roomPlan(s,hall),q=View.roomPlan(s,south),geo=Spatial.doorGeometry(s,d.id);
+  eq(p.openings.find(o=>o.id===d.id),Object.assign({id:d.id},geo.openings[0]),'first Room exact opening');
+  eq(q.openings.find(o=>o.id===d.id),Object.assign({id:d.id},geo.openings[1]),'second Room exact opening');
+  eq(Doors.adjacentPairs(s,hall,Spatial.footprint).filter(q=>q.a.side==='south').length,2,'two adjacent neighbors');
+  const f=View.mapFrame(data,1366,745),r=data.rooms.find(q=>q.id===south),x=f.x+r.x*f.scale,y=f.y+r.y*f.scale;
+  const nw=View.mapRoomGesture(data,south,'resize-nw',f,x,y);
+  eq(View.mapRoomGesturePatch(nw,x+37*f.scale,y+11*f.scale,true,20,false),{x:r.x+40,w:r.w-40,y:r.y+20,h:r.h-20},'northwest relative resize');
+  const east=View.mapRoomGesture(data,south,'resize-e',f,x,y);
+  eq(View.mapRoomGesturePatch(east,x+37*f.scale,y+11*f.scale,true,20,false),{w:r.w+40},'edge resize preserves perpendicular dimension');
+  const magnet=View.mapRoomGesture(data,south,'move',f,x,y);
+  eq(View.mapRoomGesturePatch(magnet,x,y+6*f.scale,false,20,true),{x:r.x,y:r.y},'opposing wall magnet');
+  eq(Core.validate(s),null,'multi-Room fixture valid');
+ }
  return checks;
 }

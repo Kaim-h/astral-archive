@@ -104,3 +104,22 @@ export function roomFixture(){
  edit({kind:"spatialDoorCreate",patch:{a:{roomId,side:"east"},b:{roomId:east,side:"west"},start:300,end:650}});
  return state.snapshot;
 }
+
+// N4f representative synthetic atlas: horizontal/vertical shared openings,
+// two neighbors on one wall and occupied rotated architectural footprints.
+export function mapFixture(){
+ let state=Core.session(roomFixture());
+ function edit(cmd){state=Core.editStructure(state,cmd);if(state.error)throw Error(cmd.kind+": "+state.error);}
+ edit({kind:"spatialAdoptIndependentProfiles"});
+ const hall=state.snapshot.spatial.shelves.root.roomId;
+ function addRoom(name,x){
+  const before=Object.keys(state.snapshot.spatial.rooms);edit({kind:"spatialRoomCreate",patch:{name,x,y:2000,w:900,h:1000}});
+  return Object.keys(state.snapshot.spatial.rooms).find(k=>!before.includes(k));
+ }
+ const south=addRoom("South Reading Room",0),se=addRoom("South Records",900);
+ edit({kind:"spatialShelfCreate",roomId:hall,patch:{name:"South wall case",x:500,y:1250,w:700,h:500,depth:160,orientation:270,frameBasis:16}});
+ edit({kind:"spatialShelfCreate",roomId:south,patch:{name:"North wall case",x:700,y:0,w:700,h:500,depth:160,orientation:90,frameBasis:16}});
+ function door(to,start,end){edit({kind:"spatialDoorCreate",patch:{a:{roomId:hall,side:"south"},b:{roomId:to,side:"north"},start,end}});}
+ door(south,100,250);door(south,300,450);door(se,1050,1200);
+ return state.snapshot;
+}

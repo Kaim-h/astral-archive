@@ -428,7 +428,7 @@ export function mapRoomLostDoors(s,cmd){
 }
 export function mapRoomGesture(data,id,kind,frame,x,y){
     const r=data&&data.rooms.find(v=>v.id===id),start=mapAt(frame,x,y);
-    if(!r||!start||!['move','resize'].includes(kind))return null;
+    if(!r||!start||!['move','resize','resize-nw','resize-n','resize-ne','resize-e','resize-se','resize-s','resize-sw','resize-w'].includes(kind))return null;
     return {id,kind,start,frame:Object.assign({},frame),box:{x:r.x,y:r.y,w:r.w,h:r.h},
         neighbors:data.rooms.filter(v=>v.id!==id).map(v=>({x:v.x,y:v.y,w:v.w,h:v.h}))};
 }
@@ -437,29 +437,42 @@ export function mapRoomGesturePatch(g,x,y,snap,interval,magnetic){
     const point=mapAt(g.frame,x,y);if(!point)return null;
     const dx=Core.snapCoordinate(point.x-g.start.x,interval,snap),dy=Core.snapCoordinate(point.y-g.start.y,interval,snap),b=g.box;
     if(!dx&&!dy)return {};
-    const patch=g.kind==='move'?{x:b.x+dx,y:b.y+dy}:{w:b.w+dx,h:b.h+dy};
+    const move=g.kind==='move',side=g.kind==='resize'?'se':g.kind.slice(7),patch={};
+    if(move){patch.x=b.x+dx;patch.y=b.y+dy;}
+    else{
+        if(side.includes('e'))patch.w=b.w+dx;
+        if(side.includes('w')){patch.x=b.x+dx;patch.w=b.w-dx;}
+        if(side.includes('s'))patch.h=b.h+dy;
+        if(side.includes('n')){patch.y=b.y+dy;patch.h=b.h-dy;}
+    }
     if(magnetic){
-        // Screen-space tolerance, frozen with the gesture. Prefer nearest
-        // wall correction with perpendicular span contact. Core checks overlap.
         const limit=10/g.frame.scale;
-        let r=Object.assign({},b,patch);
-        function nearest(axis){
+        const overlaps=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+        const valid=r=>r.w>=130&&r.h>=100&&r.w<=Spatial.spatialLimits.roomSize&&r.h<=Spatial.spatialLimits.roomSize&&
+            Math.abs(r.x)<=Spatial.spatialLimits.mapCoordinate&&Math.abs(r.y)<=Spatial.spatialLimits.mapCoordinate&&!g.neighbors.some(n=>overlaps(r,n));
+        for(const [axis,delta,low,high] of [['x',dx,'w','e'],['y',dy,'n','s']]){
+            if(!delta||!move&&!side.includes(low)&&!side.includes(high))continue;
             const size=axis==='x'?'w':'h',other=axis==='x'?'y':'x',otherSize=axis==='x'?'h':'w';
-            let best=null;
+            const r=Object.assign({},b,patch),choices=[];
             for(const n of g.neighbors){
                 if(r[other]>=n[other]+n[otherSize]||n[other]>=r[other]+r[otherSize])continue;
-                const edges=g.kind==='move'?[r[axis],r[axis]+r[size]]:[r[axis]+r[size]];
-                for(const a of edges)for(const target of [n[axis],n[axis]+n[size]]){
-                    const d=target-a;
-                    if(Math.abs(d)<=limit&&(best===null||Math.abs(d)<Math.abs(best)))best=d;
-                }
+                // Only opposing walls, not coincident same-side edges.
+                if(move||side.includes(low))choices.push({shift:n[axis]+n[size]-r[axis],low:true});
+                if(move||side.includes(high))choices.push({shift:n[axis]-(r[axis]+r[size]),low:false});
             }
-            return best===null?0:best;
+            choices.sort((a,b)=>Math.abs(a.shift)-Math.abs(b.shift));
+            for(const q of choices){
+                if(Math.abs(q.shift)>limit)break;
+                const next=Object.assign({},r);
+                if(move)next[axis]+=q.shift;
+                else if(q.low){next[axis]+=q.shift;next[size]-=q.shift;}
+                else next[size]+=q.shift;
+                if(!valid(next))continue;
+                if(move||q.low)patch[axis]=next[axis];
+                if(!move)patch[size]=next[size];
+                break;
+            }
         }
-        const xShift=dx?nearest('x'):0;
-        if(g.kind==='move')r.x=patch.x+=xShift;else r.w=patch.w+=xShift;
-        const yShift=dy?nearest('y'):0;
-        if(g.kind==='move')patch.y+=yShift;else patch.h+=yShift;
     }
     return patch;
 }

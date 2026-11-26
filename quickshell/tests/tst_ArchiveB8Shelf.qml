@@ -435,6 +435,70 @@ Item {
                 compare(JSON.stringify(ctl.snapshot),before)
             }finally{study.mapEnabled=false;study.reducedRoomMotion=oldMotion;study.checkpointStore=oldStore;study.roomPreferenceStore=oldPref}
         }
+        function test_map_integrated_horizontal_and_resources(){
+            var ctl=study.controller,scene=study.scene,oldSnap=scene.snapEnabled,oldTheme=Themes.Theme.index
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.mapFixture())
+                var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+                var hall=ctl.snapshot.spatial.shelves.root.roomId,south=Object.values(ctl.snapshot.spatial.rooms).find(r=>r.name==="South Reading Room").id
+                var d=Object.values(ctl.snapshot.spatial.doors).find(d=>d.a.roomId===hall&&d.a.side==="south"&&d.b.roomId===south)
+                var map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
+                var paints=map.mapPaints
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.mapPaints>paints})
+                verify(map.contourSegmentCount>0&&map.contourSegmentCount<=50000)
+                var g=Spatial.doorGeometry(ctl.snapshot,d.id),pt=map.pointFor((g.start+g.end)/2,g.line)
+                mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,d.id)
+                clickNamed("map-focus");verify(map.focusState.kind==="door")
+                study.switchMode("arrange");scene.snapEnabled=false
+                clickNamed("map-door-edit")
+                var input=findChild(study,"map-door-input-start");verify(!!input)
+                input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
+                verify(!!ctl.snapshot.spatial.doors[d.id]);tryVerify(function(){return !ctl.structuralProposal.ok})
+                compare(JSON.stringify(ctl.snapshot),before)
+                for(var digit of "120")keyClick(digit)
+                tryVerify(function(){return ctl.structuralProposal.ok})
+                clickNamed("structure-apply");compare(ctl.snapshot.spatial.doors[d.id].start,120)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                g=Spatial.doorGeometry(ctl.snapshot,d.id);pt=map.pointFor((g.start+g.end)/2,g.line)
+                var end=map.pointFor((g.start+g.end)/2+240,g.line)
+                mousePress(map,pt.x,pt.y,Qt.LeftButton);tryVerify(function(){return map.dragging})
+                mouseMove(map,end.x,end.y,20,Qt.LeftButton);mouseRelease(map,end.x,end.y,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                compare(ctl.structuralProposal.command.patch.end,300)
+                clickNamed("structure-apply")
+                var contact=JSON.stringify(ctl.snapshot)
+                clickNamed("map-door-merge");clickNamed("structure-apply")
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),contact)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                map.selectDoor(d.id);map.forceActiveFocus();keyClick(Qt.Key_Backspace)
+                verify(!ctl.snapshot.spatial.doors[d.id]);verify(!ctl.structuralProposal)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                study.switchMode("browse");clickNamed("map-fit")
+                var root=ctl.snapshot.spatial.rooms[hall];pt=map.pointFor(root.x+root.w/2,root.y+root.h/2)
+                mouseClick(map,pt.x,pt.y);clickNamed("map-enter-room")
+                tryVerify(function(){return plan.visible&&plan.activeFocus})
+                compare(plan.roomId,hall);verify(plan.planData.openings.some(o=>o.id===d.id&&o.side==="south"&&o.start===100&&o.end===250))
+                grabImage(study).save("archive-b8-native-shelf-map-horizontal-hall-plan.png")
+                clickNamed("toggle-room-perspective");tryVerify(function(){return !!plan.visibilityRaster})
+                grabImage(study).save("archive-b8-native-shelf-map-horizontal-hall-perspective.png")
+                clickNamed("open-map-room");clickNamed("map-fit")
+                root=ctl.snapshot.spatial.rooms[south];pt=map.pointFor(root.x+root.w/2,root.y+root.h/2)
+                mouseClick(map,pt.x,pt.y);clickNamed("map-enter-room");tryVerify(function(){return plan.visible&&!!plan.visibilityRaster})
+                compare(plan.roomId,south);verify(plan.planData.openings.some(o=>o.id===d.id&&o.side==="north"&&o.start===100&&o.end===250))
+                grabImage(study).save("archive-b8-native-shelf-map-horizontal-south-perspective.png")
+                clickNamed("toggle-room-perspective")
+                grabImage(study).save("archive-b8-native-shelf-map-horizontal-south-plan.png")
+                clickNamed("open-map-room");clickNamed("map-fit")
+                paints=map.mapPaints;var start=Date.now();clickNamed("map-zoom-in");tryVerify(function(){return map.mapPaints>paints})
+                var elapsed=Date.now()-start
+                // Deliberate idle measurement, not an interaction retry.
+                wait(120);paints=map.mapPaints;var builds=map.contourBuilds;wait(150)
+                compare(map.mapPaints,paints);compare(map.contourBuilds,builds)
+                console.log("B8 N4 resource sample",JSON.stringify({zoomInputToPaintMs:elapsed,lastBuildMs:map.contourLastBuildMs,maxBuildMs:map.contourMaxBuildMs,lastPaintMs:map.mapLastPaintMs,segments:map.contourSegmentCount,idleMs:150,idlePaints:map.mapPaints-paints,idleBuilds:map.contourBuilds-builds}))
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+            }finally{study.mapEnabled=false;study.switchMode("browse");scene.snapEnabled=oldSnap;Themes.Theme.index=oldTheme}
+        }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
             var payload=null,persisted=false,attempts=0,rejectWrite=true

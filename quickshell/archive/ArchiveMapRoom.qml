@@ -23,6 +23,9 @@ Item {
     readonly property int contourBuilds:art.contourBuilds
     readonly property int mapPaints:art.paintCount
     readonly property int contourSegmentCount:art.contourCache?art.contourCache.data.segments:0
+    readonly property int contourLastBuildMs:art.lastBuildMs
+    readonly property int contourMaxBuildMs:art.maxBuildMs
+    readonly property int mapLastPaintMs:art.lastPaintMs
     function roomColors(room){return room.palette!==null&&palettes[room.palette]?palettes[room.palette]:colors}
     function closeAppearance(){appearanceOpen=false;forceActiveFocus()}
     property string selectedRoom:""
@@ -157,6 +160,9 @@ Item {
         property var contourCache:null
         property int contourBuilds:0
         property int paintCount:0
+        property int lastBuildMs:0
+        property int maxBuildMs:0
+        property int lastPaintMs:0
         function refresh(){if(visible&&available)requestPaint()}
         Connections {
             target:map
@@ -181,7 +187,7 @@ Item {
         onVisibleChanged:refresh()
         onPaint:{
             if(!visible)return
-            paintCount++
+            paintCount++;var paintStart=Date.now()
             var ctx=getContext("2d");ctx.reset();ctx.clearRect(0,0,width,height)
             var m=map.dataModel,f=map.camera;if(!m||!f)return
             var k=f.scale
@@ -189,7 +195,7 @@ Item {
             if(map.contourMode!=="none"&&map.contourDensity>0){
                 var spec=Terrain.contourSpec(f,width,height,map.contourDensity)
                 if(spec){
-                    if(!map.presentationFrame&&(!contourCache||contourCache.key!==spec.key)){contourCache={key:spec.key,data:Terrain.contourSegments(spec)};contourBuilds++}
+                    if(!map.presentationFrame&&(!contourCache||contourCache.key!==spec.key)){var buildStart=Date.now();contourCache={key:spec.key,data:Terrain.contourSegments(spec)};contourBuilds++;lastBuildMs=Date.now()-buildStart;maxBuildMs=Math.max(maxBuildMs,lastBuildMs)}
                     if(contourCache){ctx.save();ctx.globalAlpha=(map.contourMode==="engraved"?.28:.16)*spec.alpha;ctx.strokeStyle=map.colors.engraving;ctx.lineCap="round"
                     for(var level of contourCache.data.levels){ctx.lineWidth=(level.n%8===0?1.15:.65)/k;ctx.beginPath();for(var seg of level.segments){ctx.moveTo(seg[0],seg[1]);ctx.lineTo(seg[2],seg[3])}ctx.stroke()}
                     ctx.restore()}
@@ -254,7 +260,7 @@ Item {
             drawOpening(map.doorOutline,map.dragging||map.proposalValid?map.colors.text:"#df8585",5)
             var ghost=map.outline
             if(ghost){ctx.strokeStyle=map.dragging||map.proposalValid?map.colors.engraving:"#df8585";ctx.lineWidth=2/k;ctx.strokeRect(ghost.x,ghost.y,ghost.w,ghost.h)}
-            ctx.restore()
+            ctx.restore();lastPaintMs=Date.now()-paintStart
         }
     }
     Repeater {
@@ -312,18 +318,26 @@ Item {
         }
         onWheel:function(wheel){if(!map.appearanceOpen&&!map.press&&!map.dragging){map.zoomAt(map.zoom*Math.pow(1.15,wheel.angleDelta.y/120),wheel.x,wheel.y)}wheel.accepted=true}
     }
-    Rectangle {
-        id:resizeHandle;objectName:"map-room-resize-handle";width:22;height:22;radius:3
-        visible:map.arranging&&!!map.selectedBox&&!map.selectedDoor&&!map.proposalCommand&&!map.doorProposalCommand
-        readonly property point corner:map.selectedBox?map.pointFor(map.selectedBox.x+map.selectedBox.w,map.selectedBox.y+map.selectedBox.h):Qt.point(0,0)
-        x:corner.x-width/2;y:corner.y-height/2;color:map.colors.background;border.color:map.colors.engraving;border.width:2
-        MouseArea {
-            anchors.fill:parent;cursorShape:Qt.SizeFDiagCursor
-            function local(mouse){return resizeHandle.mapToItem(map,mouse.x,mouse.y)}
-            onPressed:function(mouse){var p=local(mouse);map.startGesture(map.selectedRoom,"resize",p.x,p.y)}
-            onPositionChanged:function(mouse){if(pressed){var p=local(mouse);map.updateGesture(p.x,p.y)}}
-            onReleased:function(mouse){var p=local(mouse);map.finishGesture(p.x,p.y)}
-            onCanceled:map.cancelGesture()
+    Repeater {
+        model:[{key:"nw",x:0,y:0},{key:"n",x:.5,y:0},{key:"ne",x:1,y:0},{key:"e",x:1,y:.5},{key:"se",x:1,y:1},{key:"s",x:.5,y:1},{key:"sw",x:0,y:1},{key:"w",x:0,y:.5}]
+        Rectangle {
+            id:resizeHandle
+            required property var modelData
+            objectName:modelData.key==="se"?"map-room-resize-handle":"map-room-resize-"+modelData.key
+            width:22;height:22;radius:3
+            visible:map.arranging&&!!map.selectedBox&&!map.selectedDoor&&!map.proposalCommand&&!map.doorProposalCommand&&
+                (modelData.key==="se"||map.camera&&Math.min(map.selectedBox.w,map.selectedBox.h)*map.camera.scale>=70)
+            readonly property point corner:map.selectedBox?map.pointFor(map.selectedBox.x+map.selectedBox.w*modelData.x,map.selectedBox.y+map.selectedBox.h*modelData.y):Qt.point(0,0)
+            x:corner.x-width/2;y:corner.y-height/2;color:map.colors.background;border.color:map.colors.engraving;border.width:2
+            MouseArea {
+                anchors.fill:parent
+                cursorShape:resizeHandle.modelData.key==="n"||resizeHandle.modelData.key==="s"?Qt.SizeVerCursor:resizeHandle.modelData.key==="e"||resizeHandle.modelData.key==="w"?Qt.SizeHorCursor:resizeHandle.modelData.key==="nw"||resizeHandle.modelData.key==="se"?Qt.SizeFDiagCursor:Qt.SizeBDiagCursor
+                function local(mouse){return resizeHandle.mapToItem(map,mouse.x,mouse.y)}
+                onPressed:function(mouse){var p=local(mouse);map.startGesture(map.selectedRoom,"resize-"+resizeHandle.modelData.key,p.x,p.y)}
+                onPositionChanged:function(mouse){if(pressed){var p=local(mouse);map.updateGesture(p.x,p.y)}}
+                onReleased:function(mouse){var p=local(mouse);map.finishGesture(p.x,p.y)}
+                onCanceled:map.cancelGesture()
+            }
         }
     }
     Repeater {
