@@ -54,7 +54,7 @@ export function populatedFixture(copies){
    if(!v||typeof v!=="object")return v;
    return Object.fromEntries(Object.entries(v).map(([k,x])=>[map.has(k)?map.get(k):k,remap(x)]));
   }
-  const copy=remap(source),roomId=prefix+"room";
+  const copy={root:remap(source.root),child:remap(source.child),caseItems:remap(source.caseItems),apps:remap(source.apps)},roomId=prefix+"room";
   const room=Object.assign({},originalRoom,{id:roomId,name:"Sample Room "+i,x:2000*(i+1),y:0});
   s.spatial.rooms[roomId]=room;
   s.cubbies[copy.root.id]=copy.root;s.cubbies[copy.child.id]=copy.child;
