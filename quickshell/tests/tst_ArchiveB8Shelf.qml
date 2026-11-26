@@ -199,12 +199,19 @@ Item {
             var q=Projection.rasterFaceAt(plan.visibilityRaster,x,y)
             compare(q.shelfId,other);compare(q.role,"right-post")
             var expected=View.roomPerspectiveColor(ctl.snapshot,q,plan.palettes,plan.desktopPalette,plan.colors),point=plan.mapToItem(study,x,y),shot
-            tryVerify(function(){
-                shot=grabImage(study)
-                var px=Math.floor(point.x*shot.width/study.width),py=Math.floor(point.y*shot.height/study.height)
-                return Math.abs(shot.red(px,py)-parseInt(expected.slice(1,3),16))<10&&Math.abs(shot.green(px,py)-parseInt(expected.slice(3,5),16))<10&&Math.abs(shot.blue(px,py)-parseInt(expected.slice(5,7),16))<10
-            },3000,"Near Shelf post appears over east wall")
-            shot.save("archive-b8-native-shelf-depth-multiple.png")
+            try{
+                tryVerify(function(){
+                    shot=grabImage(study)
+                    var px=Math.floor(point.x*shot.width/study.width),py=Math.floor(point.y*shot.height/study.height)
+                    return Math.abs(shot.red(px,py)-parseInt(expected.slice(1,3),16))<10&&Math.abs(shot.green(px,py)-parseInt(expected.slice(3,5),16))<10&&Math.abs(shot.blue(px,py)-parseInt(expected.slice(5,7),16))<10
+                },3000,"Near Shelf post appears over east wall")
+            }finally{
+                if(shot){
+                    var px=Math.floor(point.x*shot.width/study.width),py=Math.floor(point.y*shot.height/study.height)
+                    console.log("B8 depth sample",px,py,"expected",expected,"actual",shot.red(px,py),shot.green(px,py),shot.blue(px,py),"paintCount",art.paintCount)
+                    shot.save("archive-b8-native-shelf-depth-multiple.png")
+                }
+            }
             var paints=art.paintCount;wait(250);compare(art.paintCount,paints)
             clickNamed("plan-inspect-shelf")
             tryVerify(function(){return scene.visible&&!plan.visible});compare(scene.cubbyId,other)
@@ -243,12 +250,19 @@ Item {
             function captureSurface(v,name){
                 var shot=null,pt=plan.mapToItem(study,v.x,v.y)
                 var expected=View.roomPerspectiveColor(ctl.snapshot,v.face,plan.palettes,plan.desktopPalette,plan.colors)
-                tryVerify(function(){
-                    shot=grabImage(study)
-                    var x=Math.floor(pt.x*shot.width/study.width),y=Math.floor(pt.y*shot.height/study.height)
-                    return x>=0&&y>=0&&x<shot.width&&y<shot.height&&Math.abs(shot.red(x,y)-parseInt(expected.slice(1,3),16))<10&&Math.abs(shot.green(x,y)-parseInt(expected.slice(3,5),16))<10&&Math.abs(shot.blue(x,y)-parseInt(expected.slice(5,7),16))<10
-                },3000,"Actual composed perspective face role color")
-                shot.save(name)
+                try{
+                    tryVerify(function(){
+                        shot=grabImage(study)
+                        var x=Math.floor(pt.x*shot.width/study.width),y=Math.floor(pt.y*shot.height/study.height)
+                        return x>=0&&y>=0&&x<shot.width&&y<shot.height&&Math.abs(shot.red(x,y)-parseInt(expected.slice(1,3),16))<10&&Math.abs(shot.green(x,y)-parseInt(expected.slice(3,5),16))<10&&Math.abs(shot.blue(x,y)-parseInt(expected.slice(5,7),16))<10
+                    },3000,"Actual composed perspective face role color")
+                }finally{
+                    if(shot){
+                        var x=Math.floor(pt.x*shot.width/study.width),y=Math.floor(pt.y*shot.height/study.height)
+                        if(x>=0&&y>=0&&x<shot.width&&y<shot.height)console.log("B8 perspective sample",name,x,y,"expected",expected,"actual",shot.red(x,y),shot.green(x,y),shot.blue(x,y))
+                        shot.save(name)
+                    }
+                }
             }
             captureSurface(sample,"archive-b8-native-shelf-perspective.png")
             compare(JSON.stringify(ctl.snapshot),before)

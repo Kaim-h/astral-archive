@@ -210,3 +210,23 @@ export function rasterFaceAt(r,x,y){
  const k=r.winners[j*r.w+i];return k<0?null:r.faces[k];
 }
 
+
+// Convert the exact same ownership raster into nonoverlapping integer spans.
+// The Qt Canvas path paints these spans directly, without relying on
+// browser-style writable ImageData.data semantics. -1 = floor, -2 = empty.
+export function visibilityRuns(r,emit){
+ if(!r||typeof emit!=='function')return 0;
+ let count=0;
+ const at=i=>r.winners[i]>=0?r.winners[i]:r.floor[i]?-1:-2;
+ for(let y=0;y<r.h;y++){
+  const off=y*r.w;
+  let start=0,key=at(off);
+  for(let x=1;x<=r.w;x++){
+   const next=x<r.w?at(off+x):-3;
+   if(next===key)continue;
+   if(key!==-2){emit(start,y,x-start,key);count++;}
+   start=x;key=next;
+  }
+ }
+ return count;
+}

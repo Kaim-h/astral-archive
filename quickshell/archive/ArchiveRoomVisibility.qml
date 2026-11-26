@@ -17,6 +17,9 @@ Canvas {
     smooth:false
     function refresh(){if(visible&&available&&raster)requestPaint()}
     onRasterChanged:refresh()
+    onWidthChanged:refresh()
+    onHeightChanged:refresh()
+    onSnapshotChanged:refresh()
     onColorsChanged:refresh()
     onPalettesChanged:refresh()
     onDesktopPaletteChanged:refresh()
@@ -26,17 +29,16 @@ Canvas {
         if(!visible||!raster)return
         var r=raster,ctx=getContext("2d")
         ctx.reset();ctx.clearRect(0,0,width,height)
-        function rgb(v){var s=String(v);return [parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)]}
-        var colorsByFace=r.faces.map(f=>rgb(View.roomPerspectiveColor(snapshot,f,palettes,desktopPalette,colors)))
-        var floor=rgb(View.roomFloorColor(colors))
-        var im=ctx.createImageData(r.w,r.h),data=im.data
-        for(var i=0;i<r.winners.length;i++){
-            var k=r.winners[i],c=k>=0?colorsByFace[k]:r.floor[i]?floor:null
-            if(!c)continue
-            var j=i*4
-            data[j]=c[0];data[j+1]=c[1];data[j+2]=c[2];data[j+3]=255
-        }
-        ctx.putImageData(im,0,0)
+        var colorsByFace=r.faces.map(f=>View.roomPerspectiveColor(snapshot,f,palettes,desktopPalette,colors))
+        var floor=View.roomFloorColor(colors),last=""
+        // QML Canvas ImageData mutation is not assumed to behave like a
+        // browser's typed array. Use the already proven integer fillRect
+        // path; all runs are disjoint and derive from the visible IDs.
+        Projection.visibilityRuns(r,function(x,y,w,key){
+            var c=key>=0?colorsByFace[key]:floor
+            if(c!==last){ctx.fillStyle=c;last=c}
+            ctx.fillRect(x,y,w,1)
+        })
         paintCount++
     }
 }

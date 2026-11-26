@@ -804,6 +804,17 @@ export function run(){
  const cr=Projection.visibility({faces:[concave],floor},16,16);
  yes(!Projection.rasterFaceAt(cr,8,14),'concave notch not filled');
  yes(Projection.rasterFaceAt(cr,3,4),'concave interior covered');
+ // Canvas spans must reproduce every winning face/floor/empty pixel
+ // exactly, without overlap or independent depth interpretation.
+ for(const raster of [r,cr,tieRaster,Projection.visibility({faces:[],floor:[[2,2,0],[13,2,0],[13,13,0],[2,13,0]]},16,16)]){
+  const rebuilt=new Int32Array(raster.w*raster.h);rebuilt.fill(-2);
+  let count=0;
+  eq(Projection.visibilityRuns(raster,(x,y,w,key)=>{
+   count++;yes(Number.isInteger(x)&&Number.isInteger(y)&&Number.isInteger(w)&&w>0&&x>=0&&x+w<=raster.w&&y>=0&&y<raster.h,'valid draw span');
+   for(let i=x;i<x+w;i++){eq(rebuilt[y*raster.w+i],-2,'draw span no overlap');rebuilt[y*raster.w+i]=key;}
+  }),count,'draw span count');
+  for(let i=0;i<rebuilt.length;i++)eq(rebuilt[i],raster.winners[i]>=0?raster.winners[i]:raster.floor[i]?-1:-2,'draw span exact raster ownership');
+ }
  const tiny=Projection.visibility(scene,2000,1000,20000);
  yes(tiny.w*tiny.h<=20000,'bounded raster pixel allocation');
  const active=apply(sampleState,{kind:'spatialAdoptProfiles'}),roomId=active.snapshot.spatial.shelves.root.roomId;
