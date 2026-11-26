@@ -2,7 +2,15 @@ name: Astral Archive - offline logic checks
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# Only superseded attempts for the same PR may be cancelled. Main pushes
+# and manual runs keep their own groups so no integration evidence is lost.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -170,7 +178,7 @@ jobs:
       - name: Install temporary Playwright browser
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps --only-shell chromium
       - name: B7-C reference SVG structure and image decode
         run: node scripts/check-b7-assets-browser.mjs
       - name: Chromium cell-to-case pointer smoke
@@ -241,7 +249,7 @@ jobs:
       - name: Build clipped sculpture derivatives from pinned SVGs
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps --only-shell chromium
           node scripts/build-b7-native-raster.mjs
       - name: Execute isolated B7 native SVG and support tests
         run: |
