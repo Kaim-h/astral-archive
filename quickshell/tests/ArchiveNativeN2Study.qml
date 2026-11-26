@@ -29,8 +29,12 @@ Rectangle {
     // Reserve the union of Room and Shelf toolbar controls at any width.
     // Hidden controls still occupy the height calculation, never input.
     function reservedToolbarHeight(flow){
-        var used=0,rows=1
-        for(var item of flow.children){
+        var used=0,rows=1,children=flow.children
+        // QQmlListProperty is indexable, but not an ES iterable on Qt 6.4.
+        // Use the native list interface and never rely on for-of here.
+        for(var i=0;i<children.length;i++){
+            var item=children[i]
+            if(!item)continue
             var w=item.width
             if(used>0&&used+flow.spacing+w>flow.width){rows++;used=0}
             used+=(used>0?flow.spacing:0)+w
@@ -554,6 +558,7 @@ Rectangle {
         }
         Flow {
             id:primaryTools
+            objectName:"archive-primary-tools"
             width:parent.width; spacing:5
             height:Spatial.physicalProfiles(archive.snapshot)?study.reservedToolbarHeight(primaryTools):implicitHeight
             Archive.ArchiveButton { colors:study.colors; label:"Browse"; active:sceneView.mode==="browse"; onClicked:study.switchMode("browse") }

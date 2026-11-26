@@ -79,6 +79,30 @@ Item {
             compare(scene.zoom,1.15);compare(scene.pan,Qt.point(12,-9))
             compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
         }
+        function test_room_toolbar_reservation(){
+            var ctl=study.controller,scene=study.scene,tools=findChild(study,"archive-primary-tools")
+            verify(!!tools)
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            tryVerify(function(){return scene.physicalFront&&tools.height>=tools.implicitHeight})
+            var original=study.parent.width
+            try{
+                for(var w of [1366,740]){
+                    // Resize the test root; keep the study's fill binding.
+                    study.parent.width=w
+                    tryVerify(function(){return tools.width===w-20&&tools.height>=tools.implicitHeight&&tools.height===study.reservedToolbarHeight(tools)})
+                    var h=scene.height,y=scene.y,bar=tools.height
+                    clickNamed("toggle-room-plan")
+                    var plan=findChild(study,"archive-room-plan")
+                    tryVerify(function(){return plan.visible&&!scene.visible})
+                    compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
+                    clickNamed("toggle-room-perspective")
+                    compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
+                    clickNamed("toggle-room-plan")
+                    tryVerify(function(){return scene.visible&&!plan.visible})
+                    compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
+                }
+            }finally{study.parent.width=original;study.roomPlanOpen=false}
+        }
         function test_room_continuous_carrier(){
             var ctl=study.controller,scene=study.scene
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
@@ -370,24 +394,35 @@ Item {
                     verify(!!findChild(scene,"archive-book-org.example.Reader"))
                     var frame=findChild(scene,"physical-shelf-frame")
                     verify(frame.visible)
-                    var post=g.parts[0].points,inside=frame.mapToItem(study,(post[0][0]+post[1][0])/2,g.aperture.y+g.aperture.h/2)
-                    var outside=frame.mapToItem(study,1,g.aperture.y+g.aperture.h/2)
-                    var shot=null
+                    var post=g.parts[0].points,inside,outside,center,corner,shot=null
                     function pixel(point,c){
                         var x=Math.floor(point.x*shot.width/study.width),y=Math.floor(point.y*shot.height/study.height),hex=String(c)
                         return x>=0&&y>=0&&x<shot.width&&y<shot.height&&Math.abs(shot.red(x,y)-parseInt(hex.slice(1,3),16))<10&&Math.abs(shot.green(x,y)-parseInt(hex.slice(3,5),16))<10&&Math.abs(shot.blue(x,y)-parseInt(hex.slice(5,7),16))<10
                     }
-                    tryVerify(function(){
-                        shot=grabImage(study)
-                        if(!pixel(inside,frame.frameColor)||!pixel(outside,scene.colors.background))return false
-                        if(profile==="crest"){
-                            var center=frame.mapToItem(study,g.w/2,g.inscription.y/2)
-                            var corner=frame.mapToItem(study,4,g.inscription.y/2)
-                            return pixel(center,View.mix(String(frame.frameColor),scene.colors.metal,.16))&&pixel(corner,scene.colors.background)
+                    // Wait for the actual layout and evaluate the same
+                    // world points in the frame used by each capture.
+                    // Keep every original color and tolerance assertion.
+                    try{
+                        tryVerify(function(){
+                            inside=frame.mapToItem(study,(post[0][0]+post[1][0])/2,g.aperture.y+g.aperture.h/2)
+                            outside=frame.mapToItem(study,1,g.aperture.y+g.aperture.h/2)
+                            center=frame.mapToItem(study,g.w/2,g.inscription.y/2)
+                            corner=frame.mapToItem(study,4,g.inscription.y/2)
+                            shot=grabImage(study)
+                            if(!pixel(inside,frame.frameColor)||!pixel(outside,scene.colors.background))return false
+                            if(profile==="crest")return pixel(center,View.mix(String(frame.frameColor),scene.colors.metal,.16))&&pixel(corner,scene.colors.background)
+                            return true
+                        },3000,"Actual profile post, raised crest and open overhang space")
+                    }finally{
+                        if(shot){
+                            function describe(point,expected){
+                                var px=Math.floor(point.x*shot.width/study.width),py=Math.floor(point.y*shot.height/study.height)
+                                return {x:px,y:py,expected:String(expected),rgb:px>=0&&py>=0&&px<shot.width&&py<shot.height?[shot.red(px,py),shot.green(px,py),shot.blue(px,py)]:null}
+                            }
+                            console.log("B8 profile sample",profile,JSON.stringify({post:describe(inside,frame.frameColor),overhang:describe(outside,scene.colors.background),crest:profile==="crest"?describe(center,View.mix(String(frame.frameColor),scene.colors.metal,.16)):null,crestCorner:profile==="crest"?describe(corner,scene.colors.background):null,viewport:[scene.width,scene.height],camera:scene.camera}))
+                            shot.save("archive-b8-native-shelf-profile-"+profile+".png")
                         }
-                        return true
-                    },3000,"Actual profile post, raised crest and open overhang space")
-                    shot.save("archive-b8-native-shelf-profile-"+profile+".png")
+                    }
                     clickNamed("toggle-room-plan")
                     var plan=findChild(study,"archive-room-plan")
                     tryVerify(function(){return plan.visible&&!scene.visible&&!!plan.planData})
