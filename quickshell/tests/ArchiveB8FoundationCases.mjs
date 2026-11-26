@@ -7,6 +7,8 @@ import * as Mixed from "../archive/representation/B7Ownership.mjs";
 import * as Motion from "../archive/ArchiveMotion.mjs";
 import * as Capacity from "../archive/ArchiveCapacity.mjs";
 import * as Doors from "../archive/ArchiveDoors.mjs";
+import * as View from "../archive/ArchiveView.mjs";
+import * as ShelfSample from "./ArchiveB8ShelfFixture.mjs";
 export function run(){
  let checks=0;
  function eq(a,b,label){checks++;if(JSON.stringify(a)!==JSON.stringify(b))throw Error(label+': '+JSON.stringify(a)+' != '+JSON.stringify(b));}
@@ -421,5 +423,15 @@ export function run(){
   const value=Core.clone(corrupt);mutate(value);let failed=false;
   try{Checkpoint.decode(JSON.stringify(value));}catch(e){failed=true;}yes(failed,'malformed v3 rejected');
  }
+ const sample=ShelfSample.fixture();
+ eq(Core.validate(sample),null,'N2 sample valid');
+ const otherRoot=Spatial.roots(sample).find(k=>k!=='root');
+ eq(View.reachablePath(sample,[otherRoot]),[otherRoot],'second Shelf reachable');
+ eq(View.reachablePath(sample,[otherRoot,'child']),[otherRoot],'unrelated Cubby refused');
+ eq(View.reachablePath(sample,['root','child']),['root','child'],'recursive Cubby reachable');
+ const noRoot=Core.clone(sample);noRoot.path=[otherRoot];
+ delete noRoot.spatial.shelves.root;delete noRoot.cubbies.root;delete noRoot.cubbies.child;
+ eq(View.reachablePath(noRoot,['root','child']),[otherRoot],'removed root fallback');
+ eq(View.reachablePath(legacy.snapshot,['not-root']),['root'],'legacy path unchanged');
  return checks;
 }

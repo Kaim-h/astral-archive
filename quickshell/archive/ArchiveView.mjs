@@ -1,6 +1,7 @@
 // Visual adapter for the native study. All geometry and record coordinates
 // originate in ArchiveCore; this module never mutates committed snapshots.
 import * as Core from "./ArchiveCore.mjs";
+import * as Spatial from "./ArchiveSpatial.mjs";
 
 export function mix(a,b,t) {
     function rgb(s){return [parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];}
@@ -104,11 +105,12 @@ export function markers(cells,unresolved){
 // Longest still-reachable prefix; a reset/import can remove a currently
 // open cubby before QML has delivered its snapshotChanged notification.
 export function reachablePath(snapshot,path){
-    const result=["root"];
-    if(!Array.isArray(path)||path[0]!=="root")return result;
+    const roots=Spatial.roots(snapshot);
+    const result=[Array.isArray(path)&&roots.includes(path[0])?path[0]:roots.includes(snapshot.path[0])?snapshot.path[0]:roots[0]];
+    if(!Array.isArray(path)||path[0]!==result[0])return result;
     for(let i=1;i<path.length;i++){
         const parent=snapshot.cubbies[result[result.length-1]],id=path[i];
-        if(!snapshot.cubbies[id]||!parent.mods.some(m=>m.type==="cubby"&&m.childId===id))break;
+        if(!Object.prototype.hasOwnProperty.call(snapshot.cubbies,id)||!parent.mods.some(m=>m.type==="cubby"&&m.childId===id))break;
         result.push(id);
     }
     return result;

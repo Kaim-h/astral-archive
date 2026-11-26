@@ -14,6 +14,7 @@ Rectangle {
     property var colors: Themes.Theme.current
     // Explicit opt-in for mixed study; retain the original B6 reference fixture.
     property var initialSnapshot:null
+    property bool spatialEnabled:false
     // Optional isolated study adapter, injected by the standalone window.
     // No filesystem dependency in the shared scene or model.
     property var checkpointStore:null
@@ -202,7 +203,7 @@ Rectangle {
     readonly property var selectedMeta:selectedRack&&sceneView.selectedCell?selectedRack.cellMeta[sceneView.selectedCell]:null
     readonly property var activeIssue: review.length?review[Math.min(reviewIndex,review.length-1)]:null
 
-    Archive.ArchiveModel { id:archive; Component.onCompleted: reset(study.initialSnapshot||View.fixture()) }
+    Archive.ArchiveModel { id:archive; spatialEnabled:study.spatialEnabled; Component.onCompleted: reset(study.initialSnapshot||View.fixture()) }
     function edit(patch) {
         if(!selectedRack||sceneView.busy)return
         pickId="";reviewIndex=0;retainedReview=[]
@@ -347,7 +348,7 @@ Rectangle {
         spacing:6
         Text {
             color:study.colors.text; font.pixelSize:15
-            text:"Astral Archive · Native cubby study"
+            text:study.spatialEnabled?"Astral Archive · Native Shelf study":"Astral Archive · Native cubby study"
         }
         Flow {
             width:parent.width; spacing:5
@@ -363,6 +364,22 @@ Rectangle {
             Archive.ArchiveButton {colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange";enabled:study.structureReady;onClicked:study.openContext(12,12)}
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
+        }
+        Flow {
+            visible:study.spatialEnabled
+            width:parent.width;spacing:5
+            Repeater {
+                model:study.spatialEnabled?sceneView.shelfRoots:[]
+                Archive.ArchiveButton {
+                    required property var modelData
+                    objectName:"open-shelf-"+modelData
+                    colors:study.colors
+                    label:archive.snapshot.cubbies[modelData].name||modelData
+                    active:sceneView.reachableViewPath[0]===modelData
+                    enabled:!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!archive.draft&&!archive.structuralProposal
+                    onClicked:sceneView.openShelf(modelData)
+                }
+            }
         }
         Flow {
             width:parent.width;spacing:5

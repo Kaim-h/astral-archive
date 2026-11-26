@@ -1,0 +1,15 @@
+# B8-N2 — native furnished Shelves
+
+Owner authorized N2 after corrected N1 head `8db7b80bb6cee61572f4b1f3c576f6a3cfd4d972` passed [CI 45751318008](https://github.com/Kaim-h/astral-archive/actions/runs/45751318008). N1 remains separately pinned in history; PR #19 is still a draft, not merged or independently accepted at the corrected revision. Continue on the authorized implementation topic; no production integration.
+
+## N2a — shared frontal scene and support delegates
+
+Reuse ArchiveScene, ArchiveNativeN2Study, B7MixedShelf, Book.qml and the existing controller/Case/physics. Spatial roots replace hard-coded root navigation only for opt-in snapshots; retain longest valid path and per-container cameras. Temporary explicit Shelf selector is a study-only navigation bridge, not the Room/Map editor. Supported entries on eligible rack/Cubby tops reuse existing board support delegates without drawing a board or changing the module owner. Preserve rack hit/gesture delegates; file selection and Case cut use existing motion and Undo. Independent application books reuse native Book.qml and deterministic AppMatching binding colour; current theme roles provide metal/inscription. Synthetic activation only identifies the app, no launch/installed catalogue or file conversion. No final three-theme book palette claim. Separate optional checkpoint store for the new standalone window. All existing test entrypoints remain opt-out.
+
+New shared source assertions exercise the populated fixture and multiple-root navigation. Actual offscreen Qt input, support contact, Case cut/Undo, camera restoration and composed book-cover capture are registered in the existing native job, after raster generation. Capture retained on failure. No removal of prior checks. Run the standalone study with `/usr/lib/qt6/bin/qml` where installed (or appropriate Qt Quick runner), using `quickshell/tests/ArchiveB8ShelfWindow.qml`; this is not Quickshell target acceptance.
+
+## Outstanding N2 scope
+
+Actual populated-state performance (preview/commit and Undo memory, idle/hidden cost), native captures and Designer review remain necessary before substantial expansion. N2a is a minimal shared scene bridge, not the complete milestone. Add placement picker, top-support editing/context affordances, occupied deletion previews including app counts, profile/board visual refinement and complete mixed interactions (holder, rack and Case) with real input. Coordinate exact book swatches with Designer; retain N3–N6 and target N4 as separate gates. No automatic app discovery, real file operations, production wiring, irregular walls or map rendering.
+
+CI observation: corrected N1 run's browser Playwright setup took 396 s; native Qt dependency setup 18 s, native Chromium/raster 12 s, B8 foundation Qt step 1 s. All passed. Isolated setup variability, not established regression or network cause; preserve optimized single PR workflow and pinned browser. Monitor recurrence before changing cache/provisioning policy; no test weakening.

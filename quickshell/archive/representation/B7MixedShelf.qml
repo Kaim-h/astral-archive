@@ -1,5 +1,7 @@
 import QtQuick
 import ".." as Archive
+import "../../widgets" as Widgets
+import "../../services/AppMatching.js" as Matching
 import "B7Ownership.mjs" as Mixed
 import "B7Layout.mjs" as Layout
 
@@ -11,6 +13,9 @@ Item {
     required property var colors
     required property Item plaqueHost
     property Item gestureHost:null
+    property bool showBoard:true
+    property var apps: ({})
+    signal appActivated(string appId)
     property bool browse:true
     property bool interactive:true
     property bool selected:false
@@ -20,8 +25,8 @@ Item {
     signal moveRequested(string holderId,int from,int to,string recordId)
     readonly property real rise:Mixed.validateShelf(module).reduce((h,b)=>Math.max(h,-b.y),0)
     readonly property real supportY:rise
-    objectName:"mixed-shelf-"+module.id
-    x:module.x;y:module.y-rise;width:module.w;height:rise+module.h
+    objectName:(showBoard?"mixed-shelf-":"mixed-top-")+module.id
+    x:module.x;y:module.y-rise;width:module.w;height:rise+(showBoard?module.h:0)
     function displayRecord(r){
         if(!r)return null
         var p=Mixed.preferred(r)
@@ -30,7 +35,7 @@ Item {
     Archive.ArchiveShelf {
         module:Object.assign({},shelf.module,{x:0,y:shelf.supportY})
         colors:shelf.colors;browse:shelf.browse;selected:shelf.selected
-        enabled:shelf.interactive
+        visible:shelf.showBoard;enabled:shelf.showBoard&&shelf.interactive
         onActivated:shelf.activated("")
     }
     Repeater {
@@ -40,7 +45,21 @@ Item {
             required property var modelData
             readonly property var value:modelData
             readonly property var record:value.kind==="object"?shelf.displayRecord(value.record):null
-            sourceComponent:value.kind==="holder"?holderComponent:record&&Mixed.preferred(record).family==="artwork"?frameComponent:objectComponent
+            sourceComponent:value.kind==="app"?bookComponent:value.kind==="holder"?holderComponent:record&&Mixed.preferred(record).family==="artwork"?frameComponent:objectComponent
+            Component {
+                id:bookComponent
+                Widgets.Book {
+                    objectName:"archive-book-"+entry.value.appId
+                    appId:entry.value.appId
+                    title:shelf.apps[appId]?shelf.apps[appId].title:appId
+                    x:entry.value.x-width/2;y:shelf.supportY-height
+                    coverColor:Matching.bindingColor(appId)
+                    metalColor:shelf.colors.metal;inscriptionColor:shelf.colors.engraving
+                    running:false;focused:false;windowCount:0
+                    enabled:shelf.interactive
+                    onActivated:function(id){shelf.appActivated(id)}
+                }
+            }
             Component {
                 id:objectComponent
                 B7SupportedDisplay {

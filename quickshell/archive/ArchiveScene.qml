@@ -3,6 +3,7 @@ import QtQuick.Window
 import "ArchiveMotion.mjs" as Motion
 import "ArchiveCore.mjs" as Core
 import "ArchiveView.mjs" as View
+import "ArchiveSpatial.mjs" as Spatial
 import "representation/B7Ownership.mjs" as Mixed
 import "representation/B7Layout.mjs" as Layout
 import "representation" as B7
@@ -94,7 +95,7 @@ Item {
         if(m){
             selectedModuleId=m.id
             if(m.type==="rack"){var item=moduleItem(m.id),c=item?item.hitCell(p.x-m.x,p.y-m.y):null;selectedCell=c?c.key:""}
-            else if(m.type==="shelf"){var h=Mixed.holderAt(m,{x:p.x-m.x,y:p.y-m.y});selectedHolderId=h?h.id:""}
+            if(Mixed.supportsTop(m)){var h=Mixed.holderAt(m,{x:p.x-m.x,y:p.y-m.y});selectedHolderId=h?h.id:""}
         }
         furnitureContext(x,y)
     }
@@ -164,6 +165,14 @@ Item {
         var c=View.cameraFor(cameras,cubbyId)
         zoom=c.zoom
         pan=Qt.point(c.x,c.y)
+    }
+    // N2a: explicit frontal Shelf selection; upper plan navigation follows N3/N4.
+    readonly property var shelfRoots: Spatial.roots(controller.snapshot)
+    function openShelf(id) {
+        if(!Spatial.enabled(controller.snapshot)||!shelfRoots.includes(id)||live.busy||
+           controller.draft||controller.structuralProposal||pointer||furnitureDrag||prepared)return false
+        if(viewPath.length===1&&viewPath[0]===id)return true
+        saveCamera();viewPath=[id];restoreCamera();clearSelection();return true
     }
     function openChild(id) {
         if(live.busy||controller.draft||controller.structuralProposal||!cubby.mods.some(function(m){return m.type==="cubby"&&m.childId===id}))return false
@@ -358,7 +367,7 @@ Item {
         function onSnapshotChanged() {
             var next=scene.controller.snapshot,previous=scene.cameraSnapshot
             if(scene.controller.resetting){
-                scene.cameras=View.copyCameras({});scene.viewPath=["root"];scene.restoreCamera();scene.clearSelection()
+                scene.cameras=View.copyCameras({});scene.viewPath=View.reachablePath(next,next.path);scene.restoreCamera();scene.clearSelection()
             }else if(previous){
                 var activeId=scene.viewPath[scene.viewPath.length-1]
                 scene.cameras=View.reconcileCameras(previous,next,scene.controller.archiveState.history,scene.cameras,
@@ -493,10 +502,12 @@ Item {
                         B7.B7MixedShelf {
                             module:scene.materialModule(moduleLoader.modelData)
                             colors:scene.colors;plaqueHost:interior;gestureHost:scene
+                            apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
                             browse:scene.mode==="browse";interactive:scene.mixedInteractive
                             selected:scene.selectedModuleId===module.id
                             selectedRecordId:scene.selectedScrollId
                             hiddenIds:live.mixedVisuals.hidden
+                            onAppActivated:function(appId){scene.selectMixed(module.id,"");scene.message="Application book · "+apps[appId].title+" (synthetic)"}
                             onActivated:function(recordId){scene.selectMixed(module.id,recordId)}
                             onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
                         }
@@ -528,6 +539,24 @@ Item {
                             }
                         }
                     }
+                }
+            }
+            // Render eligible module tops with the same supported-object/holder
+            // delegates as boards, not an extra physical board or a second owner.
+            Repeater {
+                model:scene.cubby.mods.filter(m=>m.type!=="shelf"&&Mixed.supportsTop(m)&&(m.items||[]).length)
+                B7.B7MixedShelf {
+                    required property var modelData
+                    module:modelData.type==="rack"?View.displayRack(scene.controller,scene.cubbyId,scene.materialModule(modelData)):scene.materialModule(modelData)
+                    showBoard:false
+                    apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
+                    colors:scene.colors;plaqueHost:interior;gestureHost:scene
+                    browse:scene.mode==="browse";interactive:scene.mixedInteractive
+                    selected:scene.selectedModuleId===module.id
+                    selectedRecordId:scene.selectedScrollId;hiddenIds:live.mixedVisuals.hidden
+                    onActivated:function(recordId){scene.selectMixed(module.id,recordId)}
+                    onAppActivated:function(appId){scene.selectMixed(module.id,"");scene.message="Application book · "+apps[appId].title+" (synthetic)"}
+                    onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
                 }
             }
             // A mixed destination is already owned by the private draft, but
