@@ -70,6 +70,8 @@ For risky desktop/session changes, preserve the KDE/TTY recovery path, a known-g
 
 ## Documentation and continuity
 
+Every pull request, including a small fix or documentation-only change, must have a complete, readable description using the [PR template](.github/pull_request_template.md) and [PR documentation standard](docs/development/PR_DOCUMENTATION_STANDARD.md). Explain purpose, scope, current status, exact verification, limitations/next steps and references/integration. Keep the description current and preserve unique historical evidence before summarizing it; detail should be proportional to scope. This applies equally to API-created PRs and handoffs.
+
 After a substantial change:
 
 - Update the relevant feature / architecture documentation.

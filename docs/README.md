@@ -6,6 +6,7 @@ Current source establishes implementation, accepted product requirements establi
 
 - [Contribution requirements](../CONTRIBUTING.md) — engineering, design, verification, documentation and review.
 - [Contributor entry point](../AGENTS.md) — startup instructions.
+- [PR documentation standard](development/PR_DOCUMENTATION_STANDARD.md) — mandatory readable descriptions, templates, verification and closeout continuity.
 - [Topic workflow](development/TOPIC_WORKFLOW_AND_HANDOFF.md) — branch continuity, checkpoints and review.
 - [Regression verification](development/REGRESSION_VERIFICATION.md) — asynchronous input, rendered output, identity domains, external contracts, geometry and CI evidence.
 - [Asset guidance](assets.md) — redistribution and local-resource boundaries.
