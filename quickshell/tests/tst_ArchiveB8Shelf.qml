@@ -109,6 +109,89 @@ Item {
                 }
             }finally{study.parent.width=original;study.roomPlanOpen=false}
         }
+        function test_room_navigation_lifecycle(){
+            var ctl=study.controller,scene=study.scene,plan=findChild(study,"archive-room-plan")
+            var animation=findChild(study,"room-navigation-animation"),overlay=findChild(study,"room-navigation-overlay")
+            var original=study.parent.width,oldStore=study.checkpointStore,calls=0
+            // In-memory adapter only: blocked operations must never reach it.
+            study.checkpointStore={read:function(){calls++;return null},write:function(){calls++}}
+            function enterPlan(perspective){
+                study.reducedRoomMotion=true
+                verify(scene.openShelf("root"))
+                scene.zoom=1;scene.pan=Qt.point(0,0)
+                clickNamed("toggle-room-plan")
+                tryVerify(function(){return plan.visible&&!scene.visible})
+                if(plan.perspective!==perspective)clickNamed("toggle-room-perspective")
+                tryVerify(function(){return plan.perspective===perspective&&(!perspective||!!plan.visibilityRaster)})
+            }
+            function startEntry(){
+                var b=Spatial.footprint(ctl.snapshot,"root"),g=Spatial.shelfGeometry(ctl.snapshot,"root")
+                var pt=plan.pointFor(b.x+b.w/2,b.y+b.h/2)
+                if(plan.perspective){
+                    var q=Projection.project([b.x+g.w/2,b.y+b.h,g.h-g.inscription.y-g.inscription.h/2],plan.perspectiveData.frame)
+                    pt=Qt.point(q[0],q[1])
+                }
+                study.reducedRoomMotion=false
+                mouseDoubleClickSequence(plan,pt.x,pt.y,Qt.LeftButton)
+                verify(study.roomNavigating)
+            }
+            function pauseActive(){
+                tryVerify(function(){return study.roomNavigating&&study.roomProgress>.20&&study.roomProgress<.80},1500)
+                animation.pause()
+                verify(study.roomNavigating&&overlay.visible&&!scene.enabled&&!plan.enabled)
+            }
+            function guard(before,history){
+                var zoom=scene.zoom,pan=scene.pan,path=JSON.stringify(scene.viewPath),mode=scene.mode
+                verify(!study.viewSwitchReady&&!study.checkpointReady)
+                verify(!study.saveCheckpoint()&&!study.requestCheckpointLoad())
+                study.switchMode("arrange");compare(scene.mode,mode)
+                verify(!study.navigateRoom("root",!study.roomNavigation.entering))
+                mouseClick(overlay,overlay.width/2,overlay.height/2)
+                mouseWheel(overlay,overlay.width/2,overlay.height/2,0,120)
+                compare(scene.zoom,zoom);compare(scene.pan,pan);compare(JSON.stringify(scene.viewPath),path)
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                compare(calls,0);verify(!ctl.structuralProposal&&!ctl.draft)
+                verify(study.roomNavigating)
+            }
+            try{
+                for(var perspective of [false,true]){
+                    study.parent.width=original;study.roomPlanOpen=false
+                    ctl.reset(Sample.roomFixture())
+                    tryVerify(function(){return scene.physicalFront})
+                    verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{palette:0}}));verify(ctl.applyStructure())
+                    enterPlan(perspective)
+                    var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+                    startEntry();pauseActive();guard(before,history)
+                    // Resize during actual entry, settle to the chosen Shelf.
+                    study.parent.width=740
+                    tryVerify(function(){return !study.roomNavigating&&scene.visible&&!plan.visible&&scene.width===740})
+                    compare(scene.cubbyId,"root");compare(scene.zoom,1);compare(scene.pan,Qt.point(0,0))
+                    verify(!overlay.visible);compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                    // Real narrow reverse, resize while moving back.
+                    clickNamed("toggle-room-plan");pauseActive();guard(before,history)
+                    study.parent.width=original
+                    tryVerify(function(){return !study.roomNavigating&&plan.visible&&!scene.visible&&plan.width===original})
+                    compare(plan.selectedShelf,"root");compare(plan.perspective,perspective)
+                    compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                    // Snapshot replacement interrupts both directions. Reset
+                    // to the legacy-compatible v3 fixture, never stale geometry.
+                    startEntry();pauseActive()
+                    ctl.reset(Sample.fixture())
+                    tryVerify(function(){return !study.roomNavigating&&!overlay.visible&&scene.visible&&!plan.visible&&!scene.physicalFront})
+                    compare(Core.validate(ctl.snapshot),null)
+                    ctl.reset(Sample.roomFixture())
+                    tryVerify(function(){return scene.physicalFront})
+                    enterPlan(perspective)
+                    startEntry();study.reducedRoomMotion=true
+                    tryVerify(function(){return scene.visible&&!plan.visible&&!study.roomNavigating})
+                    study.reducedRoomMotion=false;clickNamed("toggle-room-plan");pauseActive()
+                    ctl.reset(Sample.fixture())
+                    tryVerify(function(){return !study.roomNavigating&&!overlay.visible&&scene.visible&&!plan.visible&&!scene.physicalFront})
+                    compare(Core.validate(ctl.snapshot),null);verify(!ctl.structuralProposal&&!ctl.draft)
+                    compare(calls,0)
+                }
+            }finally{study.abortRoomNavigation();study.reducedRoomMotion=true;study.parent.width=original;study.roomPlanOpen=false;study.checkpointStore=oldStore}
+        }
         function test_room_full_fit_crest_handoff(){
             var ctl=study.controller,scene=study.scene,original=study.parent.width
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
