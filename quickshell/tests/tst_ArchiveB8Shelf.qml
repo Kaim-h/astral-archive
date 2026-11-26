@@ -307,6 +307,57 @@ Item {
                 verify(!findChild(map,"map-delete-room").enabled)
             }finally{study.mapEnabled=false;study.switchMode("browse");study.parent.width=originalWidth;scene.snapEnabled=oldSnap;scene.showGrid=oldGrid;scene.snapDistance=oldInterval}
         }
+        function test_map_door_arrangement(){
+            var ctl=study.controller,scene=study.scene,oldSnap=scene.snapEnabled
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var initial=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+                var map=findChild(study,"archive-map-room"),door=Object.values(ctl.snapshot.spatial.doors)[0]
+                clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                study.switchMode("arrange");scene.snapEnabled=false
+                verify(map.suggestions.length>0)
+                clickNamed("map-door-add");tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                compare(JSON.stringify(ctl.snapshot),initial)
+                grabImage(study).save("archive-b8-native-shelf-map-door-suggestion.png")
+                clickNamed("structure-apply")
+                var newId=Object.keys(ctl.snapshot.spatial.doors).find(k=>k!==door.id)
+                verify(!!newId);compare(map.selectedDoor,newId)
+                var beforeMove=JSON.stringify(ctl.snapshot)
+                var g=Spatial.doorGeometry(ctl.snapshot,newId),pt=map.pointFor(g.line,(g.start+g.end)/2)
+                var end=map.pointFor(g.line,(g.start+g.end)/2+40)
+                mousePress(map,pt.x,pt.y,Qt.LeftButton);tryVerify(function(){return map.dragging})
+                mouseMove(map,end.x,end.y,20,Qt.LeftButton);tryVerify(function(){return !!map.dragPatch})
+                compare(JSON.stringify(ctl.snapshot),beforeMove);verify(!ctl.structuralProposal)
+                keyClick(Qt.Key_Escape);tryVerify(function(){return !map.dragging})
+                mouseRelease(map,end.x,end.y,Qt.LeftButton);verify(!ctl.structuralProposal)
+                mousePress(map,pt.x,pt.y,Qt.LeftButton);mouseMove(map,end.x,end.y,20,Qt.LeftButton);mouseRelease(map,end.x,end.y,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                clickNamed("structure-apply");verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),beforeMove)
+                var handle=findChild(map,"map-door-end-handle");verify(handle.visible)
+                var hp=handle.mapToItem(map,handle.width/2,handle.height/2)
+                mousePress(map,hp.x,hp.y,Qt.LeftButton);tryVerify(function(){return map.dragging})
+                mouseMove(map,hp.x,hp.y+20,20,Qt.LeftButton);mouseRelease(map,hp.x,hp.y+20,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),beforeMove)
+                // Actual keyboard deletion is immediate and exactly undoable.
+                map.forceActiveFocus();keyClick(Qt.Key_Delete)
+                verify(!ctl.snapshot.spatial.doors[newId]);verify(!ctl.structuralProposal)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),beforeMove)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),initial)
+                // Same-wall contact and merge through real preview controls.
+                var p=Core.previewStructure(ctl.archiveState,{kind:"spatialDoorCreate",patch:{a:door.a,b:door.b,start:door.end,end:door.end+100}})
+                verify(p.ok,p.error);verify(ctl.proposeStructure(p.command));verify(ctl.applyStructure())
+                var contact=JSON.stringify(ctl.snapshot),geo=Spatial.doorGeometry(ctl.snapshot,door.id)
+                pt=map.pointFor(geo.line,(geo.start+geo.end)/2)
+                mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
+                clickNamed("map-door-merge");tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                clickNamed("structure-apply");compare(Object.keys(ctl.snapshot.spatial.doors).length,1)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),contact)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),initial);compare(ctl.archiveState.history.length,history)
+            }finally{study.mapEnabled=false;study.switchMode("browse");scene.snapEnabled=oldSnap}
+        }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
             var payload=null,persisted=false,attempts=0,rejectWrite=true

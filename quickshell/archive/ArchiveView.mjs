@@ -382,7 +382,7 @@ export function mapPlan(s){
 }
 export function mapFrame(data,w,h,zoom=1,center=null){
     if(!data||![w,h,zoom].every(Number.isFinite)||w<=0||h<=0)return null;
-    const b=data.bounds,k=Math.min(Math.max(1,w-64)/b.w,Math.max(1,h-184)/b.h)*Math.max(.25,Math.min(8,zoom));
+    const b=data.bounds,k=Math.min(Math.max(1,w-64)/b.w,Math.max(1,h-244)/b.h)*Math.max(.25,Math.min(8,zoom));
     const c=center&&[center.x,center.y].every(Number.isFinite)?center:{x:b.x+b.w/2,y:b.y+b.h/2};
     return {scale:k,x:w/2-c.x*k,y:h/2-c.y*k,cx:c.x,cy:c.y};
 }
@@ -513,4 +513,21 @@ export function mapDoorMergeChoices(s,id){
         const q=Spatial.doorGeometry(s,other.id);
         return g.start<=q.end&&q.start<=g.end;
     }).map(d=>d.id).sort();
+}
+
+export function mapDoorCommandOutline(s,cmd){
+    if(!cmd||!Spatial.physicalProfiles(s))return null;
+    if(cmd.kind==='spatialDoorEdit')return mapDoorOutline(s,cmd.doorId,cmd.patch);
+    if(cmd.kind==='spatialDoorCreate'){
+        const p=cmd.patch;if(!p||!Number.isInteger(p.start)||!Number.isInteger(p.end)||p.start<0||p.end<=p.start)return null;
+        const a=Doors.edge(s,p.a);if(p.end>a.length)return null;
+        return {vertical:a.vertical,line:a.line,start:a.start+p.start,end:a.start+p.end};
+    }
+    if(cmd.kind==='spatialDoorMerge'){
+        const d=s.spatial.doors&&s.spatial.doors[cmd.doorId],other=s.spatial.doors&&s.spatial.doors[cmd.patch.otherId];
+        if(!d||!other)return null;
+        const a=Spatial.doorGeometry(s,d.id),b=Spatial.doorGeometry(s,other.id);
+        return {vertical:a.vertical,line:a.line,start:Math.min(a.start,b.start),end:Math.max(a.end,b.end)};
+    }
+    return null;
 }

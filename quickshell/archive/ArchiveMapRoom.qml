@@ -10,6 +10,14 @@ Item {
     required property var colors
     property bool atlasEnabled:false
     property string selectedRoom:""
+    property string selectedDoor:""
+    property int suggestionIndex:0
+    readonly property var selectedOpening:dataModel&&selectedDoor?dataModel.doors.find(d=>d.id===selectedDoor)||null:null
+    readonly property var suggestions:visible&&arranging&&!proposalCommand?View.mapDoorSuggestions(snapshot,selectedRoom):[]
+    readonly property var suggestedOpening:suggestions.length?suggestions[Math.max(0,Math.min(suggestionIndex,suggestions.length-1))]:null
+    readonly property var mergeChoices:visible&&arranging&&selectedDoor?View.mapDoorMergeChoices(snapshot,selectedDoor):[]
+    onSelectedRoomChanged:suggestionIndex=0
+    onSuggestionsChanged:if(suggestionIndex>=suggestions.length)suggestionIndex=0
     property real zoom:1
     property var center:null
     property var press:null
@@ -21,6 +29,7 @@ Item {
     property bool magnetic:true
     property var proposalCommand:null
     property bool proposalValid:false
+    property var doorProposalCommand:null
     property var gesture:null
     property var dragPatch:null
     readonly property bool dragging:!!gesture
@@ -39,31 +48,51 @@ Item {
     signal addRoom()
     signal editRoom(string id,var patch)
     signal deleteRoom(string id)
+    signal addDoor(var patch)
+    signal editDoor(string id,var patch)
+    signal mergeDoor(string id,string otherId)
+    signal deleteDoor(string id)
     signal toggleGrid()
     signal toggleSnap()
     signal cycleSnapDistance()
     readonly property var selectedBox:dataModel&&selectedRoom?dataModel.rooms.find(r=>r.id===selectedRoom)||null:null
-    readonly property var outline:gesture&&dragPatch?View.mapRoomOutline(snapshot,{kind:"spatialRoomEdit",roomId:gesture.data.id,patch:dragPatch}):View.mapRoomOutline(snapshot,proposalCommand)
+    readonly property var outline:gesture&&!gesture.door&&dragPatch?View.mapRoomOutline(snapshot,{kind:"spatialRoomEdit",roomId:gesture.data.id,patch:dragPatch}):View.mapRoomOutline(snapshot,proposalCommand)
+    readonly property var doorOutline:gesture&&gesture.door&&dragPatch?View.mapDoorOutline(snapshot,gesture.data.id,dragPatch):View.mapDoorCommandOutline(snapshot,doorProposalCommand)
+    function selectDoor(id){
+        var d=snapshot.spatial&&snapshot.spatial.doors?snapshot.spatial.doors[id]:null
+        if(!d)return false
+        selectedDoor=id;if(selectedRoom!==d.a.roomId&&selectedRoom!==d.b.roomId)selectedRoom=d.a.roomId
+        return true
+    }
+    function startDoorGesture(id,kind,x,y){
+        if(!arranging||!enabled||gesture)return false
+        var g=View.mapDoorGesture(snapshot,id,kind,camera,x,y);if(!g)return false
+        selectDoor(id);forceActiveFocus();gesture={door:true,data:g,x:x,y:y,snap:snapEnabled,interval:snapDistance};dragPatch=null;return true
+    }
+    function removeSelectedDoor(){if(arranging&&enabled&&!dragging&&selectedOpening){var id=selectedDoor;deleteDoor(id);return true}return false}
     function cancelGesture(){gesture=null;dragPatch=null;press=null;moved=false}
     function startGesture(id,kind,x,y){
         if(!arranging||!enabled||gesture)return false
         var g=View.mapRoomGesture(dataModel,id,kind,camera,x,y);if(!g)return false
-        selectedRoom=id;forceActiveFocus();gesture={data:g,x:x,y:y,snap:snapEnabled,interval:snapDistance,magnet:magnetic};dragPatch=null;return true
+        selectedDoor="";selectedRoom=id;forceActiveFocus();gesture={door:false,data:g,x:x,y:y,snap:snapEnabled,interval:snapDistance,magnet:magnetic};dragPatch=null;return true
     }
     function updateGesture(x,y){
         if(!gesture)return
         var g=gesture;if(!dragPatch&&Math.hypot(x-g.x,y-g.y)<4)return
-        dragPatch=View.mapRoomGesturePatch(g.data,x,y,g.snap,g.interval,g.magnet)
+        dragPatch=g.door?View.mapDoorGesturePatch(g.data,x,y,g.snap,g.interval):View.mapRoomGesturePatch(g.data,x,y,g.snap,g.interval,g.magnet)
     }
     function finishGesture(x,y){
         if(!gesture)return
         updateGesture(x,y);var g=gesture,p=dragPatch;cancelGesture()
-        if(p&&Object.keys(p).length)editRoom(g.data.id,p)
+        if(p&&Object.keys(p).length){
+            if(g.door){var d=snapshot.spatial.doors[g.data.id];if(d&&(p.start!==d.start||p.end!==d.end))editDoor(g.data.id,p)}
+            else editRoom(g.data.id,p)
+        }
     }
     function pointFor(x,y){return camera?Qt.point(camera.x+x*camera.scale,camera.y+y*camera.scale):Qt.point(-1,-1)}
     function hit(x,y){var p=View.mapAt(camera,x,y);return p?View.mapRoomHit(dataModel,p.x,p.y):""}
     function fit(){if(dragging)return;press=null;center=null;zoom=1}
-    function resetView(){cancelGesture();creationBounds=null;fit();selectedRoom=""}
+    function resetView(){cancelGesture();creationBounds=null;fit();selectedRoom="";selectedDoor="";suggestionIndex=0}
     function zoomAt(value,x,y){
         if(dragging||!camera||!Number.isFinite(value))return
         var anchor=View.mapAt(camera,x,y),next=Math.max(.25,Math.min(8,value))
@@ -72,15 +101,17 @@ Item {
         center={x:anchor.x-(x-width/2)/frame.scale,y:anchor.y-(y-height/2)/frame.scale}
         zoom=next
     }
-    onDataModelChanged:{cancelGesture();if(!dataModel||!dataModel.rooms.some(r=>r.id===selectedRoom))selectedRoom=""}
+    onDataModelChanged:{cancelGesture();if(!dataModel||!dataModel.rooms.some(r=>r.id===selectedRoom))selectedRoom="";if(!dataModel||!dataModel.doors.some(d=>d.id===selectedDoor))selectedDoor=""}
     onVisibleChanged:if(!visible)cancelGesture()
     onWidthChanged:cancelGesture()
     onHeightChanged:cancelGesture()
-    onEnabledChanged:if(!enabled)cancelGesture()
+    onEnabledChanged:if(!enabled)cancelGesture();else if(visible)forceActiveFocus()
     onArrangingChanged:cancelGesture()
     onActiveFocusChanged:if(!activeFocus)cancelGesture()
     Connections {target:map.Window.window;function onActiveChanged(){if(map.Window.window&&!map.Window.window.active)map.cancelGesture()}}
-    Keys.onEscapePressed:function(event){if(gesture||press){cancelGesture();event.accepted=true}}
+    Keys.onEscapePressed:function(event){if(gesture||press){cancelGesture();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
+    Keys.onDeletePressed:function(event){if(activeFocus&&removeSelectedDoor())event.accepted=true}
+    Keys.onPressed:function(event){if(event.key===Qt.Key_Backspace&&activeFocus&&removeSelectedDoor())event.accepted=true}
     Rectangle {anchors.fill:parent;color:map.colors.background}
     Canvas {
         id:art
@@ -94,6 +125,9 @@ Item {
             function onColorsChanged(){art.refresh()}
             function onSelectedRoomChanged(){art.refresh()}
             function onOutlineChanged(){art.refresh()}
+            function onDoorOutlineChanged(){art.refresh()}
+            function onSelectedDoorChanged(){art.refresh()}
+            function onSuggestedOpeningChanged(){art.refresh()}
             function onProposalValidChanged(){art.refresh()}
             function onShowGridChanged(){art.refresh()}
             function onSnapDistanceChanged(){art.refresh()}
@@ -132,8 +166,15 @@ Item {
                 if(door.vertical){ctx.moveTo(door.line,door.start);ctx.lineTo(door.line,door.end)}
                 else{ctx.moveTo(door.start,door.line);ctx.lineTo(door.end,door.line)}
                 ctx.strokeStyle=map.colors.panel;ctx.lineWidth=4/k;ctx.stroke()
-                ctx.strokeStyle=map.colors.engraving;ctx.lineWidth=1/k;ctx.stroke()
+                ctx.strokeStyle=map.selectedDoor===door.id?map.colors.text:map.colors.engraving;ctx.lineWidth=(map.selectedDoor===door.id?3:1)/k;ctx.stroke()
             }
+            function drawOpening(d,color,lineWidth){
+                if(!d)return;ctx.beginPath()
+                if(d.vertical){ctx.moveTo(d.line,d.start);ctx.lineTo(d.line,d.end)}else{ctx.moveTo(d.start,d.line);ctx.lineTo(d.end,d.line)}
+                ctx.strokeStyle=color;ctx.lineWidth=lineWidth/k;ctx.stroke()
+            }
+            if(map.arranging&&!map.selectedDoor&&!map.doorProposalCommand)drawOpening(map.suggestedOpening,map.colors.text,3)
+            drawOpening(map.doorOutline,map.dragging||map.proposalValid?map.colors.text:"#df8585",5)
             var ghost=map.outline
             if(ghost){ctx.strokeStyle=map.dragging||map.proposalValid?map.colors.engraving:"#df8585";ctx.lineWidth=2/k;ctx.strokeRect(ghost.x,ghost.y,ghost.w,ghost.h)}
             ctx.restore()
@@ -159,7 +200,11 @@ Item {
         onPressed:function(mouse){
             if(!map.camera)return
             map.forceActiveFocus();map.moved=false
-            if(map.arranging&&mouse.button===Qt.LeftButton){var id=map.hit(mouse.x,mouse.y);map.selectedRoom=id;if(id)map.startGesture(id,"move",mouse.x,mouse.y);return}
+            if(map.arranging&&mouse.button===Qt.LeftButton){
+                var doorId=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y)
+                if(doorId){map.startDoorGesture(doorId,"move",mouse.x,mouse.y);return}
+                var id=map.hit(mouse.x,mouse.y);map.selectedDoor="";map.selectedRoom=id;if(id)map.startGesture(id,"move",mouse.x,mouse.y);return
+            }
             map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale}
         }
         onPositionChanged:function(mouse){
@@ -171,7 +216,7 @@ Item {
         }
         onReleased:function(mouse){if(map.gesture)map.finishGesture(mouse.x,mouse.y);else map.press=null}
         onCanceled:map.cancelGesture()
-        onClicked:function(mouse){if(!map.arranging&&mouse.button===Qt.LeftButton&&!map.moved)map.selectedRoom=map.hit(mouse.x,mouse.y)}
+        onClicked:function(mouse){if(!map.arranging&&mouse.button===Qt.LeftButton&&!map.moved){var d=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y);if(!d||!map.selectDoor(d)){map.selectedDoor="";map.selectedRoom=map.hit(mouse.x,mouse.y)}}}
         onDoubleClicked:function(mouse){
             if(map.arranging||mouse.button!==Qt.LeftButton||map.moved)return
             var id=map.hit(mouse.x,mouse.y)
@@ -181,7 +226,7 @@ Item {
     }
     Rectangle {
         id:resizeHandle;objectName:"map-room-resize-handle";width:22;height:22;radius:3
-        visible:map.arranging&&!!map.selectedBox&&!map.proposalCommand
+        visible:map.arranging&&!!map.selectedBox&&!map.selectedDoor&&!map.proposalCommand&&!map.doorProposalCommand
         readonly property point corner:map.selectedBox?map.pointFor(map.selectedBox.x+map.selectedBox.w,map.selectedBox.y+map.selectedBox.h):Qt.point(0,0)
         x:corner.x-width/2;y:corner.y-height/2;color:map.colors.background;border.color:map.colors.engraving;border.width:2
         MouseArea {
@@ -191,6 +236,31 @@ Item {
             onPositionChanged:function(mouse){if(pressed){var p=local(mouse);map.updateGesture(p.x,p.y)}}
             onReleased:function(mouse){var p=local(mouse);map.finishGesture(p.x,p.y)}
             onCanceled:map.cancelGesture()
+        }
+    }
+    Repeater {
+        model:["start","end"]
+        Rectangle {
+            id:doorHandle
+            required property string modelData
+            objectName:"map-door-"+modelData+"-handle"
+            visible:map.arranging&&!!map.selectedOpening&&!map.doorProposalCommand
+            width:20;height:20;radius:3
+            readonly property var opening:map.selectedOpening
+            readonly property point endpoint:opening?map.pointFor(opening.vertical?opening.line:opening[modelData],opening.vertical?opening[modelData]:opening.line):Qt.point(0,0)
+            readonly property int offset:modelData==="start"?-16:16
+            x:endpoint.x-width/2+(opening&&opening.vertical?offset:0)
+            y:endpoint.y-height/2+(opening&&!opening.vertical?offset:0)
+            color:map.colors.panel;border.color:map.colors.engraving;border.width:2
+            Text {anchors.centerIn:parent;color:map.colors.text;font.pixelSize:10;text:doorHandle.modelData==="start"?"A":"B"}
+            MouseArea {
+                anchors.fill:parent;cursorShape:doorHandle.opening&&doorHandle.opening.vertical?Qt.SizeVerCursor:Qt.SizeHorCursor
+                function local(mouse){return doorHandle.mapToItem(map,mouse.x,mouse.y)}
+                onPressed:function(mouse){var p=local(mouse);map.startDoorGesture(map.selectedDoor,doorHandle.modelData,p.x,p.y)}
+                onPositionChanged:function(mouse){if(pressed){var p=local(mouse);map.updateGesture(p.x,p.y)}}
+                onReleased:function(mouse){var p=local(mouse);map.finishGesture(p.x,p.y)}
+                onCanceled:map.cancelGesture()
+            }
         }
     }
     Text {
@@ -204,18 +274,27 @@ Item {
         objectName:"map-controls"
         anchors.bottom:parent.bottom;anchors.bottomMargin:8
         anchors.horizontalCenter:parent.horizontalCenter
-        width:336;height:86
+        width:336;height:116
         enabled:!map.dragging&&!map.panning
         Item {
-            objectName:"map-arrange-actions"
+            objectName:"map-door-actions"
             width:parent.width;height:26;y:0;visible:map.arranging;enabled:map.arranging
+            ArchiveButton {objectName:"map-door-add";colors:map.colors;label:"Add opening";x:0;width:80;enabled:!!map.suggestedOpening;onClicked:map.addDoor(map.suggestedOpening.patch)}
+            ArchiveButton {objectName:"map-door-next";colors:map.colors;label:map.suggestions.length?String(map.suggestionIndex+1)+"/"+map.suggestions.length:"No gap";hint:"Next clear opening suggestion";x:86;width:58;enabled:map.suggestions.length>1;onClicked:{map.selectedDoor="";map.suggestionIndex=(map.suggestionIndex+1)%map.suggestions.length}}
+            ArchiveButton {objectName:"map-door-edit";colors:map.colors;label:"Size";x:150;width:52;enabled:!!map.selectedOpening;onClicked:map.editDoor(map.selectedDoor,{})}
+            ArchiveButton {objectName:"map-door-merge";colors:map.colors;label:"Merge";x:208;width:60;enabled:map.mergeChoices.length>0;onClicked:map.mergeDoor(map.selectedDoor,map.mergeChoices[0])}
+            ArchiveButton {objectName:"map-door-delete";colors:map.colors;label:"Delete";x:274;width:62;enabled:!!map.selectedOpening;onClicked:map.removeSelectedDoor()}
+        }
+        Item {
+            objectName:"map-arrange-actions"
+            width:parent.width;height:26;y:30;visible:map.arranging;enabled:map.arranging
             ArchiveButton {objectName:"map-add-room";colors:map.colors;label:"Add Room";x:0;width:108;onClicked:map.addRoom()}
             ArchiveButton {objectName:"map-edit-room";colors:map.colors;label:"Dimensions…";x:114;width:108;enabled:!!map.selectedBox;onClicked:map.editRoom(map.selectedRoom,{})}
             ArchiveButton {objectName:"map-delete-room";colors:map.colors;label:"Remove Room";x:228;width:108;enabled:!!map.selectedBox&&!map.selectedBox.shelves.length;onClicked:map.deleteRoom(map.selectedRoom)}
         }
         Item {
             objectName:"map-arrange-grid-actions"
-            width:parent.width;height:26;y:30;visible:map.arranging;enabled:map.arranging
+            width:parent.width;height:26;y:60;visible:map.arranging;enabled:map.arranging
             ArchiveButton {objectName:"map-grid";colors:map.colors;label:"Grid";x:0;width:108;active:map.showGrid;onClicked:map.toggleGrid()}
             ArchiveButton {objectName:"map-snap";colors:map.colors;label:"Snap";x:114;width:55;active:map.snapEnabled;onClicked:map.toggleSnap()}
             ArchiveButton {objectName:"map-snap-interval";colors:map.colors;label:String(map.snapDistance);hint:"Cycle snap and grid interval";x:175;width:47;onClicked:map.cycleSnapDistance()}
@@ -223,7 +302,7 @@ Item {
         }
         Item {
             objectName:"map-navigation-actions"
-            width:parent.width;height:26;y:60
+            width:parent.width;height:26;y:90
             ArchiveButton {objectName:"map-fit";colors:map.colors;label:"Fit map";x:0;width:74;onClicked:map.fit()}
             ArchiveButton {objectName:"map-zoom-out";colors:map.colors;label:"−";x:80;width:36;onClicked:map.zoomAt(map.zoom/1.15,map.width/2,map.height/2)}
             ArchiveButton {objectName:"map-zoom-in";colors:map.colors;label:"+";x:122;width:36;onClicked:map.zoomAt(map.zoom*1.15,map.width/2,map.height/2)}
