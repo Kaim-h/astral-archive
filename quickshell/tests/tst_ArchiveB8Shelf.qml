@@ -73,7 +73,9 @@ Item {
             keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
             tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
             compare(input.text,"")
-            keyClicks(String(position))
+            // Qt 6.4 QtTest exposes keyClick for individual characters.
+            var digits=String(position)
+            for(var i=0;i<digits.length;i++)keyClick(digits[i])
             tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
             compare(ctl.structuralProposal.command.patch.x,position)
             var attempts=study.structureApplyAttempts
