@@ -523,5 +523,11 @@ export function run(){
  eq(Core.undo(familyState).snapshot,sample,'family exact Undo');
  eq(Checkpoint.decode(Checkpoint.encode(familyState,{path:['root'],theme:1,cameras:{}})).snapshot,familyState.snapshot,'family checkpoint exact');
  yes(View.familyMarkSize(100,80,true)<=40&&View.familyMarkSize(1000,1000,false)<=112,'bounded display size');
+ const population=ShelfSample.populatedFixture(3);
+ eq(Core.validate(population),null,'mixed population valid');
+ eq(Core.owners(population).length,Core.owners(sample).length*3,'population retains each mixed file');
+ eq(Spatial.appPlacements(population).length,Spatial.appPlacements(sample).length*3,'population retains independent books');
+ eq(new Set(Core.owners(population).map(o=>o.id)).size,Core.owners(population).length,'population unique file IDs');
+ eq(View.reachablePath(population,['sample-2-root','sample-2-child']),['sample-2-root','sample-2-child'],'populated hierarchy reachable');
  return checks;
 }

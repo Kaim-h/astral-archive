@@ -81,6 +81,8 @@ Item {
     readonly property alias motion: live
     readonly property var committedCaseRecords: View.caseRecords(controller)
     readonly property bool busy: live.busy
+    readonly property bool motionClockActive:live.clockActive
+    readonly property int motionStepCount:live.stepCount
     focus:true
     ArchiveMotion {
         id:live

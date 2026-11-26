@@ -13,6 +13,8 @@ Item {
     objectName: "shelf-"+module.id
     x:module.x;y:module.y;width:module.w;height:module.h
     readonly property real supportY: 0
+    // Observable paint passes for bounded offscreen idle regression.
+    property int paintPasses:0
     Rectangle {
         visible:!board.spatialStyle
         anchors.fill:parent
@@ -51,6 +53,7 @@ Item {
             }
             onPaint:{
                 if(!flatFace.visible||width<2||height<2)return
+                board.paintPasses++
                 var ctx=getContext("2d"),w=width,h=height,t=flatFace.cornerTop,b=flatFace.cornerBottom
                 ctx.clearRect(0,0,w,h)
                 ctx.beginPath();ctx.moveTo(t+.5,.5)

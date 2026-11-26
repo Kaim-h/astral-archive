@@ -177,6 +177,40 @@ Item {
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
             tryCompare(trim,"profile","cornice")
         }
+        function test_idle_hidden_and_populated_navigation(){
+            var scene=study.scene,ctl=study.controller,oldTheme=Themes.Theme.index
+            // Larger populated study; only the selected Shelf should render.
+            var sample=Sample.populatedFixture(8)
+            ctl.reset(sample);scene.viewPath=["root"];scene.restoreCamera()
+            var before=JSON.stringify(ctl.snapshot),board=findChild(scene,"shelf-mixed-board")
+            tryVerify(function(){board=findChild(scene,"shelf-mixed-board");return !!board&&board.paintPasses>0})
+            verify(!findChild(scene,"archive-book-sample-1-org.example.Reader"))
+            verify(!scene.motionClockActive);verify(!scene.busy)
+            // Let scheduled initial paints settle before the sample window.
+            wait(100)
+            var paints=board.paintPasses,steps=scene.motionStepCount
+            wait(250)
+            compare(board.paintPasses,paints);compare(scene.motionStepCount,steps);verify(!scene.motionClockActive)
+            try{
+                study.visible=false
+                wait(50)
+                paints=board.paintPasses
+                Themes.Theme.index=(oldTheme+1)%3
+                wait(250)
+                compare(board.paintPasses,paints);compare(scene.motionStepCount,steps);verify(!scene.motionClockActive)
+                study.visible=true
+                tryVerify(function(){return board.paintPasses>paints})
+                compare(JSON.stringify(ctl.snapshot),before)
+                verify(scene.openShelf("sample-1-root"))
+                tryVerify(function(){return !!findChild(scene,"archive-book-sample-1-org.example.Reader")})
+                verify(!findChild(scene,"archive-book-org.example.Reader"))
+                verify(scene.openChild("sample-1-child"))
+                tryCompare(scene,"cubbyId","sample-1-child")
+                verify(scene.back());tryCompare(scene,"cubbyId","sample-1-root")
+                compare(JSON.stringify(ctl.snapshot),before)
+                console.log("B8 N2d idle probes: 250 ms visible and hidden, zero additional board paints or physics steps; hidden theme change repaints on show; selected hierarchy only.")
+            }finally{study.visible=true;Themes.Theme.index=oldTheme}
+        }
         function test_ornament_family_preview(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot),oldTheme=Themes.Theme.index
             try{
