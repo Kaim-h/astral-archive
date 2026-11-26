@@ -24,7 +24,7 @@ Rectangle {
     readonly property bool showMap:mapEnabled&&mapOpen&&Spatial.physicalProfiles(archive.snapshot)
     readonly property bool upperView:showMap||showRoomPlan
     readonly property string inspectedRoomId:Spatial.enabled(archive.snapshot)&&archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]]?archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]].roomId:""
-    readonly property string currentRoomId:mapEnabled&&activeRoomId?activeRoomId:inspectedRoomId
+    readonly property string currentRoomId:mapEnabled&&activeRoomId&&(showMap||roomPlanOpen||roomNavigating)?activeRoomId:inspectedRoomId
     // Opt-in synthetic test trace. No arrangement data or real environment details.
     property bool mapNavigationDiagnostics:false
     function traceMapNavigation(stage){
@@ -56,18 +56,38 @@ Rectangle {
             traceMapNavigation("openMap returned false")
             return false
         }
-        if(currentRoomId)mapView.selectedRoom=currentRoomId
+        if(currentRoomId){activeRoomId=currentRoomId;mapView.selectedRoom=currentRoomId;if(mapView.selectedDoor){var d=archive.snapshot.spatial.doors[mapView.selectedDoor];if(!d||![d.a.roomId,d.b.roomId].includes(currentRoomId))mapView.selectedDoor=""}}
         sceneView.clearSelection();roomPlanOpen=false;mapOpen=true;mapView.forceActiveFocus()
         traceMapNavigation("openMap returned true")
         return true
     }
+    property var mapNavigation:null
+    property real mapProgress:0
+    readonly property bool mapNavigating:!!mapNavigation
+    function focusActiveLayer(){if(showMap&&mapView)mapView.forceActiveFocus();else if(showRoomPlan&&roomPlan)roomPlan.forceActiveFocus();else if(sceneView)sceneView.forceActiveFocus()}
     function enterMapRoom(id){
-        if(!showMap||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||(mapView.panning||mapView.dragging)||sceneView.mode!=="browse"||!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,id))return false
-        activeRoomId=id;mapView.selectedRoom=id;mapOpen=false;roomPlanOpen=true
-        sceneView.clearSelection();roomPlan.forceActiveFocus();return true
+        if(!showMap||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||mapView.appearanceOpen||mapView.press||(mapView.panning||mapView.dragging)||sceneView.mode!=="browse"||!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,id))return false
+        var target=View.mapFocusCamera(mapView.dataModel,mapView.width,mapView.height,"room",id)
+        if(!target||!mapView.camera)return false
+        var to=View.mapFrame(mapView.dataModel,mapView.width,mapView.height,target.zoom,target.center)
+        mapView.selectedRoom=id
+        if(mapView.selectedDoor){var door=archive.snapshot.spatial.doors[mapView.selectedDoor];if(!door||![door.a.roomId,door.b.roomId].includes(id))mapView.selectedDoor=""}
+        mapProgress=0;mapNavigation={roomId:id,from:Core.clone(mapView.camera),to:to}
+        if(reducedRoomMotion){finishMapNavigation();return true}
+        mapNavigationOverlay.forceActiveFocus();mapAnimation.start();return true
     }
-    function resetMapView(){mapOpen=false;activeRoomId="";if(mapView)mapView.resetView()}
-    onMapEnabledChanged:if(!mapEnabled)resetMapView()
+    function finishMapNavigation(){
+        var n=mapNavigation;if(!n)return
+        mapAnimation.stop();mapProgress=1
+        if(mapEnabled&&Spatial.physicalProfiles(archive.snapshot)&&Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,n.roomId)){
+            activeRoomId=n.roomId;mapOpen=false;roomPlanOpen=true;sceneView.clearSelection()
+        }
+        mapNavigation=null;focusActiveLayer()
+    }
+    function abortMapNavigation(){if(mapNavigation){mapAnimation.stop();mapNavigation=null;mapProgress=0}}
+    NumberAnimation {id:mapAnimation;objectName:"map-navigation-animation";target:study;property:"mapProgress";from:0;to:1;duration:240;easing.type:Easing.OutCubic;onFinished:study.finishMapNavigation()}
+    function resetMapView(){abortMapNavigation();mapOpen=false;activeRoomId="";if(mapView)mapView.resetView()}
+    onMapEnabledChanged:if(!mapEnabled){if(mapOpen||activeRoomId)roomPlanOpen=false;resetMapView();focusActiveLayer()}
     property bool roomPlanOpen:false
     property bool roomPerspective:false
     // Optional separate view-preference storage, never structural Undo.
@@ -175,7 +195,7 @@ Rectangle {
         }
         if(!navigateRoom(id,showRoomPlan))return
     }
-    onReducedRoomMotionChanged:if(reducedRoomMotion&&roomNavigating)finishRoomNavigation()
+    onReducedRoomMotionChanged:if(reducedRoomMotion){if(roomNavigating)finishRoomNavigation();if(mapNavigating)finishMapNavigation()}
     NumberAnimation {
         id:roomAnimation;objectName:"room-navigation-animation";target:study;property:"roomProgress";duration:500
         onFinished:study.finishRoomNavigation()
@@ -253,12 +273,12 @@ Rectangle {
         archive.proposeStructure(cmd)
     }
     readonly property bool showRoomPlan:!showMap&&roomPlanOpen&&Spatial.physicalProfiles(archive.snapshot)
-    readonly property bool viewSwitchReady:!roomNavigating&&!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
+    readonly property bool viewSwitchReady:!roomNavigating&&!mapNavigating&&!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
     // Optional isolated study adapter, injected by the standalone window.
     // No filesystem dependency in the shared scene or model.
     property var checkpointStore:null
     property bool checkpointLoadPending:false
-    readonly property bool checkpointReady:!roomNavigating&&!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
+    readonly property bool checkpointReady:!roomNavigating&&!mapNavigating&&!mapView.press&&!mapView.appearanceOpen&&!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
         !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)
     onCheckpointReadyChanged:if(!checkpointReady)checkpointLoadPending=false
     function checkpointView(){
@@ -267,9 +287,16 @@ Rectangle {
         var cameras=View.copyCameras({})
         for(var id of Object.keys(sceneView.cameras))if(Object.prototype.hasOwnProperty.call(archive.snapshot.cubbies,id))cameras[id]=Core.clone(sceneView.cameras[id])
         cameras[sceneView.cubbyId]={zoom:sceneView.zoom,x:sceneView.pan.x,y:sceneView.pan.y}
-        return {path:sceneView.reachableViewPath.slice(),theme:Themes.Theme.index,cameras:cameras,
+        var view={path:sceneView.reachableViewPath.slice(),theme:Themes.Theme.index,cameras:cameras,
             cubbyPreviewMode:sceneView.cubbyPreviewMode,snapEnabled:sceneView.snapEnabled,
             showGrid:sceneView.showGrid,snapDistance:sceneView.snapDistance,roomPerspective:study.roomPerspective}
+        if(mapEnabled&&Spatial.physicalProfiles(archive.snapshot)){
+            var m=mapView.savedView();m.layer=showMap?"map":showRoomPlan?"room":"shelf";m.roomId=currentRoomId||"";m.roomShelf=showRoomPlan?roomPlan.selectedShelf:""
+            if(m.selectedDoor){var d=archive.snapshot.spatial.doors[m.selectedDoor];if(!d||![d.a.roomId,d.b.roomId].includes(m.selectedRoom))m.selectedDoor=""}
+            if(m.roomShelf&&(!archive.snapshot.spatial.shelves[m.roomShelf]||archive.snapshot.spatial.shelves[m.roomShelf].roomId!==m.roomId))m.roomShelf=""
+            view.mapView=m
+        }
+        return view
     }
     function saveCheckpoint(){
         if(!checkpointReady)return false
@@ -291,7 +318,7 @@ Rectangle {
     }
     function cancelCheckpointLoad(){
         checkpointLoadPending=false
-        sceneView.forceActiveFocus()
+        focusActiveLayer()
         sceneView.message="Checkpoint load canceled"
     }
     function loadCheckpoint(){
@@ -299,10 +326,10 @@ Rectangle {
         checkpointLoadPending=false
         try{
             var payload=checkpointStore.read()
-            if(payload===null){sceneView.message="No saved study checkpoint";return false}
+            if(payload===null){sceneView.message="No saved study checkpoint";focusActiveLayer();return false}
             // Import validates the complete envelope before replacing anything.
             var view=archive.importCheckpoint(payload)
-            if(!view){sceneView.message="Checkpoint not loaded · "+archive.checkpointError;return false}
+            if(!view){sceneView.message="Checkpoint not loaded · "+archive.checkpointError;focusActiveLayer();return false}
             closeContext();closeMaterials();rackInspector=false;pickId=""
             sceneView.mode="browse"
             sceneView.viewPath=view.path.slice()
@@ -315,9 +342,14 @@ Rectangle {
             sceneView.showGrid=view.showGrid===true
             sceneView.snapDistance=view.snapDistance===undefined?20:view.snapDistance
             sceneView.clearSelection()
+            if(mapEnabled&&view.mapView){
+                var m=view.mapView;mapView.restoreView(m);activeRoomId=m.layer==="shelf"?"":m.roomId;mapOpen=m.layer==="map";roomPlanOpen=m.layer==="room"
+                if(roomPlanOpen)roomPlan.selectedShelf=m.roomShelf
+            }
+            focusActiveLayer()
             sceneView.message="Study checkpoint loaded"+(preferenceWarning?" · "+preferenceWarning:"")
             return true
-        }catch(e){sceneView.message="Checkpoint not loaded · "+String(e);return false}
+        }catch(e){sceneView.message="Checkpoint not loaded · "+String(e);focusActiveLayer();return false}
     }
     // Resolved material roles are separate from semantic theme colors.
     readonly property var materialProposal:archive.structuralProposal&&archive.structuralProposal.command.kind==="materialBatch"?archive.structuralProposal:null
@@ -428,7 +460,7 @@ Rectangle {
     Connections {
         target:archive
         function onSnapshotChanged(){
-            study.abortRoomNavigation()
+            study.abortRoomNavigation();study.abortMapNavigation()
             if(archive.resetting){study.roomPlanOpen=false;study.roomPerspective=false;study.resetMapView()}
             if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.resetMapView()}
             else if(study.activeRoomId&&!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,study.activeRoomId)){
@@ -475,7 +507,7 @@ Rectangle {
         pickId=""
     }
     function switchMode(value) {
-        if(roomNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning)return
+        if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning||mapView.appearanceOpen)return
         if(archive.draft||archive.structuralProposal)archive.cancel()
         closeContext();closeMaterials();rackInspector=false;pickId="";sceneView.mode=value
     }
@@ -690,7 +722,7 @@ Rectangle {
 
     Column {
         id:heading
-        enabled:!study.roomNavigating&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
+        enabled:!study.roomNavigating&&!study.mapNavigating&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
         anchors.top:parent.top
         anchors.left:parent.left
         anchors.right:parent.right
@@ -898,7 +930,8 @@ Rectangle {
         objectName:"archive-map-room"
         anchors.fill:sceneView
         visible:study.showMap
-        enabled:study.showMap&&study.viewSwitchReady
+        enabled:study.showMap&&study.viewSwitchReady&&!study.checkpointLoadPending
+        presentationFrame:study.mapNavigation?View.mapTransitionFrame(study.mapNavigation.from,study.mapNavigation.to,study.mapProgress):null
         atlasEnabled:study.mapEnabled
         snapshot:archive.snapshot;colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
         arranging:sceneView.mode==="arrange"
@@ -917,6 +950,15 @@ Rectangle {
         onMergeDoor:function(id,otherId){study.startMapDoorEdit("spatialDoorMerge",id,{otherId:otherId})}
         onDeleteDoor:function(id){study.startMapDoorEdit("spatialDoorDelete",id,{})}
         onEnterRoom:function(id){study.enterMapRoom(id)}
+    }
+    Item {
+        id:mapNavigationOverlay
+        objectName:"map-navigation-overlay";anchors.fill:mapView;z:31;visible:study.mapNavigating
+        onWidthChanged:if(study.mapNavigating)study.finishMapNavigation()
+        onHeightChanged:if(study.mapNavigating)study.finishMapNavigation()
+        Keys.onEscapePressed:function(event){study.finishMapNavigation();event.accepted=true}
+        MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons;onWheel:function(wheel){wheel.accepted=true}}
+        Archive.ArchiveButton {objectName:"map-navigation-skip";anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:study.colors;label:"Skip";onClicked:study.finishMapNavigation()}
     }
     Item {
         id:navigationOverlay

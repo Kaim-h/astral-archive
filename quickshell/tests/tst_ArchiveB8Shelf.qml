@@ -386,6 +386,55 @@ Item {
                 compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
             }finally{Themes.Theme.index=original;study.mapEnabled=false;var m=findChild(study,"archive-map-room");m.contourMode="subtle";m.contourDensity=55;m.chartOrnament="compass"}
         }
+        function test_map_focus_checkpoint_and_transition(){
+            var ctl=study.controller,oldStore=study.checkpointStore,oldMotion=study.reducedRoomMotion,oldPref=study.roomPreferenceStore
+            var payload=null
+            study.checkpointStore={read:function(){return payload},write:function(v){payload=v}}
+            study.roomPreferenceStore=null;study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length,map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
+                var empty=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!Object.values(ctl.snapshot.spatial.shelves).some(p=>p.roomId===k))
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                clickNamed("map-zoom-in")
+                var base=JSON.stringify(map.cameraState()),room=ctl.snapshot.spatial.rooms[empty],pt=map.pointFor(room.x+room.w/2,room.y+room.h/2)
+                // Fit if the zoomed center is outside the viewport.
+                if(pt.x<0||pt.x>=map.width||pt.y<0||pt.y>=map.height){clickNamed("map-fit");base=JSON.stringify(map.cameraState());pt=map.pointFor(room.x+room.w/2,room.y+room.h/2)}
+                mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,empty)
+                clickNamed("map-focus");verify(!!map.focusState);compare(JSON.stringify(map.focusState.base),base)
+                var d=Object.values(ctl.snapshot.spatial.doors)[0],g=Spatial.doorGeometry(ctl.snapshot,d.id)
+                map.selectDoor(d.id);clickNamed("map-focus");compare(map.focusState.kind,"door");compare(JSON.stringify(map.focusState.base),base)
+                clickNamed("map-overview");compare(JSON.stringify(map.cameraState()),base);verify(!map.focusState)
+                map.selectedDoor="";map.selectedRoom=empty;clickNamed("map-focus")
+                var retained=JSON.stringify(map.savedView())
+                verify(study.saveCheckpoint());var savedMap=payload
+                payload="{bad";verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
+                compare(JSON.stringify(map.savedView()),retained);verify(map.visible&&map.activeFocus)
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                study.reducedRoomMotion=false
+                clickNamed("map-enter-room");verify(study.mapNavigating)
+                verify(!map.enabled&&!study.viewSwitchReady&&!study.checkpointReady)
+                var skip=findChild(study,"map-navigation-skip");verify(skip.visible&&skip.enabled)
+                mouseClick(skip,skip.width/2,skip.height/2)
+                tryVerify(function(){return plan.visible&&plan.activeFocus&&!study.mapNavigating})
+                compare(plan.roomId,empty);compare(JSON.stringify(map.savedView()),retained)
+                verify(study.saveCheckpoint());var savedRoom=payload
+                payload="{bad";verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
+                verify(plan.visible&&plan.activeFocus);compare(plan.roomId,empty);compare(JSON.stringify(map.savedView()),retained)
+                payload=savedMap;verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                tryVerify(function(){return map.visible&&map.activeFocus});compare(JSON.stringify(map.savedView()),retained)
+                payload=savedRoom;verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                tryVerify(function(){return plan.visible&&plan.activeFocus});compare(plan.roomId,empty)
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                study.reducedRoomMotion=false;clickNamed("map-enter-room");verify(study.mapNavigating);keyClick(Qt.Key_Escape)
+                tryVerify(function(){return plan.visible&&!study.mapNavigating})
+                study.mapEnabled=false;tryVerify(function(){return study.scene.visible&&!plan.visible&&!map.visible})
+                study.mapEnabled=true;clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                compare(map.zoom,1);verify(!map.focusState)
+                compare(JSON.stringify(ctl.snapshot),before)
+            }finally{study.mapEnabled=false;study.reducedRoomMotion=oldMotion;study.checkpointStore=oldStore;study.roomPreferenceStore=oldPref}
+        }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
             var payload=null,persisted=false,attempts=0,rejectWrite=true

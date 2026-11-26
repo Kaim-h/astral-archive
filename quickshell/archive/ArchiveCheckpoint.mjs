@@ -14,12 +14,34 @@ function preflight(s,v){
  Capacity.preflight(s,v);
  const err=Core.validate(s);if(err)fail(err);
 }
+// Optional upper-layer view extension; no structural format/version change.
+const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const keysOnly=(o,allowed)=>plain(o)&&Object.keys(o).every(k=>allowed.includes(k));
+const mapCenterLimit=1000000;
+function mapCamera(c){
+ return keysOnly(c,['zoom','center'])&&finite(c.zoom,.25,8)&&(c.center===null||
+  keysOnly(c.center,['x','y'])&&finite(c.center.x,-mapCenterLimit,mapCenterLimit)&&finite(c.center.y,-mapCenterLimit,mapCenterLimit));
+}
+function mapViewState(s,m){
+ if(!Spatial.physicalProfiles(s)||!keysOnly(m,['layer','roomId','roomShelf','camera','selectedRoom','selectedDoor','focus'])||
+  !['shelf','room','map'].includes(m.layer)||!mapCamera(m.camera))fail('Invalid Map view metadata');
+ const rooms=s.spatial.rooms,doors=s.spatial.doors||{},shelves=s.spatial.shelves;
+ const known=(value,table)=>typeof value==='string'&&(value===''||own(table,value));
+ if(!known(m.roomId,rooms)||!known(m.selectedRoom,rooms)||!known(m.selectedDoor,doors)||!known(m.roomShelf,shelves)||
+  m.layer==='room'&&!m.roomId||m.roomShelf&&(m.layer!=='room'||shelves[m.roomShelf].roomId!==m.roomId))fail('Invalid Map view identity');
+ if(m.selectedDoor&&(!m.selectedRoom||![doors[m.selectedDoor].a.roomId,doors[m.selectedDoor].b.roomId].includes(m.selectedRoom)))fail('Invalid selected opening Room');
+ if(m.focus!==null){
+  const f=m.focus;
+  if(!keysOnly(f,['kind','id','base'])||!['room','door'].includes(f.kind)||typeof f.id!=='string'||!own(f.kind==='room'?rooms:doors,f.id)||!mapCamera(f.base))fail('Invalid Map focus');
+ }
+}
 function viewState(s,v,formatVersion=version){
  if(!plain(v)||!Capacity.pathValid(s,v.path)||!Number.isInteger(v.theme)||v.theme<0||v.theme>2||!plain(v.cameras))fail('Invalid view metadata');
  // Optional v1 view-only field. Older checkpoints retain the default
  // veiled mode when restored; never rewrite their snapshot.
  if(v.cubbyPreviewMode!==undefined&&!['veiled','inventory','closed'].includes(v.cubbyPreviewMode))fail('Invalid cubby preview mode');
  if(v.roomPerspective!==undefined&&typeof v.roomPerspective!=='boolean')fail('Invalid Room projection preference');
+ if(v.mapView!==undefined){if(formatVersion<physicalProfileVersion)fail('Map view requires adopted profiles');mapViewState(s,v.mapView);}
  if(v.snapEnabled!==undefined&&typeof v.snapEnabled!=='boolean')fail('Invalid snapping preference');
  if(v.showGrid!==undefined&&typeof v.showGrid!=='boolean')fail('Invalid grid visibility');
  if(v.snapDistance!==undefined&&(!Number.isInteger(v.snapDistance)||v.snapDistance<5||v.snapDistance>100))fail('Invalid grid interval');

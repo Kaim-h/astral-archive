@@ -550,3 +550,30 @@ export function mapWallRuns(data,r,inset=0){
 export function mapRoomDetail(r,frame,zoom){
     return !!r&&!!frame&&zoom>=1.3&&Math.min(r.w,r.h)*frame.scale>=56;
 }
+
+// N4e: transient map camera; bounds are view-only, never geometry clamps.
+export const mapCenterLimit=1000000;
+export function mapCameraCenter(x,y){
+    if(![x,y].every(Number.isFinite))return null;
+    const clamp=v=>Math.max(-mapCenterLimit,Math.min(mapCenterLimit,v));
+    return {x:clamp(x),y:clamp(y)};
+}
+export function mapFocusCamera(data,w,h,kind,id){
+    const fit=mapFrame(data,w,h,1);if(!fit)return null;
+    let b;
+    if(kind==='room'){
+        const r=data.rooms.find(q=>q.id===id);if(!r)return null;
+        const pad=Math.max(95,Math.max(r.w,r.h)*.17);b={x:r.x-pad,y:r.y-pad,w:r.w+2*pad,h:r.h+2*pad};
+    }else if(kind==='door'){
+        const d=data.doors.find(q=>q.id===id);if(!d)return null;
+        const size=Math.max(320,(d.end-d.start)*3.7),mid=(d.start+d.end)/2,cx=d.vertical?d.line:mid,cy=d.vertical?mid:d.line;
+        b={x:cx-size/2,y:cy-size/2,w:size,h:size};
+    }else return null;
+    const target=mapFrame({bounds:b},w,h,1);
+    return {zoom:Math.max(.25,Math.min(8,target.scale/fit.scale)),center:mapCameraCenter(b.x+b.w/2,b.y+b.h/2)};
+}
+export function mapTransitionFrame(from,to,t){
+    if(!from||!to||!Number.isFinite(t))return null;
+    t=Math.max(0,Math.min(1,t));if(t===0)return Object.assign({},from);if(t===1)return Object.assign({},to);const mix=(a,b)=>a+(b-a)*t;
+    return {scale:mix(from.scale,to.scale),x:mix(from.x,to.x),y:mix(from.y,to.y),cx:mix(from.cx,to.cx),cy:mix(from.cy,to.cy)};
+}

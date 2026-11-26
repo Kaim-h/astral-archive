@@ -1156,5 +1156,25 @@ export function run(){
   eq(View.mapRoomDetail(data.rooms[0],f,1),false,'overview suppresses detail');
   yes(View.mapRoomDetail(data.rooms[0],close,4),'close detail');
  }
+ {
+  // N4e: compatible optional upper-layer view, exact validated identities,
+  // bounded camera/focus state and unchanged structural format.
+  const state=apply(Core.session(ShelfSample.roomFixture()),{kind:'spatialAdoptIndependentProfiles'}),s=state.snapshot,data=View.mapPlan(s);
+  const r=data.rooms.find(r=>!r.shelves.length),door=data.doors[0];
+  const base={zoom:1,center:null},target=View.mapFocusCamera(data,1366,745,'room',r.id),dTarget=View.mapFocusCamera(data,1366,745,'door',door.id);
+  eq(target.center,{x:r.x+r.w/2,y:r.y+r.h/2},'room focus center');
+  eq(dTarget.center,door.vertical?{x:door.line,y:(door.start+door.end)/2}:{x:(door.start+door.end)/2,y:door.line},'door focus center');
+  eq(View.mapCameraCenter(1e12,-1e12),{x:1000000,y:-1000000},'bounded camera pan');
+  const f=View.mapFrame(data,1366,745,1),to=View.mapFrame(data,1366,745,target.zoom,target.center);
+  eq(View.mapTransitionFrame(f,to,0),f,'flight source');eq(View.mapTransitionFrame(f,to,1),to,'flight destination');
+  const view={path:s.path.slice(),theme:1,cameras:{},mapView:{layer:'room',roomId:r.id,roomShelf:'',camera:target,selectedRoom:r.id,selectedDoor:'',focus:{kind:'door',id:door.id,base}}};
+  const encoded=Checkpoint.encode(state,view);eq(JSON.parse(encoded).version,5,'no structural version bump');
+  eq(Checkpoint.decode(encoded).view,view,'map layer/camera/focus exact roundtrip');
+  eq(Checkpoint.decode(encoded).snapshot,s,'map metadata never arrangement');
+  for(const mutate of [v=>v.mapView.roomId='missing',v=>v.mapView.camera.zoom=99,v=>v.mapView.camera.center={x:1e7,y:0},v=>v.mapView.focus.id='missing',v=>v.mapView.roomShelf='root',v=>v.mapView.selectedDoor='missing',v=>v.mapView.layer='unknown']){
+   const bad=Core.clone(view);mutate(bad);let refused=false;try{Checkpoint.encode(state,bad)}catch(e){refused=true}yes(refused,'invalid upper view refused');
+  }
+  const legacyView=Core.clone(view);delete legacyView.mapView;eq(Checkpoint.decode(Checkpoint.encode(state,legacyView)).view,legacyView,'older upper field absent remains compatible');
+ }
  return checks;
 }
