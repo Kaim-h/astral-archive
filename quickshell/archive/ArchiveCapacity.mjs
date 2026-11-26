@@ -25,14 +25,12 @@ export function preflight(s,formatVersion=2){
   for(const m of c.mods){
    if(!plain(m)||!id(m.id)||![m.x,m.y,m.w,m.h].every(Number.isFinite)||!color(m.color))fail('Invalid fixture');
    if(++fixtures>limits.fixtures)fail('Fixture budget exceeded');
-   if(m.type==='cubby'){if(!id(m.childId)||(!spatial&&m.childId==='root'))fail('Invalid child');children.add(m.childId);continue;}
-   if(m.type==='artwork'){
-    if(formatVersion===1)fail('Version 1 cannot contain artwork mounts');
-    if(m.record!==null)addRecord(m.record,false);
-    continue;
-   }
-   if(m.type==='shelf'){
-    if(m.h!==15||m.w<120||(m.items!==undefined&&(!Array.isArray(m.items)||m.items.length>64)))fail('Invalid shelf');
+   const top=spatial&&(m.type==='rack'||m.type==='cubby')&&m.flatTop===true;
+   if(m.flatTop!==undefined&&!top)fail('Invalid or unsupported flat top');
+   if(m.items!==undefined&&m.type!=='shelf'&&!top)fail('Items require an eligible support surface');
+   if(m.type==='shelf'||top){
+    if(m.type==='shelf'&&(m.h!==15||m.w<120))fail('Invalid shelf');
+    if(m.items!==undefined&&(!Array.isArray(m.items)||m.items.length>64))fail('Invalid support contents');
     if(formatVersion===1&&(m.items||[]).length)fail('Version 1 cannot contain populated shelves');
     for(const e of m.items||[]){
      if(!plain(e))fail('Invalid shelf entry');
@@ -43,6 +41,12 @@ export function preflight(s,formatVersion=2){
       for(const r of e.slots)if(r!==null)addRecord(r,false);
      }else fail('Invalid shelf entry');
     }
+   }
+   if(m.type==='shelf')continue;
+   if(m.type==='cubby'){if(!id(m.childId)||(!spatial&&m.childId==='root'))fail('Invalid child');children.add(m.childId);continue;}
+   if(m.type==='artwork'){
+    if(formatVersion===1)fail('Version 1 cannot contain artwork mounts');
+    if(m.record!==null)addRecord(m.record,false);
     continue;
    }
    if(m.type!=='rack'||!plain(m.cellMeta)||!plain(m.scrollCells))fail('Invalid rack');

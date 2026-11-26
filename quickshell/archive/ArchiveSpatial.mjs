@@ -134,6 +134,16 @@ export function edit(s,cmd,allocate){
   delete a.shelves[k];delete s.cubbies[k];
   for(const record of s.caseItems)if(record.originCubbyId===k)record.originStale=true;
   if(s.path[0]===k)s.path=[Object.keys(a.shelves)[0]];
+ }else if(cmd.kind==='spatialSupport'){
+  need(own(s.cubbies,cmd.containerId),'Container no longer exists');
+  const m=s.cubbies[cmd.containerId].mods.find(v=>v.id===cmd.moduleId);
+  need(m&&(m.type==='rack'||m.type==='cubby'),'Only rack and Cubby tops may be enabled');
+  need(keysOnly(p,['enabled'])&&typeof p.enabled==='boolean','Choose support eligibility explicitly');
+  if(p.enabled)m.flatTop=true;
+  else{
+   need(!(m.items||[]).length,'Resolve supported objects and holders before disabling the surface');
+   delete m.flatTop;delete m.items;
+  }
  }else if(cmd.kind==='spatialAppearance'){
   need(keysOnly(p,['family','palette'])&&appearance(p),'Invalid appearance reference');
   const target=cmd.containerId===undefined?s.spatial:s.cubbies[cmd.containerId];

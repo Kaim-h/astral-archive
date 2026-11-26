@@ -67,7 +67,18 @@ function holderRect(entry){
     const envelope=L.holderEnvelope(entry.scale,entry.w);
     return rect(entry.x,-envelope.height,envelope.width,envelope.height);
 }
+// Board surfaces remain inherently eligible. A rack or nested Cubby face
+// has a top datum only when explicitly opted in by spatial-state policy.
+export function supportsTop(module){
+    return !!module&&(module.type==="shelf"||
+        (module.type==="rack"||module.type==="cubby")&&module.flatTop===true);
+}
+export function supportSurface(module){
+    need(supportsTop(module),"Fixture has no eligible support surface");
+    return {moduleId:module.id,x:module.x,y:module.y,w:module.w};
+}
 export function validateShelf(module){
+    need(supportsTop(module),"Fixture has no eligible support surface");
     const entries=module.items===undefined?[]:module.items;
     need(Array.isArray(entries)&&entries.length<=64,"Invalid shelf contents");
     const boxes=[];
@@ -92,7 +103,7 @@ export function fixtureRects(m){
         return [rect(m.x,m.y,m.w+g.shadow.width,m.h)];
     }
     const boxes=[rect(m.x,m.y,m.w,m.h)];
-    if(m.type==="shelf")for(const b of validateShelf(m))boxes.push(rect(m.x+b.x,m.y+b.y,b.w,b.h));
+    if(supportsTop(m))for(const b of validateShelf(m))boxes.push(rect(m.x+b.x,m.y+b.y,b.w,b.h));
     return boxes;
 }
 // Preserve existing .scroll member for B6 callers; non-rack entries expose
@@ -100,7 +111,7 @@ export function fixtureRects(m){
 export function owners(cubbyId,m){
     const out=[];
     if(m.type==="artwork"&&m.record)out.push({id:m.record.id,where:"artwork",cubbyId,moduleId:m.id,scroll:m.record});
-    if(m.type==="shelf")for(const e of m.items||[]){
+    if(supportsTop(m))for(const e of m.items||[]){
         if(e.kind==="object")out.push({id:e.record.id,where:"shelf",cubbyId,moduleId:m.id,scroll:e.record});
         else if(e.kind==="holder")for(let i=0;i<e.slots.length;i++)if(e.slots[i]){
             const r=e.slots[i];out.push({id:r.id,where:"holder",cubbyId,moduleId:m.id,holderId:e.id,slot:i,scroll:r});
@@ -141,14 +152,14 @@ export function place(snapshot,item,d){
         need(m.type==="artwork"&&m.record===null&&p.family==="artwork","Choose a vacant compatible artwork mount");
         m.record=item;
     }else if(d.kind==="shelf"){
-        need(m.type==="shelf","Choose a shelf");
+        need(supportsTop(m)&&(m.type==="shelf"||snapshot.spatial),"Choose an eligible support surface");
         const entry={kind:"object",record:item,x:d.x,scale:d.scale,support:d.support};
         if(p.family==="artwork")entry.frame=copy(d.frame);
         objectRect(entry);
         if(!m.items)m.items=[];
         m.items.push(entry);
     }else if(d.kind==="holder"){
-        need(m.type==="shelf"&&upright(p.family),"Choose a compatible upright holder");
+        need(supportsTop(m)&&(m.type==="shelf"||snapshot.spatial)&&upright(p.family),"Choose a compatible upright holder");
         const h=(m.items||[]).find(e=>e.kind==="holder"&&e.id===d.holderId);
         need(h&&Number.isInteger(d.slot)&&d.slot>=0&&d.slot<h.slots.length&&h.slots[d.slot]===null,"Choose a vacant holder slot");
         h.slots[d.slot]=item;
@@ -198,7 +209,7 @@ export function destinationAt(snapshot,cubbyId,p,record,source){
     for(const m of c.mods){
         if(m.type==="artwork"&&family==="artwork"&&(!m.record||m.record.id===record.id)&&p.x>=m.x&&p.x<=m.x+m.w&&p.y>=m.y&&p.y<=m.y+m.h)
             return {kind:"artwork",cubbyId,moduleId:m.id};
-        if(m.type!=="shelf")continue;
+        if(!supportsTop(m))continue;
         const x=p.x-m.x,y=p.y-m.y;
         if(x<0||x>m.w)continue;
         if(upright(family)){
@@ -214,7 +225,7 @@ export function destinationAt(snapshot,cubbyId,p,record,source){
                         return {kind:"holder",cubbyId,moduleId:m.id,holderId:h.id,slot:i};
                 }
             }
-        }else if(y>=-36&&y<=m.h){
+        }else if(y>=-36&&y<=(m.type==="shelf"?m.h:0)){
             const d={kind:"shelf",cubbyId,moduleId:m.id,x,scale:.86,support:"shelf"};
             if(placement&&placement.kind==="object"){
                 d.scale=placement.scale;d.support=placement.support;
@@ -231,7 +242,7 @@ export function fixtureEnvelope(m){
     return rect(x,y,Math.max(...boxes.map(b=>b.x+b.w))-x,Math.max(...boxes.map(b=>b.y+b.h))-y);
 }
 export function holderAt(module,p){
-    if(!module||module.type!=="shelf")return null;
+    if(!supportsTop(module))return null;
     const entries=module.items||[],boxes=validateShelf(module);
     for(let i=0;i<entries.length;i++){
         const b=boxes[i];
@@ -262,9 +273,9 @@ export function originDestination(snapshot,record){
     const d={cubbyId:record.originCubbyId,moduleId:record.originModuleId};
     const m=moduleAt(snapshot,d);
     if(m.type==="artwork"){d.kind="artwork";}
-    else if(m.type==="shelf"&&record.originHolderId){
+    else if(supportsTop(m)&&record.originHolderId){
         d.kind="holder";d.holderId=record.originHolderId;d.slot=record.originSlot;
-    }else if(m.type==="shelf"&&record.originPlacement&&record.originPlacement.kind==="object"){
+    }else if(supportsTop(m)&&record.originPlacement&&record.originPlacement.kind==="object"){
         const p=record.originPlacement;
         Object.assign(d,{kind:"shelf",x:p.x,scale:p.scale,support:p.support});
         if(p.frame)d.frame=copy(p.frame);

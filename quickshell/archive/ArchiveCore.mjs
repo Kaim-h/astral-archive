@@ -445,7 +445,8 @@ export function owners(snapshot){
   if(m.type==='rack'){
    for(const [key,records] of Object.entries(m.scrollCells||{}))for(const scroll of records)
     entries.push({id:scroll.id,where:'rack',cubbyId:c.id,rackId:m.id,key,scroll});
-  }else entries.push(...Mixed.owners(c.id,m));
+  }
+  entries.push(...Mixed.owners(c.id,m));
  }
  for(const scroll of snapshot.caseItems)entries.push({id:scroll.id,where:'case',scroll});
  return entries;
@@ -474,6 +475,17 @@ export function validate(snapshot){
   for(const m of c.mods){
    if(typeof m.id!=='string'||!m.id||modules.has(m.id))return 'Duplicate module identity';
    modules.add(m.id);
+   // All eligible surfaces share the same B7 contact envelopes and owners;
+   // rack cell records are still validated independently below.
+   try{
+    if(Mixed.supportsTop(m)){
+     Mixed.validateShelf(m);
+     for(const entry of m.items||[])if(entry.kind==='holder'){
+      if(modules.has(entry.id))return 'Duplicate fixture identity';modules.add(entry.id);
+     }
+    }
+    for(const e of Mixed.owners(cubbyId,m)){if(ids.has(e.id))return 'Duplicate file identity';ids.add(e.id);}
+   }catch(e){return String(e.message||e);}
    if(m.type==='cubby'){
     if(![m.x,m.y,m.w,m.h].every(Number.isFinite)||m.w<130||m.h<100||!rackBounds(c,m))return 'Invalid nested cubby footprint';
     if(typeof m.childId!=='string'||!snapshot.cubbies[m.childId]||parents.has(m.childId)||m.childId===cubbyId)return 'Invalid or multiply parented cubby';
@@ -481,18 +493,10 @@ export function validate(snapshot){
    }
    if(m.type==='shelf'){
     if(![m.x,m.y,m.w,m.h].every(Number.isFinite)||m.w<120||m.h!==15||!rackBounds(c,m))return 'Invalid shelf board geometry';
-    try{
-     Mixed.validateShelf(m);
-     for(const entry of m.items||[])if(entry.kind==='holder'){
-      if(modules.has(entry.id))return 'Duplicate fixture identity';modules.add(entry.id);
-     }
-     for(const e of Mixed.owners(cubbyId,m)){if(ids.has(e.id))return 'Duplicate file identity';ids.add(e.id);}
-    }catch(e){return String(e.message||e);}
     continue;
    }
    if(m.type==='artwork'){
     try{Mixed.validateMount(m);if(!rackBounds(c,m))return 'Invalid mounted artwork footprint';
-     for(const e of Mixed.owners(cubbyId,m)){if(ids.has(e.id))return 'Duplicate file identity';ids.add(e.id);}
     }catch(e){return String(e.message||e);}
     continue;
    }
@@ -853,9 +857,9 @@ export function editStructure(s,command){
    function collect(childId){
     if(deletedCubbyIds.has(childId))throw Error('Cyclic child');
     deletedCubbyIds.add(childId);
-    for(const q of next.cubbies[childId].mods){if(q.type==='cubby')collect(q.childId);else deletedRackIds.add(q.id);}
+    for(const q of next.cubbies[childId].mods){deletedRackIds.add(q.id);if(q.type==='cubby')collect(q.childId);}
    }
-   if(m.type==='cubby')collect(m.childId);else deletedRackIds.add(m.id);
+   deletedRackIds.add(m.id);if(m.type==='cubby')collect(m.childId);
    // Apply is the explicit confirmation; preview never publishes the evacuation.
    const removed=owners(next).filter(e=>e.where!=='case'&&deletedRackIds.has(e.rackId||e.moduleId));
    for(const e of removed){
@@ -903,7 +907,7 @@ export function editStructure(s,command){
    if(Object.prototype.hasOwnProperty.call(p,'profile'))m.profile=p.profile;
    Mixed.validateMount(m);
   }else if(['holderCreate','holderEdit','holderDelete'].includes(command.kind)){
-   if(!m||m.type!=='shelf')throw Error('Select a shelf');
+   if(!Mixed.supportsTop(m))throw Error('Select an eligible support surface');
    if(!m.items)m.items=[];
    const holder=m.items.find(e=>e.kind==='holder'&&e.id===command.holderId);
    if(command.kind==='holderCreate'){
@@ -931,7 +935,7 @@ export function editStructure(s,command){
    }
    Mixed.validateShelf(m);
   }else if(command.kind==='holderMove'){
-   if(!m||m.type!=='shelf')throw Error('Select an upright holder');
+   if(!Mixed.supportsTop(m))throw Error('Select an upright holder');
    const holder=(m.items||[]).find(e=>e.kind==='holder'&&e.id===command.holderId);
    if(!holder||!Number.isInteger(command.from)||!Number.isInteger(command.to)||command.from<0||command.to<0||command.from>=holder.slots.length||command.to>=holder.slots.length||!holder.slots[command.from]||holder.slots[command.from].id!==command.recordId)throw Error('Invalid or stale holder move');
    const a=holder.slots[command.from];holder.slots[command.from]=holder.slots[command.to];holder.slots[command.to]=a;

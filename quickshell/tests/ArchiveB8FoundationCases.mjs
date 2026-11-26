@@ -3,6 +3,8 @@ import * as Core from "../archive/ArchiveCore.mjs";
 import * as Spatial from "../archive/ArchiveSpatial.mjs";
 import * as Checkpoint from "../archive/ArchiveCheckpoint.mjs";
 import * as MixedFixture from "./ArchiveB7MixedFixture.mjs";
+import * as Mixed from "../archive/representation/B7Ownership.mjs";
+import * as Motion from "../archive/ArchiveMotion.mjs";
 export function run(){
  let checks=0;
  function eq(a,b,label){checks++;if(JSON.stringify(a)!==JSON.stringify(b))throw Error(label+': '+JSON.stringify(a)+' != '+JSON.stringify(b));}
@@ -115,5 +117,70 @@ export function run(){
  eq(Core.undo(moved).snapshot,promoted.snapshot,'support movement exact Undo');
  const mislabeledLegacy=JSON.parse(mixedV2);mislabeledLegacy.version=3;
  rejected=false;try{Checkpoint.decode(JSON.stringify(mislabeledLegacy));}catch(e){rejected=true;}yes(rejected,'v3 requires spatial envelope');
+ // Flat-top support is explicit, local and uses the same portable record.
+ // Create a dedicated uncluttered fixture rather than altering the visual sample.
+ const supportBase=Core.fixture();supportBase.cubbies.root.w=1400;supportBase.cubbies.root.h=1000;
+ const topRack=supportBase.cubbies.root.mods[0];topRack.x=100;topRack.y=350;
+ supportBase.caseItems.push({id:'top-parcel',name:'Parcel.zip',r:13,representation:'parcel',variant:'parcel/satchel'},
+  {id:'top-audio',name:'Tone.flac',r:13,representation:'record',variant:'record/v1'},
+  {id:'top-art',name:'Art.png',r:13,representation:'artwork',variant:'artwork/moonlit-mountains'});
+ let tops=apply(Core.session(supportBase),{kind:'spatialPromote'});
+ const dest={kind:'shelf',cubbyId:'root',moduleId:topRack.id,x:100,scale:.86,support:'tray'};
+ let n=Core.transfer(tops,['top-parcel'],dest);yes(n.error,'ineligible top refuses file');eq(n.snapshot,tops.snapshot,'refusal atomic');
+ tops=apply(tops,{kind:'spatialSupport',containerId:'root',moduleId:topRack.id,patch:{enabled:true}});
+ n=Core.transfer(tops,['top-parcel'],dest);eq(n.error,'','direct rack-top placement');tops=n;
+ const owned=Core.owners(tops.snapshot).find(e=>e.id==='top-parcel');
+ eq(owned.moduleId,topRack.id,'support owner is rack module, not extra board');
+ eq(Mixed.supportSurface(Core.rackAt(tops.snapshot,'root',topRack.id)),{moduleId:topRack.id,x:100,y:350,w:500},'explicit local datum');
+ eq(Core.owners(tops.snapshot).filter(e=>e.where==='rack').length,3,'rack cells unchanged');
+ const topItems=Core.clone(Core.rackAt(tops.snapshot,'root',topRack.id).items);
+ const staged=Core.stage(tops,'root',topRack.id,{x:120,y:380});
+ eq(staged.draft.phase,'pending','supported rack move stage');
+ const solved=Core.accept(staged,Core.solve(Core.request(staged)));
+ eq(solved.draft.phase,'ready','supported rack move solved');
+ const shifted=Core.apply(solved);eq(shifted.error,'','supported rack move committed');
+ eq(Core.rackAt(shifted.snapshot,'root',topRack.id).items,topItems,'dependent positions/sizes unchanged');
+ eq(Core.undo(shifted).snapshot,tops.snapshot,'rack movement exact Undo');
+ const tooHigh=Core.stage(tops,'root',topRack.id,{y:0});
+ eq(tooHigh.draft.phase,'invalid','overhead boundary enforced');
+ eq(Core.apply(tooHigh).snapshot,tops.snapshot,'invalid movement nonmutating');
+ refuse(tops,{kind:'spatialSupport',containerId:'root',moduleId:topRack.id,patch:{enabled:false}});
+ const carriedTop=Core.transfer(tops,['top-parcel'],'case');eq(carriedTop.error,'','cut direct top object');
+ const topRecord=carriedTop.snapshot.caseItems.find(r=>r.id==='top-parcel');
+ eq(Core.originDestination(carriedTop.snapshot,topRecord),dest,'return uses same support datum');
+ // Live mixed transaction uses the same file owner and contact checks.
+ const motion=Motion.begin(carriedTop,['top-parcel'],true);
+ Motion.lift(motion);Motion.insert(motion,dest,{});Motion.release(motion,false);
+ const returned=Core.commitMotion(carriedTop,motion);eq(returned.error,'','live top return');
+ eq(Core.owners(returned.snapshot).find(e=>e.id==='top-parcel').moduleId,topRack.id,'live owner preserved');
+ tops=returned;
+ // Holder cradle and occupied slots consume the same width/height envelopes.
+ tops=apply(tops,{kind:'create',type:'cubby',cubbyId:'root',patch:{x:700,y:400,w:500,h:300}});
+ const childModule=tops.snapshot.cubbies.root.mods.find(m=>m.type==='cubby');
+ tops=apply(tops,{kind:'spatialSupport',containerId:'root',moduleId:childModule.id,patch:{enabled:true}});
+ tops=apply(tops,{kind:'holderCreate',cubbyId:'root',moduleId:childModule.id,patch:{x:0,w:130,count:2}});
+ const h=tops.snapshot.cubbies.root.mods.find(m=>m.id===childModule.id).items[0];
+ n=Core.transfer(tops,['top-audio'],{kind:'holder',cubbyId:'root',moduleId:childModule.id,holderId:h.id,slot:0});
+ eq(n.error,'','upright on Cubby top');tops=n;
+ refuse(tops,{kind:'child',cubbyId:'root',moduleId:childModule.id,patch:{w:150}});
+ refuse(tops,{kind:'spatialSupport',containerId:'root',moduleId:childModule.id,patch:{enabled:false}});
+ refuse(tops,{kind:'child',cubbyId:'root',moduleId:childModule.id,patch:{y:0}});
+ const overlap=Core.transfer(tops,['top-art'],{kind:'shelf',cubbyId:'root',moduleId:childModule.id,x:65,scale:.86,support:'shelf',frame:{w:120,h:100,profile:'bronze'}});
+ yes(overlap.error,'reserved holder blocks competing object');eq(overlap.snapshot,tops.snapshot,'collision nonmutating');
+ const topSave=Checkpoint.encode(tops,{path:['root'],theme:1,cameras:{}});
+ eq(Checkpoint.decode(topSave).snapshot,tops.snapshot,'supported tops v3 roundtrip');
+ const malformed=Core.clone(tops.snapshot);delete malformed.cubbies.root.mods[0].flatTop;invalid(malformed,'unqualified top contents invalid');
+ const duplicateTop=Core.clone(tops.snapshot);
+ duplicateTop.caseItems.push(Core.clone(Core.owners(tops.snapshot).find(e=>e.id==='top-parcel').scroll));invalid(duplicateTop,'duplicate top owner invalid');
+ const removeTop=Core.previewStructure(tops,{kind:'delete',cubbyId:'root',moduleId:childModule.id});
+ yes(removeTop.ok,removeTop.error);eq(removeTop.caseTransferCount,1,'top holder file evacuated on Cubby deletion');
+ const afterTop=Core.applyStructure(tops,removeTop);eq(afterTop.error,'','top support deletion');
+ yes(afterTop.snapshot.caseItems.find(r=>r.id==='top-audio').originStale,'removed top origin stale');
+ eq(Core.undo(afterTop).snapshot,tops.snapshot,'top removal exact Undo');
+ const removedRack=Core.previewStructure(tops,{kind:'delete',cubbyId:'root',moduleId:topRack.id});
+ yes(removedRack.ok,removedRack.error);eq(removedRack.caseTransferCount,4,'rack cells and supported file evacuated together');
+ const afterRack=Core.applyStructure(tops,removedRack);eq(afterRack.error,'','rack support deletion');
+ eq(Core.undo(afterRack).snapshot,tops.snapshot,'rack deletion exact Undo');
+ const legacyTop=Core.clone(supportBase);legacyTop.cubbies.root.mods[0].flatTop=true;invalid(legacyTop,'legacy opt-out enforced');
  return checks;
 }
