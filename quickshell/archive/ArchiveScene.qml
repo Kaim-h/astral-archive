@@ -34,7 +34,9 @@ Item {
             if(updated)return updated
         }
         if(proposal&&proposal.ok&&proposal.command.moduleId===m.id&&
-           (proposal.command.kind==="shelf"&&proposal.command.rearrange===true||["holderCreate","holderEdit","artwork"].includes(proposal.command.kind))){
+           (proposal.command.kind==="shelf"&&(Spatial.enabled(controller.snapshot)||proposal.command.rearrange===true)||
+            proposal.command.kind==="child"&&Spatial.enabled(controller.snapshot)||
+            ["holderCreate","holderEdit","artwork"].includes(proposal.command.kind))){
             var candidate=proposal.snapshot.cubbies[cubbyId].mods.find(q=>q.id===m.id)
             if(candidate)return candidate
         }

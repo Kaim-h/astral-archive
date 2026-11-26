@@ -1020,11 +1020,21 @@ export function previewStructure(s,command){
  }
  return result;
 }
+// JSON snapshots are data, not insertion-order-sensitive JS dictionaries.
+// Compare every value and array position; property enumeration order alone
+// must not invalidate a reviewed preview crossing a QML value boundary.
+function equalPreview(a,b){
+ if(a===b)return true;
+ if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+ const keys=Object.keys(a);
+ if(keys.length!==Object.keys(b).length||Array.isArray(a)&&a.length!==b.length)return false;
+ return keys.every(k=>Object.prototype.hasOwnProperty.call(b,k)&&equalPreview(a[k],b[k]));
+}
 export function applyStructure(s,proposal){
  if(!proposal||!proposal.ok||proposal.revision!==s.revision||s.draft)return structuralError(s,'No valid latest structural proposal');
  const candidate=editStructure(s,proposal.command);
  if((Spatial.enabled(s.snapshot)||Spatial.enabled(candidate.snapshot))&&!candidate.error&&
-    JSON.stringify(candidate.snapshot)!==JSON.stringify(proposal.snapshot))
+    !equalPreview(candidate.snapshot,proposal.snapshot))
   return structuralError(s,'Structural preview changed; review a fresh proposal');
  return candidate;
 }

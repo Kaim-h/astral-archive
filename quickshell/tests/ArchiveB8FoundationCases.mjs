@@ -443,5 +443,22 @@ export function run(){
  eq(Spatial.appPlacements(withBook.snapshot).filter(v=>v.appId==='org.example.Atlas').length,1,'exactly one placement');
  eq(Core.undo(withBook).snapshot,sample,'picker placement Undo');
  eq(Mixed.suggestBookX(sample.cubbies.root,Object.assign({},sampleRack,{y:0}),'org.example.Atlas'),null,'insufficient ceiling refuses hint');
+ const firstBookProposal=Core.previewStructure(sampleState,bookCommand);
+ yes(firstBookProposal.ok,'first book proposal');
+ const repeatBookProposal=Core.previewStructure(sampleState,bookCommand);
+ yes(repeatBookProposal.ok,'repeat after discarded preview');
+ function reordered(v){
+  if(!v||typeof v!=='object')return v;
+  if(Array.isArray(v))return v.map(reordered);
+  const out={};for(const k of Object.keys(v).reverse())out[k]=reordered(v[k]);return out;
+ }
+ const reorderedProposal=Object.assign({},repeatBookProposal,{snapshot:reordered(repeatBookProposal.snapshot)});
+ const repeatApplied=Core.applyStructure(sampleState,reorderedProposal);
+ eq(repeatApplied.error,'','property order is not a changed preview');
+ eq(repeatApplied.snapshot,withBook.snapshot,'repeated placement exact');
+ const different=Core.clone(repeatBookProposal);different.snapshot.cubbies.root.h++;
+ yes(Core.applyStructure(sampleState,different).error,'changed value remains rejected');
+ refuse(sampleState,Object.assign({},bookCommand,{patch:{x:null}}));
+ refuse(sampleState,Object.assign({},bookCommand,{patch:{x:-1}}));
  return checks;
 }

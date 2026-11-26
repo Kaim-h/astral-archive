@@ -64,8 +64,23 @@ Item {
             // Re-select the book and place Atlas through the same visible controls.
             top=findChild(scene,"mixed-top-rack-1");book=findChild(top,"archive-book-org.example.Reader")
             mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("place-book");clickNamed("pick-book-org.example.Atlas")
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok},3000)
+            compare(ctl.structuralProposal.command.appId,"org.example.Atlas")
+            var input=findChild(study,"book-position-input")
+            verify(!!input)
+            var position=ctl.structuralProposal.command.patch.x
+            mouseClick(input,input.width/2,input.height/2)
+            keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
+            tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
+            compare(input.text,"")
+            keyClicks(String(position))
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+            compare(ctl.structuralProposal.command.patch.x,position)
+            var attempts=study.structureApplyAttempts
             clickNamed("structure-apply")
-            tryVerify(function(){return Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Atlas")})
+            tryCompare(study,"structureApplyAttempts",attempts+1,3000)
+            verify(!ctl.structuralProposal,study.structureApplyError+" / "+ctl.errorText)
+            verify(Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Atlas"),"Apply must commit the selected book")
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
             top=findChild(scene,"mixed-top-rack-1");book=findChild(top,"archive-book-org.example.Reader")
             mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("toggle-flat-top")
@@ -74,7 +89,7 @@ Item {
             clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
             top=findChild(scene,"mixed-top-rack-1");book=findChild(top,"archive-book-org.example.Reader")
             mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("unplace-selected-book");clickNamed("structure-apply")
-            tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")})
+            tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")},3000,study.structureApplyError+" / "+ctl.errorText)
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
         function test_shelf_input_and_support(){

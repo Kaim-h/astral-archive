@@ -181,6 +181,7 @@ Rectangle {
     Connections {
         target:archive
         function onStructuralProposalChanged(){
+            study.structureApplyError=""
             if(study.materialPanel!==""&&!study.materialProposal)study.closeMaterials()
         }
         function onDraftChanged(){
@@ -234,21 +235,43 @@ Rectangle {
         if(!structureReady||!spatialEnabled||!selectedSupport)return
         bookPage=0;bookPicker=true;contextRows.forceLayout();contextScroll.resetPosition()
     }
+    property string bookPositionText:""
+    property string structureApplyError:""
+    property int structureApplyAttempts:0
     function startBook(appId,remove){
         if(!structureReady||!spatialEnabled||!selectedSupport)return
         var m=selectedFixture,c=sceneView.cubby,existing=(m.items||[]).find(e=>e.kind==="app"&&e.appId===appId)
         if(remove&&!existing)return
         var x=existing?existing.x:Mixed.suggestBookX(c,m,appId)
+        bookPositionText=String(x===null?21:x)
         closeContext()
         archive.proposeStructure(remove?{kind:"spatialAppUnplace",appId:appId}:
             {kind:"spatialAppPlace",appId:appId,containerId:c.id,moduleId:m.id,patch:{x:x===null?21:x}})
         structurePanel.forceActiveFocus()
     }
+    function setBookPosition(value){
+        var q=archive.structuralProposal
+        if(!q||q.command.kind!=="spatialAppPlace")return
+        bookPositionText=value
+        var cmd=Core.clone(q.command)
+        // Preserve incomplete/invalid text. Model rejects null/out of bounds.
+        cmd.patch.x=/^[0-9]+(?:\.[0-9]+)?$/.test(value)?Number(value):null
+        archive.proposeStructure(cmd)
+    }
     function stepBook(delta){
         var q=archive.structuralProposal
         if(!q||q.command.kind!=="spatialAppPlace")return
-        var cmd=Core.clone(q.command);cmd.patch.x=Math.round(cmd.patch.x+delta)
-        archive.proposeStructure(cmd)
+        setBookPosition(String((Number.isFinite(q.command.patch.x)?q.command.patch.x:21)+delta))
+    }
+    function confirmStructure(){
+        structureApplyAttempts++
+        structureApplyError=""
+        if(archive.applyStructure()){
+            sceneView.message="Arrangement updated · Undo available";sceneView.clearSelection()
+            return true
+        }
+        structureApplyError=archive.errorText||"Unable to apply this preview"
+        return false
     }
     function toggleTop(){
         if(!structureReady||!spatialEnabled||!selectedFixture||!["rack","cubby"].includes(selectedFixture.type))return
@@ -811,6 +834,14 @@ Rectangle {
             }
         }
     }
+    // A spatial confirmation owns its input. No click may reach a fixture,
+    // case, or context backdrop behind it. Keep legacy drag ghosts interactive.
+    MouseArea {
+        anchors.fill:parent;z:34
+        visible:structurePanel.spatialConfirmation
+        acceptedButtons:Qt.AllButtons
+        onWheel:function(wheel){wheel.accepted=true}
+    }
     Archive.ArchiveInspectorFrame {
         id:structurePanel
         objectName:"structure-panel"
@@ -818,7 +849,7 @@ Rectangle {
         availableWidth:study.width-16
         availableHeight:sceneView.height-16
         preferredWidth:265
-        preferredHeight:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
+        preferredHeight:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
         property var proposal:study.materialProposal?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
@@ -828,6 +859,7 @@ Rectangle {
         readonly property bool bookEdit:!!cmd&&cmd.kind==="spatialAppPlace"
         readonly property bool bookRemove:!!cmd&&cmd.kind==="spatialAppUnplace"
         readonly property bool supportEdit:!!cmd&&cmd.kind==="spatialSupport"
+        readonly property bool spatialConfirmation:!!cmd&&[ "spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
@@ -934,7 +966,17 @@ Rectangle {
                     visible:structurePanel.bookEdit;spacing:5
                     Text {width:55;color:study.colors.engraving;text:"Position"}
                     Archive.ArchiveButton {objectName:"book-minus";colors:study.colors;label:"−";onClicked:study.stepBook(-10)}
-                    Text {width:60;color:study.colors.text;text:structurePanel.bookEdit?String(structurePanel.cmd.patch.x):"";horizontalAlignment:Text.AlignHCenter}
+                    Rectangle {
+                        width:76;height:26;radius:4;color:study.colors.background;border.color:study.colors.metal
+                        TextInput {
+                            objectName:"book-position-input"
+                            anchors.fill:parent;anchors.margins:4
+                            color:study.colors.text;font.pixelSize:11;maximumLength:12;selectByMouse:true
+                            text:study.bookPositionText
+                            Accessible.name:"Exact support-local book position"
+                            onTextEdited:study.setBookPosition(text)
+                        }
+                    }
                     Archive.ArchiveButton {objectName:"book-plus";colors:study.colors;label:"+";onClicked:study.stepBook(10)}
                 }
                 Repeater {
@@ -969,7 +1011,7 @@ Rectangle {
             spacing:5
             Text {
                 width:parent.width;wrapMode:Text.WordWrap;color:study.colors.engraving;font.pixelSize:11
-                text:structurePanel.proposal?structurePanel.proposal.error||(structurePanel.movedCount?
+                text:structurePanel.proposal?study.structureApplyError||structurePanel.proposal.error||(structurePanel.movedCount?
                     "Preview moves "+structurePanel.movedCount+" fixture(s). Sizes and contents unchanged.":!structurePanel.proposal.ok?"No changes":"Ready to apply"):""
             }
             Archive.ArchiveButton {
@@ -993,7 +1035,7 @@ Rectangle {
                     objectName:"structure-apply";colors:study.colors
                     label:structurePanel.bookRemove?"Unplace":structurePanel.removing?(study.spatialEnabled?"Confirm removal":"Remove → Case"):"Apply"
                     enabled:!!structurePanel.proposal&&structurePanel.proposal.ok
-                    onClicked:{if(archive.applyStructure()){sceneView.message="Arrangement updated · Undo available";sceneView.clearSelection()}}
+                    onClicked:study.confirmStructure()
                 }
             }
         }
