@@ -126,3 +126,7 @@ Other links are the ones the repo's own docs already cite; they were **not** re-
 
 Items marked "no" are the most likely places for a first-run surprise.
 If a link above has moved, search the property name on the Quickshell docs site.
+
+### B8-N3 selected policy target-native acceptance (provisional)
+
+Before production integration, on actual Fedora/Hyprland/Quickshell session verify combined frame/wall proportions (24 reference, 1339.2 absolute), title and wall readability, narrow/wide/tall casework, fractional DPR/scaling, empty/populated/tall-outlier Rooms, aligned door visibility, actual hit and floor inverse at boundaries, move/resize/turn and blocked edits, navigation entry/return/interruption and real presented frame pacing (both projections), compositor deactivation and pointer cancellation. Verify global projection preference restart/checkpoint restore, default 2D on absent/legacy view, reset and failed-load behavior, v3/v4 old geometry and explicit v5 adoption/refusal/Undo/recovery. Measure responsiveness, resource use and idle/hidden cost separately from CI/JS callback proxies. No target pass inferred from offscreen Qt/browser checks; adjust provisional policies only through explicit compatible versioned changes. Preserve existing manual recovery and production gate.

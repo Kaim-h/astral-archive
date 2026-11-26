@@ -13,6 +13,7 @@ Item {
     property bool spatialEnabled: false
     // Existing N2 renderer cannot display v4; isolated contract tests opt in.
     property bool physicalProfilesEnabled: false
+    property bool independentProfilesEnabled: false
     property var archiveState: Core.session(Core.fixture())
     readonly property var snapshot: archiveState.snapshot
     readonly property var draft: archiveState.draft
@@ -33,6 +34,7 @@ Item {
     function proposeStructure(command) {
         if(draft||(!spatialEnabled&&command&&String(command.kind).indexOf("spatial")===0))return false
         if(command&&command.kind==="spatialAdoptProfiles"&&!physicalProfilesEnabled)return false
+        if(command&&command.kind==="spatialAdoptIndependentProfiles"&&(!physicalProfilesEnabled||!independentProfilesEnabled))return false
         structuralProposal=Core.previewStructure(archiveState,command)
         return structuralProposal.ok
     }
@@ -45,6 +47,7 @@ Item {
     function applyStructure() {
         if(!structuralProposal||(!spatialEnabled&&String(structuralProposal.command.kind).indexOf("spatial")===0))return false
         if(!physicalProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptProfiles"||Spatial.physicalProfiles(structuralProposal.snapshot)))return false
+        if(!independentProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptIndependentProfiles"||Spatial.independentProfiles(structuralProposal.snapshot)))return false
         archiveState=Core.applyStructure(archiveState,structuralProposal)
         if(!archiveState.error)structuralProposal=null
         return !archiveState.error
@@ -70,6 +73,7 @@ Item {
         // Do not reuse revision numbers across resets while a worker may reply.
         if(Spatial.enabled(value)&&!spatialEnabled)throw Error("Spatial checkpoint requires an opted-in controller")
         if(Spatial.physicalProfiles(value)&&!physicalProfilesEnabled)throw Error("Physical profile checkpoint requires compatible renderer or isolated geometry controller")
+        if(Spatial.independentProfiles(value)&&!independentProfilesEnabled)throw Error("Independent profile checkpoint requires compatible controller")
         var fresh = Core.session(value)
         fresh.revision = archiveState.revision + 1
         queued = null

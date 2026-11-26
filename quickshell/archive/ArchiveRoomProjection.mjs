@@ -108,7 +108,8 @@ export function roomMesh(s,roomId,openings,research=null){
  if(!Spatial.physicalProfiles(s)||!own(s.spatial.rooms,roomId))return null;
  const room=s.spatial.rooms[roomId],faces=[],segments=wallSegments(room,openings);
  // Explicit absolute comparison height, never coupled to Shelf edits.
- const proposed=research&&research.farWall!==undefined?research.farWall:null;
+ const selected=Spatial.independentProfiles(s);
+ const proposed=research&&research.farWall!==undefined?research.farWall:selected?room.wallHeight:null;
  if(proposed!==null)need(Number.isFinite(proposed)&&proposed>0&&proposed<=20000,'Invalid research wall height');
  let maxHeight=0,wallTop=0;
  for(const id of Object.keys(s.spatial.shelves)){
@@ -124,10 +125,10 @@ export function roomMesh(s,roomId,openings,research=null){
    faces.push({shelfId:'',role:'wall',side:v.side,surface,points:[wallPoint(room,v.side,v.start,z0),wallPoint(room,v.side,v.end,z0),wallPoint(room,v.side,v.end,z1),wallPoint(room,v.side,v.start,z1)]});
   }
   // Coplanar role bands remain within the supporting wall and openings.
-  if(research&&research.wallBands){band(0,h*.035,'base');band(h*.035,h*.975,'wall');band(h*.975,h,'cap');}
+  if(selected||research&&research.wallBands){band(0,h*.035,'base');band(h*.035,h*.975,'wall');band(h*.975,h,'cap');}
   else band(0,h,'wall');
  }
- return {room,maxHeight,faces,segments,wallTop,occupiedFit:!!(research&&research.occupiedFit)};
+ return {room,maxHeight,faces,segments,wallTop,occupiedFit:selected||!!(research&&research.occupiedFit)};
 }
 // Back-face culling and projected planar faces. Average depth remains a
 // stable iteration order for historical callers, NOT the visibility rule.

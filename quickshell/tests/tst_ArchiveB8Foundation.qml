@@ -9,6 +9,7 @@ Item {
     Archive.ArchiveModel { id: legacy }
     Archive.ArchiveModel { id: spatial; spatialEnabled: true }
     Archive.ArchiveModel { id: profiles; spatialEnabled: true; physicalProfilesEnabled: true }
+    Archive.ArchiveModel { id: refined; spatialEnabled: true; physicalProfilesEnabled: true; independentProfilesEnabled: true }
     TestCase {
         name: "ArchiveB8Foundation"
         function test_shared_contract() { verify(Cases.run()>50) }
@@ -30,6 +31,23 @@ Item {
             compare(JSON.stringify(profiles.snapshot),prior)
             verify(!!profiles.importCheckpoint(saved),profiles.checkpointError)
             compare(JSON.stringify(profiles.snapshot),JSON.stringify(Checkpoint.decode(saved).snapshot))
+        }
+        function test_independent_profile_controller_gate() {
+            refined.reset(Core.fixture())
+            verify(refined.proposeStructure({kind:"spatialPromote"}));verify(refined.applyStructure())
+            var id=refined.snapshot.spatial.shelves.root.roomId
+            verify(refined.proposeStructure({kind:"spatialRoomEdit",roomId:id,patch:{w:2000,h:2000}}));verify(refined.applyStructure())
+            verify(refined.proposeStructure({kind:"spatialAdoptProfiles"}));verify(refined.applyStructure())
+            var old=JSON.stringify(refined.snapshot)
+            profiles.reset(refined.snapshot)
+            verify(!profiles.proposeStructure({kind:"spatialAdoptIndependentProfiles"}))
+            verify(refined.proposeStructure({kind:"spatialAdoptIndependentProfiles"}));verify(refined.applyStructure())
+            var save=refined.exportCheckpoint({path:["root"],theme:1,cameras:{},roomPerspective:true})
+            verify(save.length>0,refined.checkpointError);compare(JSON.parse(save).version,5)
+            verify(profiles.importCheckpoint(save)===null);compare(JSON.stringify(profiles.snapshot),old)
+            verify(refined.undo());compare(JSON.stringify(refined.snapshot),old)
+            verify(!!refined.importCheckpoint(save),refined.checkpointError)
+            compare(JSON.stringify(refined.snapshot),JSON.stringify(Checkpoint.decode(save).snapshot))
         }
         function test_controller_opt_in() {
             legacy.reset(Core.fixture()); spatial.reset(Core.fixture())

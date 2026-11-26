@@ -1017,6 +1017,8 @@ export function previewStructure(s,command){
  if(Spatial.enabled(s.snapshot)){
   if(command&&command.kind==='spatialAdoptProfiles'&&!Spatial.physicalProfiles(s.snapshot))
    result.profileAdoption=Spatial.profileAdoptionReport(s.snapshot);
+  if(command&&command.kind==='spatialAdoptIndependentProfiles'&&!Spatial.independentProfiles(s.snapshot))
+   result.profileAdoption=Spatial.profileAdoptionReport(s.snapshot,true);
   result.appUnplacementCount=candidate.error?0:Math.max(0,Spatial.appPlacements(s.snapshot).length-Spatial.appPlacements(candidate.snapshot).length);
   result.removedDoorIds=candidate.error?[]:Object.keys(s.snapshot.spatial.doors||{}).filter(k=>!Object.prototype.hasOwnProperty.call(candidate.snapshot.spatial.doors||{},k));
  }

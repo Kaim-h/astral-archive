@@ -109,6 +109,65 @@ Item {
                 }
             }finally{study.parent.width=original;study.roomPlanOpen=false}
         }
+        function test_selected_independent_policy(){
+            var ctl=study.controller,scene=study.scene,original=study.parent.width
+            var oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore,payload=null,preference=false,writes=0
+            study.checkpointStore={read:function(){return payload},write:function(v){payload=v}}
+            study.roomPreferenceStore={readRoomPerspective:function(){return preference},writeRoomPerspective:function(v){preference=v;writes++}}
+            try{
+                ctl.reset(Sample.roomFixture())
+                tryVerify(function(){return scene.physicalFront})
+                var prior=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+                clickNamed("adopt-independent-profiles")
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                compare(ctl.structuralProposal.profileAdoption.shelves.root.frameBasis,24)
+                compare(JSON.stringify(ctl.snapshot),prior)
+                clickNamed("structure-apply")
+                tryVerify(function(){return Spatial.independentProfiles(ctl.snapshot)})
+                compare(scene.frontEnvelope.h,1182);compare(ctl.snapshot.cubbies.root.b,12)
+                compare(ctl.archiveState.history.length,history+1)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),prior)
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var before=JSON.stringify(ctl.snapshot),h=ctl.archiveState.history.length,plan=findChild(study,"archive-room-plan")
+                grabImage(study).save("archive-b8-native-shelf-v5-front.png")
+                clickNamed("toggle-room-plan")
+                tryVerify(function(){return plan.visible&&!plan.perspective})
+                grabImage(study).save("archive-b8-native-shelf-v5-plan.png")
+                clickNamed("toggle-room-perspective")
+                tryVerify(function(){return !!plan.visibilityRaster&&preference})
+                compare(writes,1);compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,h)
+                grabImage(study).save("archive-b8-native-shelf-v5-perspective.png")
+                study.parent.width=740;wait(80)
+                grabImage(study).save("archive-b8-native-shelf-v5-narrow.png")
+                var b=Spatial.footprint(ctl.snapshot,"root"),g=Spatial.shelfGeometry(ctl.snapshot,"root")
+                var q=Projection.project([b.x+b.w/2,b.y+b.h,g.h-g.inscription.y-g.inscription.h/2],plan.perspectiveData.frame)
+                compare(plan.hit(q[0],q[1]),"root")
+                study.reducedRoomMotion=false
+                mouseDoubleClickSequence(plan,q[0],q[1],Qt.LeftButton)
+                tryVerify(function(){return scene.visible&&!plan.visible&&!study.roomNavigating})
+                compare(scene.cubbyId,"root");compare(scene.frontEnvelope.h,1182)
+                clickNamed("toggle-room-plan")
+                tryVerify(function(){return plan.visible&&!scene.visible&&!study.roomNavigating})
+                compare(plan.selectedShelf,"root");verify(plan.perspective)
+                verify(study.saveCheckpoint());compare(JSON.parse(payload).version,5)
+                var saved=payload
+                ctl.reset(Sample.fixture());verify(!study.roomPerspective)
+                study.restoreRoomPreference();verify(study.roomPerspective)
+                study.roomPerspective=false
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                compare(JSON.stringify(ctl.snapshot),before);verify(study.roomPerspective&&preference)
+                payload="{bad"
+                verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
+                verify(study.roomPerspective&&preference);compare(JSON.stringify(ctl.snapshot),before)
+                // Explicit old checkpoint without preference supersedes global
+                // view preference; no silent geometry upgrade.
+                var old=JSON.parse(saved);old.version=4;old.snapshot=JSON.parse(prior);delete old.view.roomPerspective
+                payload=JSON.stringify(old)
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                verify(!study.roomPerspective&&!preference&&!Spatial.independentProfiles(ctl.snapshot))
+                compare(JSON.stringify(ctl.snapshot),prior)
+            }finally{study.abortRoomNavigation();study.reducedRoomMotion=true;study.parent.width=original;study.roomPlanOpen=false;study.checkpointStore=oldStore;study.roomPreferenceStore=oldPref}
+        }
         function test_room_navigation_lifecycle(){
             var ctl=study.controller,scene=study.scene,plan=findChild(study,"archive-room-plan")
             var animation=findChild(study,"room-navigation-animation"),overlay=findChild(study,"room-navigation-overlay")

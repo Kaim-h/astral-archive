@@ -908,5 +908,44 @@ export function run(){
  yes(tallMesh.maxHeight>2500&&Projection.projectedScene(tallMesh,740,725).faces.every(f=>f.points.every(q=>q[2]>0)),'tall outlier near plane protected');
  eq(s,before,'comparison never mutates snapshot');
  }
+ {
+ const s=ShelfSample.roomFixture(),state=Core.session(s),view={path:['root'],theme:1,cameras:{},roomPerspective:true},cmd={kind:'spatialAdoptIndependentProfiles'};
+ const before=Core.clone(s),old=Checkpoint.encode(state,view),proposal=Core.previewStructure(state,cmd);
+ yes(proposal.ok,proposal.error);yes(proposal.profileAdoption.ok,'independent adoption report');
+ const active=apply(state,cmd),v=active.snapshot,id=v.spatial.shelves.root.roomId;
+ eq(v.spatial.geometryPolicy,'profile-v2','new policy');
+ eq(v.spatial.shelves.root.frameBasis,24,'reference basis');eq(v.spatial.rooms[id].wallHeight,1339.2,'absolute height');
+ eq(v.cubbies,s.cubbies,'unchanged interior and contents');eq(v.caseItems,s.caseItems,'unchanged Case');
+ eq(v.spatial.doors,s.spatial.doors,'unchanged doors');eq(v.spatial.apps,s.spatial.apps,'unchanged apps');
+ eq(Spatial.shelfGeometry(v,'root').h,1182,'combined crest full height');
+ eq(View.frontEnvelope(v,'root',v.cubbies.root),Spatial.shelfGeometry(v,'root'),'same front geometry');
+ eq(Spatial.footprint(v,'root'),proposal.profileAdoption.shelves.root.box,'same preview envelope');
+ const save=Checkpoint.encode(active,view);eq(JSON.parse(save).version,5,'v5 writer');eq(Checkpoint.decode(save),{snapshot:v,view},'v5 roundtrip');
+ eq(JSON.parse(old).version,4,'v4 unchanged');eq(Checkpoint.decode(old).snapshot,s,'v4 preserved');
+ eq(Core.undo(active).snapshot,before,'exact v4 Undo');
+ const altered=Core.clone(proposal);altered.snapshot.spatial.shelves.root.frameBasis=25;
+ yes(!!Core.applyStructure(state,altered).error,'altered adoption refused');
+ const bad=JSON.parse(save);
+ for(const version of [1,2,3,4]){bad.version=version;let refused=false;try{Checkpoint.decode(JSON.stringify(bad))}catch(e){refused=true}yes(refused,'wrong version refused');}
+ for(const field of ['frameBasis','wallHeight']){
+  const b=Core.clone(v);if(field==='frameBasis')delete b.spatial.shelves.root[field];else delete b.spatial.rooms[id][field];
+  yes(!!Core.validate(b),'missing v2 required field refused');
+ }
+ const b=Core.clone(s);b.spatial.shelves.root.frameBasis=24;yes(!!Core.validate(b),'v4 unexpected v2 field refused');
+ const enlarged=apply(active,{kind:'spatialShelfEdit',containerId:'root',patch:{h:1100}});
+ eq(enlarged.snapshot.spatial.shelves.root.frameBasis,24,'resize retains seed');
+ eq(enlarged.snapshot.spatial.rooms[id].wallHeight,1339.2,'resize never changes wall');
+ const changed=apply(active,{kind:'spatialRoomEdit',roomId:id,patch:{wallHeight:1500}});
+ eq(Spatial.shelfGeometry(changed.snapshot,'root'),Spatial.shelfGeometry(v,'root'),'wall height independent');
+ refuse(active,{kind:'spatialRoomEdit',roomId:id,patch:{wallHeight:0}});
+ refuse(active,{kind:'spatialShelfEdit',containerId:'root',patch:{frameBasis:41}});
+ const plan=View.roomPlan(v,id),mesh=Projection.roomMesh(v,id,plan.openings);
+ eq(mesh.wallTop,1339.2,'selected live wall height');yes(mesh.occupiedFit,'selected live occupied fit');
+ for(const [w,h] of [[1366,756],[740,725]]){
+  const sc=View.roomPerspective(v,plan,w,h);
+  for(const q of sc.floor.concat(...sc.faces.map(f=>f.points)))yes(q[2]>0&&q[0]>=32-1e-6&&q[0]<=w-32+1e-6&&q[1]>=50-1e-6&&q[1]<=h-50+1e-6,'selected live fit bounds');
+ }
+ eq(s,before,'old state unchanged');
+ }
  return checks;
 }

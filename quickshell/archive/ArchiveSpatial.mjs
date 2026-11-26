@@ -19,10 +19,18 @@ export function exterior(c){
 }
 // Snapshot-wide activation; absent policy retains the legacy envelope.
 export const profilePolicy='profile-v1';
-export function physicalProfiles(s){return enabled(s)&&s.spatial.geometryPolicy===profilePolicy;}
+export const independentProfilePolicy='profile-v2';
+// Provisional reference-relative seed, persisted once; no reactive resize.
+export const defaultWallHeight=1339.2;
+export function frameSeed(c){return Math.max(4,Math.min(40,24*Math.min(c.w/1400,c.h/1050)));}
+export function independentProfiles(s){return enabled(s)&&s.spatial.geometryPolicy===independentProfilePolicy;}
+export function physicalProfiles(s){return enabled(s)&&(s.spatial.geometryPolicy===profilePolicy||independentProfiles(s));}
+export function checkpointVersion(s){return independentProfiles(s)?5:physicalProfiles(s)?4:enabled(s)?3:2;}
+function frameValid(v){return Number.isFinite(v)&&v>=4&&v<=40;}
+function wallValid(v){return Number.isFinite(v)&&v>=1&&v<=20000;}
 export function shelfGeometry(s,shelfId){
  const p=s.spatial.shelves[shelfId],c=s.cubbies[shelfId];
- return Architecture.shelfGeometry(c,shelfProfile(s,shelfId),p.depth);
+ return Architecture.shelfGeometry(c,shelfProfile(s,shelfId),p.depth,independentProfiles(s)?p.frameBasis:undefined);
 }
 export function footprint(s,shelfId){
  if(physicalProfiles(s))return Architecture.profileFootprint(shelfGeometry(s,shelfId),s.spatial.shelves[shelfId]);
@@ -31,12 +39,14 @@ export function footprint(s,shelfId){
  return {x:p.x,y:p.y,w:sideways?p.depth:e.w,h:sideways?e.w:p.depth};
 }
 // Both envelopes and all conflicts, including invalid adoption proposals.
-export function profileAdoptionReport(s){
- const report=Architecture.inspectProfileLayout(s);
+export function profileAdoptionReport(s,v2=false){
+ const report=Architecture.inspectProfileLayout(s,v2?frameSeed:()=>undefined);
  for(const k of Object.keys(report.shelves)){
-  const c=s.cubbies[k],b=c.b===undefined?11:c.b,e=exterior(c);
-  report.shelves[k].previous={box:footprint(s,k),w:e.w,h:e.h,aperture:{x:b,y:b,w:c.w,h:c.h}};
+  const c=s.cubbies[k],b=c.b===undefined?11:c.b,e=exterior(c),old=physicalProfiles(s)?shelfGeometry(s,k):{w:e.w,h:e.h,aperture:{x:b,y:b,w:c.w,h:c.h}};
+  report.shelves[k].previous={box:footprint(s,k),w:old.w,h:old.h,aperture:old.aperture};
+  if(v2)report.shelves[k].frameBasis=frameSeed(c);
  }
+ if(v2)report.rooms=Object.keys(s.spatial.rooms).map(id=>({id,wallHeight:defaultWallHeight}));
  return report;
 }
 function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
@@ -53,18 +63,20 @@ export function validate(s){
  if(!enabled(s))return null;
  try{
   const a=s.spatial;
-  need(keysOnly(a,['rooms','shelves','appearance','apps','doors','geometryPolicy'])&&(a.geometryPolicy===undefined||a.geometryPolicy===profilePolicy)&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
+  need(keysOnly(a,['rooms','shelves','appearance','apps','doors','geometryPolicy'])&&(a.geometryPolicy===undefined||a.geometryPolicy===profilePolicy||a.geometryPolicy===independentProfilePolicy)&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
   const rooms=Object.keys(a.rooms),shelves=Object.keys(a.shelves),roomBoxes=[],shelfBoxes=new Map();
   need(rooms.length>0&&rooms.length<=spatialLimits.rooms&&shelves.length>0&&shelves.length<=128,'Spatial room/shelf budget');
   for(const k of rooms){
    const r=a.rooms[k];
-   need(id(k)&&!own(s.cubbies,k)&&keysOnly(r,['id','name','x','y','w','h','appearance'])&&r.id===k&&name(r.name)&&appearance(r.appearance),'Invalid Room identity or metadata');
+   need(id(k)&&!own(s.cubbies,k)&&keysOnly(r,independentProfiles(s)?['id','name','x','y','w','h','appearance','wallHeight']:['id','name','x','y','w','h','appearance'])&&r.id===k&&name(r.name)&&appearance(r.appearance),'Invalid Room identity or metadata');
+   if(independentProfiles(s))need(wallValid(r.wallHeight),'Invalid independent Room wall height');
    need(integer(r.x,-spatialLimits.mapCoordinate,spatialLimits.mapCoordinate)&&integer(r.y,-spatialLimits.mapCoordinate,spatialLimits.mapCoordinate)&&integer(r.w,130,spatialLimits.roomSize)&&integer(r.h,100,spatialLimits.roomSize),'Invalid Room dimensions');
    need(!roomBoxes.some(b=>overlap(b,r)),'Rooms overlap');roomBoxes.push(r);shelfBoxes.set(k,[]);
   }
   for(const k of shelves){
    const p=a.shelves[k];
-   need(id(k)&&own(s.cubbies,k)&&keysOnly(p,['roomId','x','y','depth','orientation'])&&id(p.roomId)&&own(a.rooms,p.roomId),'Invalid architectural Shelf attachment');
+   need(id(k)&&own(s.cubbies,k)&&keysOnly(p,independentProfiles(s)?['roomId','x','y','depth','orientation','frameBasis']:['roomId','x','y','depth','orientation'])&&id(p.roomId)&&own(a.rooms,p.roomId),'Invalid architectural Shelf attachment');
+   if(independentProfiles(s))need(frameValid(p.frameBasis),'Invalid independent Shelf frame basis');
    need(integer(p.x,0,spatialLimits.roomSize)&&integer(p.y,0,spatialLimits.roomSize)&&integer(p.depth,40,spatialLimits.shelfDepth)&&[0,90,180,270].includes(p.orientation),'Invalid Shelf footprint');
    const b=footprint(s,k),r=a.rooms[p.roomId],boxes=shelfBoxes.get(p.roomId);
    need(inside(b,r.w,r.h)&&!boxes.some(q=>overlap(q,b)),'Shelf overlaps or exceeds Room');boxes.push(b);
@@ -157,6 +169,11 @@ export function edit(s,cmd,allocate){
   need(!physicalProfiles(s)&&keysOnly(p,[]),'Profiles already adopted or unexpected adoption properties');
   // Core validates the complete clone. Never auto-relocate to fit.
   a.geometryPolicy=profilePolicy;
+ }else if(cmd.kind==='spatialAdoptIndependentProfiles'){
+  need(!independentProfiles(s)&&keysOnly(p,[]),'Independent profiles already adopted or unexpected adoption properties');
+  for(const [k,v] of Object.entries(a.shelves))v.frameBasis=frameSeed(s.cubbies[k]);
+  for(const r of Object.values(a.rooms))r.wallHeight=defaultWallHeight;
+  a.geometryPolicy=independentProfilePolicy;
  }else if(cmd.kind==='spatialShelfTurn'){
   const k=cmd.containerId;
   need(physicalProfiles(s)&&own(a.shelves,k)&&keysOnly(p,['orientation']),'Turn requires adopted architectural Shelf');
@@ -170,10 +187,11 @@ export function edit(s,cmd,allocate){
   v.y=Math.max(0,Math.min(Math.floor(r.h-next.h),Math.round(old.y+(old.h-next.h)/2)));
  }else if(cmd.kind==='spatialRoomCreate'){
   const k=allocate('room-'),r={id:k,name:'New Room',x:0,y:0,w:1000,h:800};
-  patch(r,p,['name','x','y','w','h','appearance']);a.rooms[k]=r;
+  if(independentProfiles(s))r.wallHeight=defaultWallHeight;
+  patch(r,p,independentProfiles(s)?['name','x','y','w','h','appearance','wallHeight']:['name','x','y','w','h','appearance']);a.rooms[k]=r;
  }else if(cmd.kind==='spatialRoomEdit'){
   need(own(a.rooms,cmd.roomId),'Room no longer exists');
-  patch(a.rooms[cmd.roomId],p,['name','x','y','w','h','appearance']);
+  patch(a.rooms[cmd.roomId],p,independentProfiles(s)?['name','x','y','w','h','appearance','wallHeight']:['name','x','y','w','h','appearance']);
   Doors.resolveLost(s,cmd.removeDoors,footprint);
  }else if(cmd.kind==='spatialRoomDelete'){
   need(own(a.rooms,cmd.roomId)&&Object.keys(a.rooms).length>1,'Keep at least one Room');
@@ -183,17 +201,19 @@ export function edit(s,cmd,allocate){
  }else if(cmd.kind==='spatialShelfCreate'){
   const k=allocate('architectural-shelf-'),c={id:k,name:'New Shelf',w:700,h:500,b:11,mods:[]},v={roomId:cmd.roomId,x:0,y:0,depth:160,orientation:0};
   for(const key of ['w','h','b'])if(own(p,key))need(Number.isInteger(p[key]),'Enter whole-number Shelf dimensions');
-  need(keysOnly(p,['name','w','h','b','appearance','x','y','depth','orientation']),'Unknown Shelf property');
+  need(keysOnly(p,independentProfiles(s)?['name','w','h','b','appearance','x','y','depth','orientation','frameBasis']:['name','w','h','b','appearance','x','y','depth','orientation']),'Unknown Shelf property');
   for(const key of ['name','w','h','b','appearance'])if(own(p,key))c[key]=p[key];
   for(const key of ['x','y','depth','orientation'])if(own(p,key))v[key]=p[key];
+  if(independentProfiles(s))v.frameBasis=own(p,'frameBasis')?p.frameBasis:frameSeed(c);
   need(name(c.name),'Invalid Shelf name');s.cubbies[k]=c;a.shelves[k]=v;
  }else if(cmd.kind==='spatialShelfEdit'){
   const k=cmd.containerId;need(own(a.shelves,k),'Architectural Shelf no longer exists');
-  need(keysOnly(p,['name','w','h','b','appearance','roomId','x','y','depth','orientation']),'Unknown Shelf property');
+  need(keysOnly(p,independentProfiles(s)?['name','w','h','b','appearance','roomId','x','y','depth','orientation','frameBasis']:['name','w','h','b','appearance','roomId','x','y','depth','orientation']),'Unknown Shelf property');
   const c=s.cubbies[k],v=a.shelves[k];
   for(const key of ['w','h','b'])if(own(p,key))need(Number.isInteger(p[key]),'Enter whole-number Shelf dimensions');
   for(const key of ['name','w','h','b','appearance'])if(own(p,key))c[key]=p[key];
   for(const key of ['roomId','x','y','depth','orientation'])if(own(p,key))v[key]=p[key];
+  if(independentProfiles(s)&&own(p,'frameBasis'))v.frameBasis=p.frameBasis;
   need(c.name===undefined||name(c.name),'Invalid Shelf name');
  }else if(cmd.kind==='spatialShelfDelete'){
   const k=cmd.containerId;

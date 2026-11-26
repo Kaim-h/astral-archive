@@ -6,6 +6,7 @@ import * as Spatial from "./ArchiveSpatial.mjs";
 export const version=2;
 export const spatialVersion=3;
 export const physicalProfileVersion=4;
+export const independentProfileVersion=5;
 function fail(msg){throw Error(msg);}
 function plain(v){return !!v&&typeof v==='object'&&!Array.isArray(v);}
 function finite(v,min,max){return Number.isFinite(v)&&v>=min&&v<=max;}
@@ -18,6 +19,7 @@ function viewState(s,v,formatVersion=version){
  // Optional v1 view-only field. Older checkpoints retain the default
  // veiled mode when restored; never rewrite their snapshot.
  if(v.cubbyPreviewMode!==undefined&&!['veiled','inventory','closed'].includes(v.cubbyPreviewMode))fail('Invalid cubby preview mode');
+ if(v.roomPerspective!==undefined&&typeof v.roomPerspective!=='boolean')fail('Invalid Room projection preference');
  if(v.snapEnabled!==undefined&&typeof v.snapEnabled!=='boolean')fail('Invalid snapping preference');
  if(v.showGrid!==undefined&&typeof v.showGrid!=='boolean')fail('Invalid grid visibility');
  if(v.snapDistance!==undefined&&(!Number.isInteger(v.snapDistance)||v.snapDistance<5||v.snapDistance>100))fail('Invalid grid interval');
@@ -28,7 +30,7 @@ function viewState(s,v,formatVersion=version){
 }
 export function encode(session,view){
  if(session.draft)fail('Finish pending rack proposal');
- const formatVersion=Spatial.physicalProfiles(session.snapshot)?physicalProfileVersion:Spatial.enabled(session.snapshot)?spatialVersion:version;
+ const formatVersion=Spatial.checkpointVersion(session.snapshot);
  preflight(session.snapshot,formatVersion);const v=viewState(session.snapshot,view,formatVersion);
  const value=JSON.stringify({format:'astral-archive-native-study',version:formatVersion,snapshot:session.snapshot,view:v});
  if(value.length>Capacity.limits.envelopeChars)fail('Checkpoint too large');return value;
@@ -36,7 +38,7 @@ export function encode(session,view){
 export function decode(text){
  if(typeof text!=='string'||!text.length||text.length>Capacity.limits.envelopeChars)fail('Invalid checkpoint length');
  const envelope=JSON.parse(text);
- if(!plain(envelope)||envelope.format!=='astral-archive-native-study'||![1,version,spatialVersion,physicalProfileVersion].includes(envelope.version))fail('Unsupported native checkpoint');
+ if(!plain(envelope)||envelope.format!=='astral-archive-native-study'||![1,version,spatialVersion,physicalProfileVersion,independentProfileVersion].includes(envelope.version))fail('Unsupported native checkpoint');
  if(envelope.version===1&&text.length>Capacity.limits.legacyChars)fail('Invalid legacy checkpoint length');
  preflight(envelope.snapshot,envelope.version);const view=viewState(envelope.snapshot,envelope.view,envelope.version);
  return {snapshot:Core.clone(envelope.snapshot),view};

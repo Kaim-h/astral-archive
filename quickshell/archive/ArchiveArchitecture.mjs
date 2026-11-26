@@ -21,8 +21,8 @@ function quad(points,control,end){
 // are relative to aperture.x/y, never scaled or translated in saved data.
 // b is the existing base frame thickness; reference proportions are
 // provisional, derived from S18r4's 16-unit base post.
-export function shelfGeometry(c,profile,depth){
- const b=c.b===undefined?11:c.b;
+export function shelfGeometry(c,profile,depth,frameBasis){
+ const b=frameBasis===undefined?(c.b===undefined?11:c.b):frameBasis;
  need([c.w,c.h,b,depth].every(Number.isFinite)&&c.w>0&&c.h>0&&b>0&&depth>0&&profiles.includes(profile),"Invalid Shelf profile geometry");
  const unit=b/16,post=profile==="pilaster"?27*unit:b,overhang=9*unit;
  const lintel=25*unit,plinth=26*unit,rise=profile==="crest"?37*unit:0;
@@ -97,13 +97,13 @@ function overlap(a,b){return a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
 // Evaluate a hypothetical full-profile migration on a valid v3 snapshot.
 // This is a report, NOT a structural proposal or an Apply path. No hidden
 // expansion, room resizing, door removal, object displacement or mutation.
-export function inspectProfileLayout(s){
+export function inspectProfileLayout(s,basisFor=()=>undefined){
  need(s&&s.spatial&&s.spatial.shelves,"Expected spatial study");
  const shelves={},conflicts=[],byRoom={};
  for(const id of Object.keys(s.spatial.shelves)){
   const p=s.spatial.shelves[id],c=s.cubbies[id],r=s.spatial.rooms[p.roomId];
   need(c&&r,"Invalid Shelf attachment");
-  const g=shelfGeometry(c,c.appearance&&c.appearance.profile||"cornice",p.depth);
+  const g=shelfGeometry(c,c.appearance&&c.appearance.profile||"cornice",p.depth,basisFor(c,p));
   const box=profileFootprint(g,p);
   shelves[id]={geometry:g,box};
   if(box.x<0||box.y<0||box.x+box.w>r.w||box.y+box.h>r.h)conflicts.push({kind:"wall",shelfId:id,roomId:p.roomId});

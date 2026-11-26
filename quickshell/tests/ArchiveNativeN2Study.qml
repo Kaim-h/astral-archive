@@ -20,6 +20,18 @@ Rectangle {
     property bool physicalProfilesEnabled:false
     property bool roomPlanOpen:false
     property bool roomPerspective:false
+    // Optional separate view-preference storage, never structural Undo.
+    property var roomPreferenceStore:null
+    function restoreRoomPreference(){
+        if(!roomPreferenceStore)return
+        try{roomPerspective=roomPreferenceStore.readRoomPerspective()===true}
+        catch(e){sceneView.message="Room preference not restored · "+String(e)}
+    }
+    function setRoomPerspective(value){
+        roomPerspective=value===true
+        if(roomPreferenceStore)try{roomPreferenceStore.writeRoomPerspective(roomPerspective)}
+        catch(e){sceneView.message="Room preference not saved · "+String(e)}
+    }
     // View-only motion preference and transition state. Not arrangement data.
     property bool reducedRoomMotion:false
     property var roomNavigation:null
@@ -140,7 +152,7 @@ Rectangle {
         cameras[sceneView.cubbyId]={zoom:sceneView.zoom,x:sceneView.pan.x,y:sceneView.pan.y}
         return {path:sceneView.reachableViewPath.slice(),theme:Themes.Theme.index,cameras:cameras,
             cubbyPreviewMode:sceneView.cubbyPreviewMode,snapEnabled:sceneView.snapEnabled,
-            showGrid:sceneView.showGrid,snapDistance:sceneView.snapDistance}
+            showGrid:sceneView.showGrid,snapDistance:sceneView.snapDistance,roomPerspective:study.roomPerspective}
     }
     function saveCheckpoint(){
         if(!checkpointReady)return false
@@ -180,6 +192,7 @@ Rectangle {
             sceneView.cameras=View.copyCameras(view.cameras)
             sceneView.restoreCamera()
             Themes.Theme.index=view.theme
+            study.setRoomPerspective(view.roomPerspective===true)
             sceneView.cubbyPreviewMode=view.cubbyPreviewMode||"veiled"
             sceneView.snapEnabled=view.snapEnabled===true
             sceneView.showGrid=view.showGrid===true
@@ -297,7 +310,7 @@ Rectangle {
     property string retainedShape: ""
     Connections {
         target:archive
-        function onSnapshotChanged(){study.abortRoomNavigation();if(archive.resetting)study.roomPlanOpen=false;if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.roomPerspective=false}}
+        function onSnapshotChanged(){study.abortRoomNavigation();if(archive.resetting){study.roomPlanOpen=false;study.roomPerspective=false}if(!Spatial.physicalProfiles(archive.snapshot))study.roomPlanOpen=false}
         function onStructuralProposalChanged(){
             study.structureApplyError=""
             if(study.materialPanel!==""&&!study.materialProposal)study.closeMaterials()
@@ -323,7 +336,7 @@ Rectangle {
     readonly property var selectedMeta:selectedRack&&sceneView.selectedCell?selectedRack.cellMeta[sceneView.selectedCell]:null
     readonly property var activeIssue: review.length?review[Math.min(reviewIndex,review.length-1)]:null
 
-    Archive.ArchiveModel { id:archive; spatialEnabled:study.spatialEnabled; physicalProfilesEnabled:study.physicalProfilesEnabled; Component.onCompleted: reset(study.initialSnapshot||View.fixture()) }
+    Archive.ArchiveModel { id:archive; spatialEnabled:study.spatialEnabled; physicalProfilesEnabled:study.physicalProfilesEnabled; independentProfilesEnabled:study.physicalProfilesEnabled; Component.onCompleted: reset(study.initialSnapshot||View.fixture()) }
     function edit(patch) {
         if(!selectedRack||sceneView.busy)return
         pickId="";reviewIndex=0;retainedReview=[]
@@ -580,10 +593,15 @@ Rectangle {
             Archive.ArchiveButton { colors:study.colors; label:"+"; hint:"Zoom in"; visible:!study.showRoomPlan; onClicked:sceneView.setZoom(sceneView.zoom*1.15) }
             Archive.ArchiveButton { colors:study.colors; label:study.colors.name; onClicked:Themes.Theme.index=(Themes.Theme.index+1)%3 }
             Archive.ArchiveButton { colors:study.colors; label:"Undo"; enabled:!sceneView.busy&&!archive.draft&&!archive.structuralProposal&&archive.archiveState.history.length>0; onClicked:archive.undo() }
-            Archive.ArchiveButton {objectName:"adopt-physical-profiles";colors:study.colors;label:"Adopt physical profiles…";visible:study.physicalProfilesEnabled&&!Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:archive.proposeStructure({kind:"spatialAdoptProfiles"})}
+            Archive.ArchiveButton {
+                objectName:Spatial.physicalProfiles(archive.snapshot)?"adopt-independent-profiles":"adopt-physical-profiles"
+                colors:study.colors;label:Spatial.physicalProfiles(archive.snapshot)?"Adopt refined profiles…":"Adopt physical profiles…";width:154
+                visible:study.physicalProfilesEnabled&&!Spatial.independentProfiles(archive.snapshot);enabled:study.viewSwitchReady
+                onClicked:archive.proposeStructure({kind:Spatial.physicalProfiles(archive.snapshot)?"spatialAdoptIndependentProfiles":"spatialAdoptProfiles"})
+            }
             Archive.ArchiveButton {objectName:"toggle-room-plan";colors:study.colors;label:study.showRoomPlan?"Return to Shelf":"Room plan";width:112;visible:Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:study.toggleRoom()}
             Archive.ArchiveButton {objectName:"room-reduced-motion";colors:study.colors;label:study.reducedRoomMotion?"Motion reduced":"Room motion";width:112;active:study.reducedRoomMotion;visible:Spatial.physicalProfiles(archive.snapshot);onClicked:study.reducedRoomMotion=!study.reducedRoomMotion}
-            Archive.ArchiveButton {objectName:"toggle-room-perspective";colors:study.colors;label:study.roomPerspective?"Plan":"Perspective";width:90;visible:study.showRoomPlan;enabled:study.viewSwitchReady;onClicked:study.roomPerspective=!study.roomPerspective}
+            Archive.ArchiveButton {objectName:"toggle-room-perspective";colors:study.colors;label:study.roomPerspective?"Plan":"Perspective";width:90;visible:study.showRoomPlan;enabled:study.viewSwitchReady;onClicked:study.setRoomPerspective(!study.roomPerspective)}
             Archive.ArchiveButton {objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange"&&!study.showRoomPlan;enabled:study.structureReady;onClicked:study.openContext(12,12)}
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
@@ -1110,10 +1128,10 @@ Rectangle {
         readonly property bool bookRemove:!!cmd&&cmd.kind==="spatialAppUnplace"
         readonly property bool supportEdit:!!cmd&&cmd.kind==="spatialSupport"
         readonly property bool shelfAppearance:!!cmd&&cmd.kind==="spatialAppearance"
-        readonly property bool adopting:!!cmd&&cmd.kind==="spatialAdoptProfiles"
+        readonly property bool adopting:!!cmd&&["spatialAdoptProfiles","spatialAdoptIndependentProfiles"].includes(cmd.kind)
         readonly property bool shelfTurn:!!cmd&&cmd.kind==="spatialShelfTurn"
         readonly property bool roomShelfEdit:!!cmd&&cmd.kind==="spatialShelfEdit"
-        readonly property bool spatialConfirmation:!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
+        readonly property bool spatialConfirmation:!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAdoptIndependentProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
@@ -1169,7 +1187,15 @@ Rectangle {
                         color:study.colors.engraving;font.pixelSize:11
                         readonly property var entry:structurePanel.proposal.profileAdoption.shelves[modelData]
                         text:(archive.snapshot.cubbies[modelData].name||modelData)+": "+
-                            entry.previous.w.toFixed(2)+" × "+entry.previous.h.toFixed(2)+" → "+entry.geometry.w.toFixed(2)+" × "+entry.geometry.h.toFixed(2)
+                            entry.previous.w.toFixed(2)+" × "+entry.previous.h.toFixed(2)+" → "+entry.geometry.w.toFixed(2)+" × "+entry.geometry.h.toFixed(2)+(entry.frameBasis!==undefined?" · frame "+entry.frameBasis.toFixed(2)+" · aperture "+entry.previous.aperture.x.toFixed(2)+","+entry.previous.aperture.y.toFixed(2)+" → "+entry.geometry.aperture.x.toFixed(2)+","+entry.geometry.aperture.y.toFixed(2):"")
+                    }
+                }
+                Repeater {
+                    model:structurePanel.adopting&&structurePanel.proposal.profileAdoption?structurePanel.proposal.profileAdoption.rooms||[]:[]
+                    Text {
+                        required property var modelData
+                        width:contentStructure.width;wrapMode:Text.WordWrap;color:study.colors.engraving;font.pixelSize:11
+                        text:archive.snapshot.spatial.rooms[modelData.id].name+": wall "+modelData.wallHeight+" units (provisional target-native validation)"
                     }
                 }
                 Repeater {

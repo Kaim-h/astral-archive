@@ -194,7 +194,7 @@ export function reachablePath(snapshot,path){
 export function frontEnvelope(s,id,c){
     if(Spatial.physicalProfiles(s)&&Spatial.kind(s,id)==='shelf'){
         const p=s.spatial.shelves[id];
-        return Architecture.shelfGeometry(c,Spatial.shelfProfile(s,id),p.depth);
+        return Architecture.shelfGeometry(c,Spatial.shelfProfile(s,id),p.depth,Spatial.independentProfiles(s)?p.frameBasis:undefined);
     }
     const b=Number(c.b)||11;
     return {w:c.w+2*b,h:c.h+2*b,aperture:{x:b,y:b,w:c.w,h:c.h}};
@@ -285,7 +285,7 @@ export function roomEditOutline(s,id,patch){
     for(const key of ['x','y','depth'])if(Object.prototype.hasOwnProperty.call(patch,key))p[key]=patch[key];
     if(![p.x,p.y,p.depth,c.w,c.h].every(Number.isFinite)||p.depth<=0||c.w<=0||c.h<=0||
         [p.x,p.y,p.depth,c.w,c.h].some(v=>Math.abs(v)>20000))return null;
-    return Architecture.profileFootprint(Architecture.shelfGeometry(c,Spatial.shelfProfile(s,id),p.depth),p);
+    return Architecture.profileFootprint(Architecture.shelfGeometry(c,Spatial.shelfProfile(s,id),p.depth,Spatial.independentProfiles(s)?p.frameBasis:undefined),p);
 }
 export function roomPlanHit(plan,x,y){
     if(!plan||!Number.isFinite(x)||!Number.isFinite(y))return '';
