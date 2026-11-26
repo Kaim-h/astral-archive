@@ -143,6 +143,7 @@ export function edit(s,cmd,allocate){
   else{
    need(!(m.items||[]).length,'Resolve supported objects and holders before disabling the surface');
    delete m.flatTop;delete m.items;
+   for(const record of s.caseItems)if(record.originCubbyId===cmd.containerId&&record.originModuleId===m.id)record.originStale=true;
   }
  }else if(cmd.kind==='spatialAppearance'){
   need(keysOnly(p,['family','palette'])&&appearance(p),'Invalid appearance reference');

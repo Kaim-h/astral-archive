@@ -147,7 +147,14 @@ export function run(){
  refuse(tops,{kind:'spatialSupport',containerId:'root',moduleId:topRack.id,patch:{enabled:false}});
  const carriedTop=Core.transfer(tops,['top-parcel'],'case');eq(carriedTop.error,'','cut direct top object');
  const topRecord=carriedTop.snapshot.caseItems.find(r=>r.id==='top-parcel');
- eq(Core.originDestination(carriedTop.snapshot,topRecord),dest,'return uses same support datum');
+ const origin=Core.originDestination(carriedTop.snapshot,topRecord);
+ eq([origin.kind,origin.cubbyId,origin.moduleId,origin.x,origin.scale,origin.support],
+    [dest.kind,dest.cubbyId,dest.moduleId,dest.x,dest.scale,dest.support],'return uses same support datum');
+ const disabled=apply(carriedTop,{kind:'spatialSupport',containerId:'root',moduleId:topRack.id,patch:{enabled:false}});
+ yes(disabled.snapshot.caseItems.find(r=>r.id==='top-parcel').originStale,'disabled surface origin stale');
+ const reenabled=apply(disabled,{kind:'spatialSupport',containerId:'root',moduleId:topRack.id,patch:{enabled:true}});
+ let lost=false;try{Core.originDestination(reenabled.snapshot,topRecord)}catch(e){lost=true}yes(lost,'reenabling does not revive old origin');
+ eq(Core.undo(disabled).snapshot,carriedTop.snapshot,'undo surface disable restores exact provenance');
  // Live mixed transaction uses the same file owner and contact checks.
  const motion=Motion.begin(carriedTop,['top-parcel'],true);
  Motion.lift(motion);Motion.insert(motion,dest,{});Motion.release(motion,false);
