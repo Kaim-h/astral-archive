@@ -198,7 +198,7 @@ Item {
         }
         function test_map_room_arrangement(){
             var ctl=study.controller,scene=study.scene
-            study.mapEnabled=true
+            study.mapEnabled=true;study.mapNavigationDiagnostics=true
             try{
                 ctl.reset(Sample.roomFixture())
                 clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
@@ -206,9 +206,22 @@ Item {
                 var originalRooms=Object.keys(ctl.snapshot.spatial.rooms)
                 var map=findChild(study,"archive-map-room")
                 clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                var nav=findChild(map,"map-navigation-actions"),fit=findChild(map,"map-fit"),add=findChild(map,"map-add-room")
+                var oldFit=fit.mapToItem(map,fit.width/2,fit.height/2)
+                verify(!add.visible&&!add.enabled)
                 study.switchMode("arrange")
-                clickNamed("map-add-room")
-                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                compare(fit.mapToItem(map,fit.width/2,fit.height/2),oldFit)
+                verify(add.visible&&add.enabled)
+                var addPoint=add.mapToItem(map,add.width/2,add.height/2)
+                verify(addPoint.y+add.height/2<nav.y+nav.parent.y)
+                try{
+                    clickNamed("map-add-room")
+                    tryVerify(function(){return !!ctl.structuralProposal},3000,"Add Room click must produce a proposal")
+                    verify(ctl.structuralProposal.ok,ctl.structuralProposal.error)
+                }finally{
+                    console.log("B8 map arrangement first click",JSON.stringify({point:addPoint,mode:scene.mode,ready:study.viewSwitchReady,selected:map.selectedRoom,proposal:ctl.structuralProposal?ctl.structuralProposal.command:null,error:ctl.structuralProposal?ctl.structuralProposal.error:"No proposal"}))
+                    if(!ctl.structuralProposal||!ctl.structuralProposal.ok)grabImage(study).save("archive-b8-native-shelf-map-arrangement-failure.png")
+                }
                 compare(JSON.stringify(ctl.snapshot),before)
                 clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
                 clickNamed("map-add-room");clickNamed("structure-apply")
@@ -243,7 +256,7 @@ Item {
                 clickNamed("map-room-resolve-doors");clickNamed("structure-apply")
                 verify(!ctl.snapshot.spatial.rooms[empty]);verify(ctl.undo())
                 compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
-            }finally{study.mapEnabled=false;study.switchMode("browse")}
+            }finally{study.mapNavigationDiagnostics=false;study.mapEnabled=false;study.switchMode("browse")}
         }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore

@@ -195,27 +195,36 @@ Item {
         anchors.top:parent.top;anchors.topMargin:8;anchors.horizontalCenter:parent.horizontalCenter
         text:"The Map Room";color:map.colors.text;font.pixelSize:16
     }
-    Column {
-        anchors.bottom:parent.bottom;anchors.bottomMargin:8;anchors.horizontalCenter:parent.horizontalCenter;spacing:4
+    // Explicit, non-overlapping hit rectangles. Do not reposition the
+    // navigation row when Arrange reveals its additional controls.
+    Item {
+        id:mapControls
+        objectName:"map-controls"
+        anchors.bottom:parent.bottom;anchors.bottomMargin:8
+        anchors.horizontalCenter:parent.horizontalCenter
+        width:336;height:86
         enabled:!map.dragging&&!map.panning
-        Row {
-            anchors.horizontalCenter:parent.horizontalCenter;spacing:4;visible:map.arranging
-            ArchiveButton {objectName:"map-add-room";colors:map.colors;label:"Add Room";onClicked:map.addRoom()}
-            ArchiveButton {objectName:"map-edit-room";colors:map.colors;label:"Dimensions…";enabled:!!map.selectedBox;onClicked:map.editRoom(map.selectedRoom,{})}
-            ArchiveButton {objectName:"map-delete-room";colors:map.colors;label:"Remove Room";enabled:!!map.selectedBox&&!map.selectedBox.shelves.length;onClicked:map.deleteRoom(map.selectedRoom)}
+        Item {
+            objectName:"map-arrange-actions"
+            width:parent.width;height:26;y:0;visible:map.arranging;enabled:map.arranging
+            ArchiveButton {objectName:"map-add-room";colors:map.colors;label:"Add Room";x:0;width:108;onClicked:map.addRoom()}
+            ArchiveButton {objectName:"map-edit-room";colors:map.colors;label:"Dimensions…";x:114;width:108;enabled:!!map.selectedBox;onClicked:map.editRoom(map.selectedRoom,{})}
+            ArchiveButton {objectName:"map-delete-room";colors:map.colors;label:"Remove Room";x:228;width:108;enabled:!!map.selectedBox&&!map.selectedBox.shelves.length;onClicked:map.deleteRoom(map.selectedRoom)}
         }
-        Row {
-            anchors.horizontalCenter:parent.horizontalCenter;spacing:4;visible:map.arranging
-            ArchiveButton {objectName:"map-grid";colors:map.colors;label:"Grid";active:map.showGrid;onClicked:map.toggleGrid()}
-            ArchiveButton {objectName:"map-snap";colors:map.colors;label:"Snap";active:map.snapEnabled;onClicked:map.toggleSnap()}
-            ArchiveButton {objectName:"map-magnetic";colors:map.colors;label:"Wall magnet";active:map.magnetic;onClicked:map.magnetic=!map.magnetic}
+        Item {
+            objectName:"map-arrange-grid-actions"
+            width:parent.width;height:26;y:30;visible:map.arranging;enabled:map.arranging
+            ArchiveButton {objectName:"map-grid";colors:map.colors;label:"Grid";x:0;width:108;active:map.showGrid;onClicked:map.toggleGrid()}
+            ArchiveButton {objectName:"map-snap";colors:map.colors;label:"Snap";x:114;width:108;active:map.snapEnabled;onClicked:map.toggleSnap()}
+            ArchiveButton {objectName:"map-magnetic";colors:map.colors;label:"Wall magnet";x:228;width:108;active:map.magnetic;onClicked:map.magnetic=!map.magnetic}
         }
-        Row {
-        anchors.horizontalCenter:parent.horizontalCenter;spacing:6
-        ArchiveButton {objectName:"map-fit";colors:map.colors;label:"Fit map";onClicked:map.fit()}
-        ArchiveButton {objectName:"map-zoom-out";colors:map.colors;label:"−";onClicked:map.zoomAt(map.zoom/1.15,map.width/2,map.height/2)}
-        ArchiveButton {objectName:"map-zoom-in";colors:map.colors;label:"+";onClicked:map.zoomAt(map.zoom*1.15,map.width/2,map.height/2)}
-        ArchiveButton {objectName:"map-enter-room";colors:map.colors;label:"Enter selected Room";enabled:!!map.selectedRoom&&!map.arranging;onClicked:map.enterRoom(map.selectedRoom)}
+        Item {
+            objectName:"map-navigation-actions"
+            width:parent.width;height:26;y:60
+            ArchiveButton {objectName:"map-fit";colors:map.colors;label:"Fit map";x:0;width:74;onClicked:map.fit()}
+            ArchiveButton {objectName:"map-zoom-out";colors:map.colors;label:"−";x:80;width:36;onClicked:map.zoomAt(map.zoom/1.15,map.width/2,map.height/2)}
+            ArchiveButton {objectName:"map-zoom-in";colors:map.colors;label:"+";x:122;width:36;onClicked:map.zoomAt(map.zoom*1.15,map.width/2,map.height/2)}
+            ArchiveButton {objectName:"map-enter-room";colors:map.colors;label:"Enter selected Room";x:164;width:172;enabled:!!map.selectedRoom&&!map.arranging;onClicked:map.enterRoom(map.selectedRoom)}
         }
     }
 }

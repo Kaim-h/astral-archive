@@ -182,6 +182,7 @@ Rectangle {
     }
     property var mapRoomEditText:({})
     function startMapRoomEdit(kind,id,patch){
+        if(mapNavigationDiagnostics)console.log("B8 map arrangement entered",JSON.stringify({kind:kind,id:id,patch:patch,showMap:showMap,ready:viewSwitchReady,checkpoint:checkpointLoadPending,pan:mapView.panning,drag:mapView.dragging,mode:sceneView.mode}))
         if(!showMap||!viewSwitchReady||checkpointLoadPending||(mapView.panning||mapView.dragging)||sceneView.mode!=="arrange")return
         var r=kind==="spatialRoomCreate"?View.mapRoomDraft(mapView.dataModel):archive.snapshot.spatial.rooms[id]
         if(!r)return
@@ -189,6 +190,7 @@ Rectangle {
         if(kind!=="spatialRoomCreate")cmd.roomId=id
         var raw={};for(var key of ["name","x","y","w","h"])raw[key]=String(cmd.patch[key]!==undefined?cmd.patch[key]:r[key])
         mapRoomEditText=raw;archive.proposeStructure(cmd);structurePanel.forceActiveFocus()
+        if(mapNavigationDiagnostics)console.log("B8 map arrangement proposed",JSON.stringify({command:cmd,ok:!!archive.structuralProposal&&archive.structuralProposal.ok,error:archive.structuralProposal?archive.structuralProposal.error:"No proposal"}))
     }
     function setMapRoomValue(key,value){
         var q=archive.structuralProposal;if(!q||!["spatialRoomCreate","spatialRoomEdit"].includes(q.command.kind))return
