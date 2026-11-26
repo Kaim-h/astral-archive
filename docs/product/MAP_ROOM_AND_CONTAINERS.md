@@ -1,5 +1,7 @@
 # Map Room and recursive container model
 
+**S20 current design:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) governs conflicting B8 directions below. Map is strictly top-down; Room has plan and centered perspective; Shelf is first frontal level. B8 Room furniture is Shelf-only. Optional aligned shared doorways, direct focus and assisted arrangement, valid implicit commit and geometry-aware navigation supersede earlier proposed controls and timing. Older dated material remains provenance; B9 furniture and irregular architecture deferred. Existing identity, support and file safety contracts remain.
+
 **Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** approved product direction consolidated from the November 17 handoff. The wider Map Room is not implemented; B6 through B7-N2 supply an isolated synthetic recursive cubby study with mixed fixtures and universal Case transport. Higher-level Shelf/Room/Map Room implementation and real directory binding remain future work. See current state.

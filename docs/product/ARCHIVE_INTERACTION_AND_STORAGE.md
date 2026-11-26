@@ -1,5 +1,7 @@
 # Archive cubby and furniture interaction — research contract
 
+**S20 current design:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) supersedes historical Build/hammer and explicit Apply/Cancel defaults for ordinary valid structural arrangement on returning to Browse. Preserve explicit approval/settling for file transfers, reflow, removal and invalid resolution. Shelf is mixed recursive storage; metadata available in both modes, no click cycling. Existing B6/B7 identity/ownership contracts are not relaxed.
+
 **Provenance:** November 20 proposed overlay, B1–B6r3 browser studies, older November 17 handoff. This supplements the approved [Map Room / containers](MAP_ROOM_AND_CONTAINERS.md) and [physical fixtures](PHYSICAL_FIXTURES_AND_SCROLL_BEHAVIOR.md) documents. **This is a design/research direction, not native Quickshell implementation.**
 
 ## Storage grammar

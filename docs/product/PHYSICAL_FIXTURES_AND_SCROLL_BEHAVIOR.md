@@ -1,5 +1,7 @@
 # Physical fixtures, placement and scroll behavior
 
+**S20 current design:** [B8 spatial Archive contract](B8_SPATIAL_ARCHIVE.md) adds the recovered flat Lighting Lab general-purpose board, independent supported application books and valid implicit arrangement commits. Historical explicit Apply/Cancel for ordinary valid structural edits is superseded on Browse; retain confirmation/validation for evacuation, reflow, transfer and invalid geometry. Existing solver and rack dimensions remain authoritative; compact B8 study sizes are not native requirements.
+
 **Provenance:** Consolidated November 17, 2026 project decisions; see the [research index](../research/README.md). Older prototypes may contain superseded material.
 
 **Status:** product requirements and prototype lessons from the November 17 cross-platform handoff. v5.4 is historical. B6r12b3 is the accepted scroll browser direction; B6 through B7-N2 are isolated native synthetic source. See [current state](../development/CURRENT_STATE.md) and [B7 asset contract](REPRESENTATION_ASSETS.md) for later evidence.
