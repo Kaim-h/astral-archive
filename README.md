@@ -8,7 +8,17 @@ The aim is to create an immersive desktop without sacrificing the practicality o
 
 Built with Quickshell, Qt Quick/QML and JavaScript, Astral Archive integrates with Hyprland and existing Linux services rather than replacing the compositor.
 
-## Development
+## Current development status
+
+**Active development — pre-release. Not ready for general installation or daily use.**
+
+The public main branch contains the desktop shell and isolated native Archive studies, including simulated scroll physics, mixed furnished cubbies, Scroll Case transport and synthetic checkpoint Save/Load. The Archive is not yet connected to the production shell or real filesystem operations.
+
+The B8 Shelf, Room and Map Room design is integrated as a specification. Its native implementation is in progress in [PR #19](https://github.com/Kaim-h/astral-archive/pull/19); experimental branch features are not released features. The integrated baseline has passed JavaScript, Chromium and offscreen Qt Quick checks; actual target Linux desktop validation remains outstanding.
+
+[Current implementation](docs/development/CURRENT_STATE.md) · [Active development](docs/development/ACTIVE_WORK.md) · [Roadmap](docs/archive-roadmap.md) · [Documentation](docs/README.md)
+
+## Development approach
 
 Astral Archive is a non-commercial personal project developed extensively using generative AI. Much of its implementation, artwork, documentation and testing is produced by AI agents under my direction.
 
@@ -40,26 +50,11 @@ Its intended features include:
 
 The spatial interface is intended to complement efficient, keyboard-accessible file management rather than replace it.
 
-## Implementation status
+## Project documentation
 
-The desktop shell includes the illustrated launcher, Archive Capsule, utility controls, Veranda wallpaper selector and Celestial Gallery.
-
-The separate Archive study currently includes native geometry and interaction foundations, symbolic file representations and mixed furnished cubbies. It includes universal Scroll Case transport and explicit synthetic checkpoint Save/Load, and is not imported by the production shell.
-
-Archive records and file operations remain synthetic. It is not yet a production file manager.
-
-The integrated public baseline has passed offline JavaScript, browser and offscreen Qt Quick checks. Native desktop validation remains outstanding.
-
-**This project is still in development and is not yet ready for general installation or daily use.**
-
-For more detailed information:
-
-- [Current implementation state](docs/development/CURRENT_STATE.md)
-- [Archive development roadmap](docs/archive-roadmap.md)
 - [Design language](docs/product/VISION_AND_DESIGN_LANGUAGE.md)
 - [Native Linux bring-up guide](docs/bringup.md)
-- [Documentation index](docs/README.md)
-- [Archive architecture review](docs/architecture/ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md) — technical background and advisory recommendations.
+- [Archive architecture review](docs/architecture/ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md) — historical technical background and advisory recommendations.
 
 ## Contributing
 

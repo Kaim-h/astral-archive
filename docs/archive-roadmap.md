@@ -2,14 +2,20 @@
 
 ## Current dependency roadmap
 
-See [current state](development/CURRENT_STATE.md) for the integrated B6–B7-N2 synthetic source and exact verification evidence, [active work](development/ACTIVE_WORK.md) for current topics, and [product specifications](product/) for accepted requirements. This roadmap describes dependencies, not authorization or a fixed schedule.
+This is a milestone dependency sequence, not a release schedule or authorization. See [current state](development/CURRENT_STATE.md) for integrated source and exact evidence, [active work](development/ACTIVE_WORK.md) for live topics, and [product specifications](product/) for accepted requirements.
 
-1. The integrated public baseline has passed offline, browser and offscreen Qt Quick CI (see [current state](development/CURRENT_STATE.md)). Complete coordinated documentation reconciliation and obtain explicit resumption authorization. Preserve all regression gates and verify each subsequent head independently.
-2. AUD-16–21 corrections and their regression guidance are integrated and passed their named CI checks. Continue the unfinished audit and design topics independently when authorized (see [active work](development/ACTIVE_WORK.md)); complete design acceptance before dependent implementation. Preserve accepted B6r12b3 and B7r3/S11/U3/P10 contracts. B8 Shelf/Room/Map Room design requires independent review and owner integration of the [S20 design contract](product/B8_SPATIAL_ARCHIVE.md) and [implementation handoff](development/B8_IMPLEMENTATION_HANDOFF.md) before dependent native implementation. Keep PR #5 design-only; open a separate native implementation PR after integration and scope authorization. B8-N1–N6 is a proposed sequence, not a schedule or authorization.
-3. Continue isolated synthetic Archive development only within approved milestones. Review hierarchy, support dependencies, identity, placement and reversible transactions before higher-level implementation; no new backend is implied.
-4. N4 actual target Fedora/Hyprland/Quickshell validation is mandatory before production integration. Retain KDE/TTY recovery and manual launch; browser and offscreen Qt tests are not target evidence. See [environment](development/ENVIRONMENT.md) and [bring-up](bringup.md).
-5. Later authorized work: production layout persistence, Map Room and Index integration, explicit-root indexing/reconciliation and safe file operations. The goal is a feasible, safe file-manager replacement; real filesystem changes must be distinct from visual arrangement. Exact identity service, storage backend and destructive-operation policy remain undecided.
-6. Optional discovery, performance optimization and distribution follow demonstrated need and validation. No language migration, production deployment or autostart is implied.
+| Stage | Status / dependency |
+|---|---|
+| Desktop foundations | Source integrated: illustrated launcher, Capsule, Utility Shelf, Veranda and Gallery. Actual desktop validation outstanding. |
+| B6–B7 Archive foundations | Integrated isolated native study: scroll physics, recursive mixed cubbies, file representation assets, Scroll Case and synthetic checkpoint/Undo. |
+| B8 spatial design | S20 specification integrated through [PR #18](https://github.com/Kaim-h/astral-archive/pull/18); [contract](product/B8_SPATIAL_ARCHIVE.md), [handoff](development/B8_IMPLEMENTATION_HANDOFF.md). |
+| B8 native N1–N6 | In development in [PR #19](https://github.com/Kaim-h/astral-archive/pull/19). N1 spatial foundation, N2 furnished Shelves, N3 Room views/navigation, N4 Map Room/shared doors, N5 appearance/context interaction, N6 integrated verification. Consult live disposition; not released. |
+| B8 documentation reconciliation and refinement | Consolidate final accepted implementation, compatibility and verification; separately authorized customization/refinement work. |
+| Target desktop validation | Actual Fedora/Hyprland/Quickshell bring-up gate (distinct from B8-N4 Map Room); mandatory before production enablement. Retain KDE/TTY recovery and manual launch. |
+| Later file Archive work | Index and explicit-root indexing/reconciliation, safe real file operations, production layout persistence and shell wiring under separately authorized scope. No backend or destructive-operation policy assumed. |
+| Further desktop work | Accessibility, performance, reproducible setup, optional integrations and distribution according to demonstrated need. |
+
+Visual arrangement must remain distinct from filesystem mutation. Browser and offscreen Qt checks are not actual target desktop evidence. Preserve identity, support/contact geometry, reversible transactions and user data.
 
 ## Historical roadmap records (superseded status and next actions)
 
