@@ -1073,5 +1073,60 @@ export function run(){
   eq(View.mapRoomOutline(s,{kind:'spatialRoomEdit',roomId:empty.id,patch:{x:100001}}),null,'bounded outline');
   eq(View.mapRoomOutline(s,{kind:'spatialRoomEdit',roomId:empty.id,patch:{w:0}}),null,'no negative outline');
  }
+ {
+  // N4c: exact integer spans on both wall faces, all orientations and
+  // fractional occupied extents. No duplicated geometry/ownership solver.
+  const a={id:'a',x:0,y:0,w:1000,h:1000};
+  for(const side of ['north','east','south','west']){
+   const vertical=side==='east'||side==='west',op={north:'south',south:'north',east:'west',west:'east'}[side];
+   const b={id:'b',x:side==='east'?1000:side==='west'?-1000:0,y:side==='south'?1000:side==='north'?-1000:0,w:1000,h:1000};
+   const ar={roomId:'a',side},br={roomId:'b',side:op};
+   function box(side,lo,len){
+    return side==='north'?{x:lo,y:0,w:len,h:80}:side==='south'?{x:lo,y:920,w:len,h:80}:side==='west'?{x:0,y:lo,w:80,h:len}:{x:920,y:lo,w:80,h:len};
+   }
+   const boxes={p:box(side,200.25,99.5),q:box(op,500,100),interior:{x:400,y:400,w:50,h:50}};
+   const s={spatial:{rooms:{a,b},shelves:{p:{roomId:'a'},q:{roomId:'b'},interior:{roomId:'a'}},doors:{}}};
+   const fp=(_,id)=>boxes[id];
+   const d={id:'d',a:ar,b:br,start:320,end:420};s.spatial.doors.d=d;
+   eq(Doors.clearSpans(s,ar,br,fp),[{start:0,end:200},{start:300,end:320},{start:420,end:500},{start:600,end:1000}],'both faces, rounded outward '+side);
+   eq(Doors.clearSpans(s,ar,br,fp,'d'),[{start:0,end:200},{start:300,end:500},{start:600,end:1000}],'exclude current '+side);
+   const g=Doors.geometry(s,d,fp),span=Doors.doorEditSpan(s,d,fp);
+   eq(span,{start:300,end:500},'contiguous selected '+side);
+   eq(Doors.gesturePatch(g,span,0,'move',1000),{start:400,end:500},'no jump forward '+side);
+   eq(Doors.gesturePatch(g,span,0,'move',-1000),{start:300,end:400},'no jump backward '+side);
+   eq(Doors.gesturePatch(g,span,0,'start',1000),{start:419,end:420},'positive interval '+side);
+   eq(Doors.gesturePatch(g,span,0,'end',1000),{start:320,end:500},'end clamps '+side);
+   eq(Doors.geometry(s,{id:'touch',a:ar,b:br,start:100,end:200},fp).vertical,vertical,'exact boundary allowed '+side);
+   let blocked=false;try{Doors.geometry(s,{id:'bad',a:ar,b:br,start:199,end:201},fp)}catch(e){blocked=true}
+   yes(blocked,'fractional footprint blocked '+side);
+   const adjacent=Doors.adjacentPairs(s,'a',fp);
+   eq(adjacent.length,1,'only opposing real neighbor '+side);
+  }
+  const state=apply(Core.session(ShelfSample.roomFixture()),{kind:'spatialAdoptIndependentProfiles'}),s=state.snapshot;
+  const d=Object.values(s.spatial.doors)[0],root=s.spatial.rooms[d.a.roomId],b=Spatial.footprint(s,'root');
+  const blocked=apply(state,{kind:'spatialShelfEdit',containerId:'root',patch:{x:root.w-b.w}});
+  const spans=Doors.clearSpans(blocked.snapshot,d.a,d.b,Spatial.footprint,d.id);
+  const geom=Spatial.doorGeometry(blocked.snapshot,d.id),span=Doors.doorEditSpan(blocked.snapshot,d,Spatial.footprint);
+  yes(spans.length&&span.start<=geom.start&&span.end>=geom.end,'actual profile span');
+  const suggestions=View.mapDoorSuggestions(blocked.snapshot,d.a.roomId);
+  yes(suggestions.length,'actual profile suggestions');
+  for(const q of suggestions)yes(Core.previewStructure(blocked,{kind:'spatialDoorCreate',patch:q.patch}).ok,'suggestion uses real validator');
+  const data=View.mapPlan(blocked.snapshot),f=View.mapFrame(data,1366,756),mid=(geom.start+geom.end)/2;
+  const x=f.x+geom.line*f.scale,y=f.y+mid*f.scale;
+  eq(View.mapDoorHit(data,f,x,y),d.id,'actual map doorway hit');
+  const gesture=View.mapDoorGesture(blocked.snapshot,d.id,'move',f,x,y);
+  const patch=View.mapDoorGesturePatch(gesture,x,y+10000*f.scale,false,20);
+  const preview=Core.previewStructure(blocked,{kind:'spatialDoorEdit',doorId:d.id,patch});
+  yes(preview.ok||!preview.error,'clamped actual gesture remains valid or no-op');
+  // A different existing opening is a blocker, even if a destination beyond
+  // it is clear. The authoritative edit rejects jumping, not only the UI.
+  const other=apply(state,{kind:'spatialDoorCreate',patch:{a:d.a,b:d.b,start:700,end:800}});
+  refuse(other,{kind:'spatialDoorEdit',doorId:d.id,patch:{start:850,end:950}});
+  const contact=apply(other,{kind:'spatialDoorEdit',doorId:d.id,patch:{end:700}});
+  const otherId=Object.keys(contact.snapshot.spatial.doors).find(k=>k!==d.id);
+  eq(View.mapDoorMergeChoices(contact.snapshot,d.id),[otherId],'only contacting same pair');
+  const merge=apply(contact,{kind:'spatialDoorMerge',doorId:d.id,patch:{otherId}});
+  eq(Core.undo(merge).snapshot,contact.snapshot,'shared merge exact Undo');
+ }
  return checks;
 }

@@ -460,3 +460,57 @@ export function mapRoomGesturePatch(g,x,y,snap,interval,magnetic){
     }
     return patch;
 }
+
+// N4c: map suggestions and direct gesture adapters over the authoritative
+// shared-wall solver. The renderer never creates or copies doorway records.
+export function mapDoorSuggestions(s,roomId){
+    if(!Spatial.physicalProfiles(s)||!roomId)return [];
+    const list=[];
+    for(const p of Doors.adjacentPairs(s,roomId,Spatial.footprint))for(const span of p.spans){
+        const width=Math.min(160,span.end-span.start),start=Math.floor((span.start+span.end-width)/2),end=start+width;
+        list.push({a:p.a,b:p.b,vertical:p.vertical,line:p.line,start,end,patch:{a:p.a,b:p.b,start:start-p.origin,end:end-p.origin}});
+    }
+    return list;
+}
+export function mapDoorGesture(s,id,kind,frame,x,y){
+    const d=Spatial.physicalProfiles(s)&&s.spatial.doors&&s.spatial.doors[id],point=mapAt(frame,x,y);
+    if(!d||!point||!['move','start','end'].includes(kind))return null;
+    const g=Spatial.doorGeometry(s,id),span=Doors.doorEditSpan(s,d,Spatial.footprint);
+    if(!span)return null;
+    return {id,kind,frame:Object.assign({},frame),start:point,geometry:g,span,origin:Doors.edge(s,d.a).start};
+}
+export function mapDoorGesturePatch(g,x,y,snap,interval){
+    if(!g)return null;
+    const p=mapAt(g.frame,x,y);if(!p)return null;
+    const axis=g.geometry.vertical?'y':'x',delta=Core.snapCoordinate(p[axis]-g.start[axis],interval,snap);
+    return Doors.gesturePatch(g.geometry,g.span,g.origin,g.kind,delta);
+}
+export function mapDoorOutline(s,id,patch){
+    const d=Spatial.physicalProfiles(s)&&s.spatial.doors&&s.spatial.doors[id];
+    if(!d||!patch)return null;
+    const a=Doors.edge(s,d.a),start=patch.start===undefined?d.start:patch.start,end=patch.end===undefined?d.end:patch.end;
+    if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<=start||end>a.length)return null;
+    return {vertical:a.vertical,line:a.line,start:a.start+start,end:a.start+end};
+}
+export function mapDoorHit(data,frame,x,y,tolerance=10){
+    if(!data||!frame||![x,y,tolerance].every(Number.isFinite))return '';
+    let best=null,dist=tolerance;
+    for(const d of data.doors){
+        const a=d.vertical?frame.y+d.start*frame.scale:frame.x+d.start*frame.scale,
+              b=d.vertical?frame.y+d.end*frame.scale:frame.x+d.end*frame.scale,
+              line=d.vertical?frame.x+d.line*frame.scale:frame.y+d.line*frame.scale,
+              along=d.vertical?y:x,cross=d.vertical?x:y;
+        const z=Math.hypot(cross-line,Math.max(a-along,0,along-b));
+        if(z<=dist){best=d.id;dist=z;}
+    }
+    return best||'';
+}
+export function mapDoorMergeChoices(s,id){
+    const d=s.spatial&&s.spatial.doors&&s.spatial.doors[id];if(!d)return [];
+    const g=Spatial.doorGeometry(s,id),same=(a,b)=>a.roomId===b.roomId&&a.side===b.side;
+    return Object.values(s.spatial.doors).filter(other=>{
+        if(other.id===id||!(same(d.a,other.a)&&same(d.b,other.b)||same(d.a,other.b)&&same(d.b,other.a)))return false;
+        const q=Spatial.doorGeometry(s,other.id);
+        return g.start<=q.end&&q.start<=g.end;
+    }).map(d=>d.id).sort();
+}

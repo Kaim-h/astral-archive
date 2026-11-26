@@ -17,6 +17,73 @@ export function edge(s,ref){
 function sameEdge(a,b){return a.roomId===b.roomId&&a.side===b.side;}
 function samePair(a,b){return sameEdge(a.a,b.a)&&sameEdge(a.b,b.b)||sameEdge(a.a,b.b)&&sameEdge(a.b,b.a);}
 function overlap(a,b,c,d){return a<d&&c<b;}
+// Half-open projected occupied intervals, including fractional ornament.
+function wallBlockers(s,edges,footprint){
+ const blocked=[];
+ for(const side of edges){
+  const r=s.spatial.rooms[side.roomId];
+  for(const k of Object.keys(s.spatial.shelves)){
+   if(s.spatial.shelves[k].roomId!==side.roomId)continue;
+   const p=footprint(s,k);
+   const touches=side.side==='north'?p.y<=0&&p.y+p.h>=0:side.side==='south'?p.y<=r.h&&p.y+p.h>=r.h:side.side==='west'?p.x<=0&&p.x+p.w>=0:p.x<=r.w&&p.x+p.w>=r.w;
+   const lo=side.start+(side.vertical?p.y:p.x),hi=lo+(side.vertical?p.h:p.w);
+   if(touches)blocked.push({start:lo,end:hi});
+  }
+ }
+ return blocked;
+}
+// Clear spans are inclusive endpoint bounds for positive-width half-open
+// integer openings. Round obstacles outward, never grant fractional clearance.
+export function clearSpans(s,aRef,bRef,footprint,excludeId){
+ const a=edge(s,aRef),b=edge(s,bRef);
+ need(a.roomId!==b.roomId&&opposite[a.side]===b.side&&a.line===b.line,'Door requires opposing shared Room boundaries');
+ const start=Math.max(a.start,b.start),end=Math.min(a.start+a.length,b.start+b.length);
+ if(end<=start)return [];
+ const blocked=wallBlockers(s,[a,b],footprint);
+ for(const d of Object.values(s.spatial.doors||{})){
+  if(d.id===excludeId)continue;
+  const g=geometry(s,d,footprint);
+  if(g.vertical===a.vertical&&g.line===a.line)blocked.push({start:g.start,end:g.end});
+ }
+ const spans=[];let cursor=start;
+ for(const q of blocked.sort((u,v)=>u.start-v.start||u.end-v.end)){
+  const lo=Math.max(start,Math.floor(q.start)),hi=Math.min(end,Math.ceil(q.end));
+  if(hi<=cursor||hi<=lo)continue;
+  if(lo>cursor)spans.push({start:cursor,end:Math.min(end,lo)});
+  cursor=Math.max(cursor,hi);if(cursor>=end)break;
+ }
+ if(cursor<end)spans.push({start:cursor,end});
+ return spans;
+}
+export function adjacentPairs(s,roomId,footprint){
+ if(!s.spatial||!own(s.spatial.rooms,roomId))return [];
+ const pairs=[];
+ for(const side of sides){
+  const a={roomId,side},ea=edge(s,a);
+  for(const id of Object.keys(s.spatial.rooms)){
+   if(id===roomId)continue;
+   const b={roomId:id,side:opposite[side]},eb=edge(s,b);
+   if(ea.line!==eb.line||Math.max(ea.start,eb.start)>=Math.min(ea.start+ea.length,eb.start+eb.length))continue;
+   const spans=clearSpans(s,a,b,footprint);
+   if(spans.length)pairs.push({a,b,vertical:ea.vertical,line:ea.line,origin:ea.start,spans});
+  }
+ }
+ return pairs;
+}
+export function doorEditSpan(s,d,footprint){
+ const g=geometry(s,d,footprint);
+ return clearSpans(s,d.a,d.b,footprint,d.id).find(v=>v.start<=g.start&&g.end<=v.end)||null;
+}
+export function gesturePatch(g,span,origin,kind,delta){
+ if(!g||!span||!Number.isInteger(origin)||!Number.isInteger(delta)||!['move','start','end'].includes(kind))return null;
+ if(span.start>g.start||span.end<g.end||g.start>=g.end)return null;
+ const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+ let start=g.start,end=g.end;
+ if(kind==='move'){const shift=clamp(delta,span.start-start,span.end-end);start+=shift;end+=shift;}
+ else if(kind==='start')start=clamp(start+delta,span.start,end-1);
+ else end=clamp(end+delta,start+1,span.end);
+ return {start:start-origin,end:end-origin};
+}
 export function geometry(s,d,footprint){
  need(keys(d,['id','a','b','start','end'])&&typeof d.id==='string'&&d.id.length>0&&d.id.length<=128,'Invalid doorway record');
  const a=edge(s,d.a),b=edge(s,d.b);
@@ -24,19 +91,9 @@ export function geometry(s,d,footprint){
  need(Number.isInteger(d.start)&&Number.isInteger(d.end)&&d.start>=0&&d.end>d.start&&d.end<=a.length,'Invalid opening interval');
  const start=a.start+d.start,end=a.start+d.end;
  need(start>=b.start&&end<=b.start+b.length,'Door exceeds shared wall segment');
- // Provisional conservative rectangular clearance: a footprint touching the
- // wall blocks its projected interval. No simulated wall thickness yet.
- for(const side of [a,b]){
-  const r=s.spatial.rooms[side.roomId];
-  for(const k of Object.keys(s.spatial.shelves)){
-   if(s.spatial.shelves[k].roomId!==side.roomId)continue;
-   const p=footprint(s,k);
-   // Crossing also obstructs in hypothetical invalid layouts. In-bounds contact unchanged.
-   const touches=side.side==='north'?p.y<=0&&p.y+p.h>=0:side.side==='south'?p.y<=r.h&&p.y+p.h>=r.h:side.side==='west'?p.x<=0&&p.x+p.w>=0:p.x<=r.w&&p.x+p.w>=r.w;
-   const lo=side.start+(side.vertical?p.y:p.x),hi=lo+(side.vertical?p.h:p.w);
-   need(!touches||!overlap(start,end,lo,hi),'Door obstructed by Shelf footprint');
-  }
- }
+ // Shared footprint projection is also used by the interactive solver.
+ for(const span of wallBlockers(s,[a,b],footprint))
+  need(!overlap(start,end,span.start,span.end),'Door obstructed by Shelf footprint');
  return {vertical:a.vertical,line:a.line,start,end,openings:[
   {roomId:a.roomId,side:a.side,start:start-a.start,end:end-a.start},
   {roomId:b.roomId,side:b.side,start:start-b.start,end:end-b.start}]};
@@ -71,7 +128,11 @@ export function edit(s,cmd,p,allocate,footprint){
   const k=allocate('door-');doors[k]=Object.assign({id:k},p);
  }else if(cmd.kind==='spatialDoorEdit'){
   need(own(doors,cmd.doorId)&&keys(p,['start','end']),'Unknown door or property');
-  Object.assign(doors[cmd.doorId],p);
+  const d=doors[cmd.doorId],span=doorEditSpan(s,d,footprint),candidate=Object.assign({},d,p),origin=edge(s,d.a).start;
+  // Exact entry and any future caller share the same no-teleport rule.
+  need(span&&Number.isInteger(candidate.start)&&Number.isInteger(candidate.end)&&
+   candidate.start+origin>=span.start&&candidate.end+origin<=span.end,'Door edit leaves its contiguous clear span');
+  Object.assign(d,p);
  }else if(cmd.kind==='spatialDoorDelete'){
   need(own(doors,cmd.doorId)&&keys(p,[]),'Unknown door or property');delete doors[cmd.doorId];
  }else if(cmd.kind==='spatialDoorMerge'){
