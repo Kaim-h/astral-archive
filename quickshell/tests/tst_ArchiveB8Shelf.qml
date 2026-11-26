@@ -11,7 +11,43 @@ Item {
         name:"ArchiveB8Shelf"
         when:windowShown
         function init(){study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
-        function clickNamed(name){var item=findChild(study,name);verify(!!item,name);tryVerify(function(){return item.visible&&item.enabled&&item.width>0&&item.height>0});mouseClick(item,item.width/2,item.height/2)}
+        function clickNamed(name){
+            var item=null,last=""
+            tryVerify(function(){
+                item=findChild(study,name)
+                if(!item||!item.visible||!item.enabled||item.width<=0||item.height<=0)return false
+                var point=item.mapToItem(study,item.width/2,item.height/2)
+                var next=[point.x,point.y,item.width,item.height].join(",")
+                var ok=last===next&&point.x>=0&&point.x<study.width&&point.y>=0&&point.y<study.height
+                last=next;return ok
+            },3000,name)
+            mouseClick(item,item.width/2,item.height/2)
+        }
+        function test_architectural_removal_and_ready_preview(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
+            study.switchMode("arrange")
+            var old=ctl.snapshot.cubbies.root.mods.find(m=>m.id==="rack-1")
+            ctl.stage("root","rack-1",{y:old.y+10})
+            tryCompare(ctl,"phase","ready",8000)
+            var top=findChild(scene,"mixed-top-rack-1")
+            tryVerify(function(){top=findChild(scene,"mixed-top-rack-1");return !!top&&top.y+top.supportY===old.y+10})
+            compare(JSON.stringify(ctl.snapshot),before)
+            ctl.cancel()
+            tryVerify(function(){top=findChild(scene,"mixed-top-rack-1");return !!top&&top.y+top.supportY===old.y})
+            scene.clearSelection()
+            clickNamed("arrange-menu");clickNamed("remove-architectural-shelf")
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+            compare(ctl.structuralProposal.appUnplacementCount,2)
+            verify(ctl.structuralProposal.caseTransferCount>0)
+            compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
+            clickNamed("arrange-menu");clickNamed("remove-architectural-shelf");clickNamed("structure-apply")
+            var other=Object.keys(ctl.snapshot.spatial.shelves)[0]
+            tryCompare(scene,"cubbyId",other)
+            verify(!ctl.snapshot.cubbies.root);compare(Spatial.appPlacements(ctl.snapshot).length,0)
+            verify(!!ctl.snapshot.spatial.apps["org.example.Reader"])
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+        }
         function test_picker_and_support_controls(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
             study.switchMode("arrange")

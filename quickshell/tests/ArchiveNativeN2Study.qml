@@ -166,7 +166,7 @@ Rectangle {
     }
     property bool contextOpen:false
     property point contextPoint:Qt.point(0,0)
-    function closeContext(){contextOpen=false;sceneView.forceActiveFocus()}
+    function closeContext(){contextOpen=false;bookPicker=false;sceneView.forceActiveFocus()}
     function openContext(x,y){
         closeMaterials();rackInspector=false;bookPicker=false;bookPage=0
         contextPoint=sceneView.mapToItem(study,x,y)
@@ -848,7 +848,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?"Remove fixture":structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:"Cancel fixture adjustment";onClicked:archive.cancelStructure()}
@@ -867,7 +867,7 @@ Rectangle {
                 Text {
                     width:parent.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
                     text:!structurePanel.proposal?"":structurePanel.removing?
-                        "Remove this fixture and its contents? "+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
+                        (structurePanel.cmd.kind==="spatialShelfDelete"?"Remove this architectural Shelf and its contents? ":"Remove this fixture and its contents? ")+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
                         (study.spatialEnabled&&structurePanel.proposal.appUnplacementCount?" "+structurePanel.proposal.appUnplacementCount+" application book(s) will be unplaced; application identities retained.":"")+" No disk files are deleted.":
                         structurePanel.bookEdit?"Choose support-local position. The book retains its size and identity.":structurePanel.bookRemove?"Unplace this book? Its application identity is retained.":structurePanel.supportEdit?"Change explicit top support eligibility. Occupied supports cannot be disabled.":structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
                         structurePanel.cubbyEdit?"Grow the interior without changing furniture or its outer footprint. Apply when ready.":"Drag the preview to move; drag its lower-right handle to resize. Apply when valid."
