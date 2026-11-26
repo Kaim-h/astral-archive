@@ -947,5 +947,63 @@ export function run(){
  }
  eq(s,before,'old state unchanged');
  }
+ {
+ const cmd={kind:'spatialAdoptIndependentProfiles'},s=ShelfSample.roomFixture(),id=s.spatial.shelves.root.roomId;
+ // Valid v4 near-wall fixture becomes invalid only under the wider frame.
+ const tight=Core.clone(s);
+ const rootBox=Spatial.footprint(s,'root'),door=Object.values(s.spatial.doors)[0],east=door.b.roomId;
+ const newWidth=Math.ceil(rootBox.x+rootBox.w);
+ tight.spatial.rooms[id].w=newWidth;tight.spatial.rooms[east].x=newWidth;
+ eq(Core.validate(tight),null,'v4 tight room valid');
+ const ts=Core.session(tight),tp=Core.previewStructure(ts,cmd);
+ yes(!tp.ok&&tp.profileAdoption.conflicts.some(c=>c.kind==='wall'&&c.shelfId==='root'),'v5 migration wall conflict');
+ eq(Core.applyStructure(ts,tp).snapshot,tight,'wall refusal exact');
+ eq(Core.applyStructure(ts,tp).history,ts.history,'wall refusal history exact');
+ // Candidate crest reaches east boundary but old crest is clear.
+ const blocked=Core.clone(s),g=Architecture.shelfGeometry(s.cubbies.root,'crest',s.spatial.shelves.root.depth,24);
+ blocked.spatial.rooms[id].w=rootBox.x+g.w;
+ blocked.spatial.rooms[east].x=blocked.spatial.rooms[id].w;
+ blocked.spatial.doors[door.id].start=60;blocked.spatial.doors[door.id].end=120;
+ eq(Core.validate(blocked),null,'v4 shared door clear');
+ const bs=Core.session(blocked),bp=Core.previewStructure(bs,cmd);
+ yes(!bp.ok&&bp.profileAdoption.conflicts.some(c=>c.kind==='door'&&c.doorId===door.id),'v5 migration door conflict');
+ eq(Core.applyStructure(bs,bp).snapshot,blocked,'door refusal retains identities');
+ eq(Core.applyStructure(bs,bp).revision,bs.revision,'door refusal revision unchanged');
+ // Valid v3 direct adoption and old-version roundtrip.
+ const legacySpatial=Core.clone(s);delete legacySpatial.spatial.geometryPolicy;
+ eq(Core.validate(legacySpatial),null,'legacy furnished spatial valid');
+ const ls=Core.session(legacySpatial),adopted=apply(ls,cmd);
+ eq(Core.undo(adopted).snapshot,legacySpatial,'direct v3 to v5 exact undo');
+ eq(Checkpoint.encode(Core.undo(adopted),view),Checkpoint.encode(ls,view),'direct undo exact v3 bytes');
+ // Actual valid empty Room (already exists in furnished fixture), not a
+ // projection-only clone with orphaned Cubby owners.
+ const active=apply(Core.session(s),cmd),v=active.snapshot;
+ const empty=Object.keys(v.spatial.rooms).find(k=>!Object.values(v.spatial.shelves).some(p=>p.roomId===k));
+ yes(empty,'valid empty room present');
+ const ep=View.roomPlan(v,empty),em=Projection.roomMesh(v,empty,ep.openings);
+ eq(em.maxHeight,0,'empty live v5 room');eq(em.wallTop,1339.2,'empty independent height');
+ const esc=View.roomPerspective(v,ep,740,725);
+ yes(esc.faces.every(f=>!f.shelfId)&&esc.faces.length>0,'empty live room wall faces only');
+ const tall=apply(active,{kind:'spatialShelfEdit',containerId:'root',patch:{h:1500}}),tv=tall.snapshot;
+ const tallPlan=View.roomPlan(tv,id),tm=Projection.roomMesh(tv,id,tallPlan.openings);
+ yes(tm.maxHeight>1500,'valid tall outlier not compressed');eq(tm.wallTop,1339.2,'tall wall independent');
+ for(const [w,h] of [[740,725],[1366,756]]){
+  const sc=View.roomPerspective(tv,tallPlan,w,h);
+  for(const q of sc.floor.concat(...sc.faces.map(f=>f.points)))yes(q[2]>0&&q[0]>=32-1e-6&&q[0]<=w-32+1e-6&&q[1]>=50-1e-6&&q[1]<=h-50+1e-6,'live tall outlier fits');
+  const q=Projection.project([900,1000,0],sc.frame),inverse=Projection.floorInverse(q[0],q[1],sc.frame);
+  yes(Math.abs(inverse.x-900)<1e-7&&Math.abs(inverse.y-1000)<1e-7,'live inverse roundtrip');
+ }
+ const roomNew=apply(active,{kind:'spatialRoomCreate',patch:{name:'Empty new Room',x:8000,y:0,w:1000,h:1000}});
+ const newId=Object.keys(roomNew.snapshot.spatial.rooms).find(k=>!v.spatial.rooms[k]);
+ eq(roomNew.snapshot.spatial.rooms[newId].wallHeight,1339.2,'new v2 Room default absolute');
+ const shelfNew=apply(roomNew,{kind:'spatialShelfCreate',roomId:newId,patch:{x:50,y:50,w:700,h:500}});
+ const newShelf=Object.keys(shelfNew.snapshot.spatial.shelves).find(k=>!v.spatial.shelves[k]);
+ eq(shelfNew.snapshot.spatial.shelves[newShelf].frameBasis,Spatial.frameSeed(shelfNew.snapshot.cubbies[newShelf]),'new Shelf seeded once');
+ for(const c of [{w:1400,h:1050},{w:300,h:1500},{w:1800,h:300},{w:1800,h:1500},{w:130,h:100}]){
+  const basis=Spatial.frameSeed(c);yes(basis>=4&&basis<=40,'bounded seed across aspect ratios');
+  const g=Architecture.shelfGeometry(Object.assign({b:12},c),'crest',160,basis);
+  eq([g.aperture.w,g.aperture.h],[c.w,c.h],'seed preserves interior');
+ }
+ }
  return checks;
 }

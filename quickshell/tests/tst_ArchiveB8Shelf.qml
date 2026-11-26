@@ -10,6 +10,10 @@ import "../archive/ArchiveRoomProjection.mjs" as Projection
 Item {
     width:1366;height:900
     ArchiveNativeN2Study {id:study;anchors.fill:parent;spatialEnabled:true;physicalProfilesEnabled:true;initialSnapshot:Sample.fixture()}
+    // Same isolated SQLite database across distinct QML storage objects;
+    // unique per test invocation, never the standalone study's database.
+    ArchiveStudyStorage {id:preferenceWriter;databaseName:"AstralArchive.Test.B8.Preference."+Date.now()}
+    ArchiveStudyStorage {id:preferenceReader;databaseName:preferenceWriter.databaseName}
     TestCase {
         name:"ArchiveB8Shelf"
         when:windowShown
@@ -108,6 +112,37 @@ Item {
                     wait(50);compare(tools.height,bar);compare(scene.height,h);compare(scene.y,y)
                 }
             }finally{study.parent.width=original;study.roomPlanOpen=false}
+        }
+        function test_independent_sqlite_preference(){
+            var ctl=study.controller,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
+            try{
+                compare(preferenceReader.read(),null);compare(preferenceReader.readRoomPerspective(),false)
+                study.roomPreferenceStore=preferenceWriter;study.checkpointStore=preferenceWriter
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+                clickNamed("toggle-room-plan");clickNamed("toggle-room-perspective")
+                compare(preferenceReader.readRoomPerspective(),true);compare(preferenceReader.read(),null)
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                verify(study.saveCheckpoint());var saved=preferenceReader.read()
+                compare(JSON.parse(saved).version,5)
+                clickNamed("toggle-room-perspective")
+                compare(preferenceReader.readRoomPerspective(),false);compare(preferenceReader.read(),saved)
+                // Distinct storage object reopens persisted data. This is a
+                // same-process SQLite roundtrip, not a compositor restart.
+                study.roomPreferenceStore=preferenceReader;study.checkpointStore=preferenceReader
+                ctl.reset(Sample.fixture())
+                study.restoreRoomPreference();verify(!study.roomPerspective)
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                verify(study.roomPerspective);compare(preferenceWriter.readRoomPerspective(),true)
+                compare(JSON.stringify(ctl.snapshot),before);compare(preferenceWriter.read(),saved)
+                var refused=false
+                try{preferenceReader.write("{bad")}catch(e){refused=true}
+                verify(refused);compare(preferenceReader.read(),saved)
+                refused=false
+                try{preferenceReader.writeRoomPerspective("true")}catch(e){refused=true}
+                verify(refused);compare(preferenceWriter.readRoomPerspective(),true)
+            }finally{study.roomPlanOpen=false;study.checkpointStore=oldStore;study.roomPreferenceStore=oldPref}
         }
         function test_selected_independent_policy(){
             var ctl=study.controller,scene=study.scene,original=study.parent.width
