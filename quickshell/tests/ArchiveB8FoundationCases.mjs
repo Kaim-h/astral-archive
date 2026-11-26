@@ -5,6 +5,8 @@ import * as Checkpoint from "../archive/ArchiveCheckpoint.mjs";
 import * as MixedFixture from "./ArchiveB7MixedFixture.mjs";
 import * as Mixed from "../archive/representation/B7Ownership.mjs";
 import * as Motion from "../archive/ArchiveMotion.mjs";
+import * as Capacity from "../archive/ArchiveCapacity.mjs";
+import * as Doors from "../archive/ArchiveDoors.mjs";
 export function run(){
  let checks=0;
  function eq(a,b,label){checks++;if(JSON.stringify(a)!==JSON.stringify(b))throw Error(label+': '+JSON.stringify(a)+' != '+JSON.stringify(b));}
@@ -282,5 +284,88 @@ export function run(){
  south=apply(south,createDoor({roomId:northId,side:'south'},{roomId:se,side:'north'},410,460));
  const second=Object.keys(south.snapshot.spatial.doors).find(k=>k!==southDoor);
  refuse(south,{kind:'spatialDoorMerge',doorId:southDoor,patch:{otherId:second}});
+ // N1d: boundary budgets, isolated proposals and cross-domain transactions.
+ const appBefore=Core.clone(books.snapshot);
+ const mutable={kind:'spatialAppearance',containerId:'root',patch:{family:'Lighting Lab',palette:2}};
+ const appearanceProposal=Core.previewStructure(books,mutable);
+ yes(appearanceProposal.ok,'appearance preview ready');
+ mutable.patch.family='Changed';
+ const appearanceApplied=Core.applyStructure(books,appearanceProposal);
+ eq(appearanceApplied.error,'','caller mutation cannot change preview');
+ eq(appearanceApplied.snapshot.cubbies.root.appearance.family,'Lighting Lab','original appearance retained');
+ eq(books.snapshot,appBefore,'original unchanged');
+ const nestedCommand={kind:'spatialRoomEdit',roomId:hall,patch:{appearance:{family:'Observatory',palette:1}}};
+ const roomPreview=Core.previewStructure(halls,nestedCommand);
+ yes(roomPreview.ok,'nested metadata preview');
+ nestedCommand.patch.appearance.family='Changed';
+ eq(roomPreview.snapshot.spatial.rooms[hall].appearance.family,'Observatory','nested input copied');
+ const altered=Core.previewStructure(books,{kind:'spatialAppUnplace',appId:'org.example.Reader'});
+ altered.command={kind:'spatialAppPlace',appId:'org.example.Reader',containerId:'root',moduleId:topRack.id,patch:{x:450}};
+ const alteredResult=Core.applyStructure(books,altered);
+ yes(alteredResult.error,'changed command cannot publish different preview');eq(alteredResult.snapshot,books.snapshot,'changed preview nonmutating');
+ refuse(books,{kind:'spatialAppUnplace',appId:['org.example.Reader']});
+ refuse(books,{kind:'spatialShelfEdit',containerId:'root',patch:{w:1399.5}});
+ const fakeMotion=Motion.begin(books,['top-parcel'],true);
+ Motion.lift(fakeMotion);Motion.insert(fakeMotion,'case',{});Motion.release(fakeMotion,false);
+ delete fakeMotion.draft.spatial.apps['org.example.Reader'];
+ fakeMotion.draft.cubbies.root.mods.find(m=>m.id===topRack.id).items=fakeMotion.draft.cubbies.root.mods.find(m=>m.id===topRack.id).items.filter(e=>e.kind!=='app');
+ const foreign=Core.commitMotion(books,fakeMotion);
+ yes(foreign.error,'file motion cannot remove app identity');eq(foreign.snapshot,books.snapshot,'foreign motion rejected atomically');
+ const validMotion=Motion.begin(books,['top-parcel'],true);
+ Motion.lift(validMotion);Motion.insert(validMotion,'case',{});Motion.release(validMotion,false);
+ const actual=Core.commitMotion(books,validMotion);eq(actual.error,'','legitimate file-only motion commits');
+ eq(Spatial.appPlacements(actual.snapshot),Spatial.appPlacements(books.snapshot),'legitimate motion preserves app placements');
+ const alloc=Core.clone(initial);alloc.next=100000;
+ const oldRoom=Object.keys(alloc.spatial.rooms)[0],collision='hc100000';
+ alloc.spatial.rooms[collision]=Object.assign({},alloc.spatial.rooms[oldRoom],{id:collision});
+ delete alloc.spatial.rooms[oldRoom];alloc.spatial.shelves.root.roomId=collision;
+ const allocRack=alloc.cubbies.root.mods[0];allocRack.scrollCells={};
+ const allocSession=Core.session(alloc),resize=Core.stage(allocSession,'root',allocRack.id,{r:60});
+ const ready=Core.accept(resize,Core.solve(Core.request(resize)));
+ eq(ready.draft.phase,'ready','new cell allocation ready');
+ yes(Object.values(ready.draft.result.meta).some(m=>m.id.indexOf('~new-')===0),'new cell required');
+ const allocated=Core.apply(ready);eq(allocated.error,'','reflow skips structural identity collision');
+ yes(!Object.values(allocated.snapshot.cubbies.root.mods[0].cellMeta).some(m=>m.id===collision),'no collision');
+ const exhausted=Core.clone(alloc);exhausted.next=Number.MAX_SAFE_INTEGER;
+ const es=Core.session(exhausted),er=Core.stage(es,'root',allocRack.id,{r:60});
+ const eReady=Core.accept(er,Core.solve(Core.request(er))),eResult=Core.apply(eReady);
+ yes(eResult.error,'identity exhaustion fails safely');eq(eResult.snapshot,es.snapshot,'exhaustion nonmutating');
+ // Compact deterministic capacity specimens, without a large physics solve.
+ const budget=Core.clone(initial),rid=Object.keys(budget.spatial.rooms)[0];
+ budget.spatial.rooms[rid].w=10000;budget.spatial.rooms[rid].h=10000;
+ for(let i=1;i<Spatial.spatialLimits.rooms;i++){
+  const k='budget-room-'+i;budget.spatial.rooms[k]={id:k,name:'Room '+i,x:11000+i*200,y:0,w:130,h:100};
+ }
+ for(let i=1;i<Capacity.limits.cubbies;i++){
+  const k='budget-shelf-'+i;budget.cubbies[k]={id:k,w:130,h:100,b:4,mods:[]};
+  budget.spatial.shelves[k]={roomId:rid,x:1000+(i%20)*150,y:400+Math.floor(i/20)*50,depth:40,orientation:0};
+ }
+ budget.spatial.apps={};
+ for(let i=0;i<Spatial.spatialLimits.applications;i++){const k='synthetic.app.'+i;budget.spatial.apps[k]={appId:k,title:'App '+i};}
+ eq(Core.validate(budget),null,'room, container and app exact budgets');
+ const tooRoom=Core.clone(budget);tooRoom.spatial.rooms.extra={id:'extra',name:'Extra',x:-1000,y:0,w:130,h:100};invalid(tooRoom,'room budget +1');
+ const tooShelf=Core.clone(budget);tooShelf.cubbies.extra={id:'extra',w:130,h:100,b:4,mods:[]};tooShelf.spatial.shelves.extra={roomId:rid,x:9000,y:9000,depth:40,orientation:0};invalid(tooShelf,'container budget +1');
+ const tooApp=Core.clone(budget);tooApp.spatial.apps.extra={appId:'extra',title:'Extra'};invalid(tooApp,'app budget +1');
+ const recordBudget=Core.clone(initial);
+ for(let i=3;i<Capacity.limits.records;i++)recordBudget.caseItems.push({id:'budget-file-'+i,name:'sample.md',r:13});
+ eq(Core.validate(recordBudget),null,'file budget exact');
+ recordBudget.caseItems.push({id:'extra-file',name:'extra.md',r:13});invalid(recordBudget,'file budget +1');
+ const doorBudget=Core.clone(halls.snapshot);
+ doorBudget.spatial.rooms[hall].h=600;doorBudget.spatial.rooms[east].h=600;doorBudget.spatial.doors={};
+ for(let i=0;i<Doors.doorLimit;i++){const k='budget-door-'+i;doorBudget.spatial.doors[k]={id:k,a:ea,b:eb,start:20+i,end:21+i};}
+ eq(Core.validate(doorBudget),null,'door budget exact');
+ doorBudget.spatial.doors.extra={id:'extra',a:ea,b:eb,start:500,end:501};invalid(doorBudget,'door budget +1');
+ // V3 malformed references/format fail without touching a live session.
+ const corrupt=JSON.parse(Checkpoint.encode(books,{path:['root'],theme:1,cameras:{}}));
+ for(const mutate of [
+  v=>{v.snapshot.spatial=null;},
+  v=>{v.snapshot.spatial.shelves.root.roomId='missing';},
+  v=>{v.snapshot.spatial.apps=JSON.parse('{"__proto__":{"appId":"__proto__","title":"Invalid"}}');},
+  v=>{v.view.cameras=JSON.parse('{"constructor":{"zoom":1,"x":0,"y":0}}');},
+  v=>{v.snapshot.next=Number.MAX_SAFE_INTEGER+1;}
+ ]){
+  const value=Core.clone(corrupt);mutate(value);let failed=false;
+  try{Checkpoint.decode(JSON.stringify(value));}catch(e){failed=true;}yes(failed,'malformed v3 rejected');
+ }
  return checks;
 }

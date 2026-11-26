@@ -74,7 +74,7 @@ export function edit(s,cmd,p,allocate,footprint){
  }else if(cmd.kind==='spatialDoorDelete'){
   need(own(doors,cmd.doorId)&&keys(p,[]),'Unknown door or property');delete doors[cmd.doorId];
  }else if(cmd.kind==='spatialDoorMerge'){
-  need(own(doors,cmd.doorId)&&keys(p,['otherId'])&&own(doors,p.otherId)&&p.otherId!==cmd.doorId,'Choose two distinct doors');
+  need(own(doors,cmd.doorId)&&keys(p,['otherId'])&&typeof p.otherId==='string'&&own(doors,p.otherId)&&p.otherId!==cmd.doorId,'Choose two distinct doors');
   const a=doors[cmd.doorId],b=doors[p.otherId];
   need(samePair(a,b),'Only doors on the same pair of edges may merge');
   const ga=geometry(s,a,footprint),gb=geometry(s,b,footprint);

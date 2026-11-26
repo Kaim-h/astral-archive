@@ -114,6 +114,8 @@ function patch(target,p,allowed){
 export function edit(s,cmd,allocate){
  const p=cmd.patch===undefined?{}:cmd.patch;
  need(plain(p),'Invalid spatial patch');
+ for(const key of ['roomId','containerId','moduleId','appId','doorId'])
+  if(own(cmd,key))need(id(cmd[key]),'Invalid spatial target identity');
  if(cmd.kind==='spatialPromote'){
   need(!enabled(s)&&own(s.cubbies,'root'),'Expected legacy study');
   need(keysOnly(p,['depth','roomName']),'Unknown promotion property');
@@ -139,6 +141,7 @@ export function edit(s,cmd,allocate){
   Doors.resolveLost(s,cmd.removeDoors,footprint);
  }else if(cmd.kind==='spatialShelfCreate'){
   const k=allocate('architectural-shelf-'),c={id:k,name:'New Shelf',w:700,h:500,b:11,mods:[]},v={roomId:cmd.roomId,x:0,y:0,depth:160,orientation:0};
+  for(const key of ['w','h','b'])if(own(p,key))need(Number.isInteger(p[key]),'Enter whole-number Shelf dimensions');
   need(keysOnly(p,['name','w','h','b','appearance','x','y','depth','orientation']),'Unknown Shelf property');
   for(const key of ['name','w','h','b','appearance'])if(own(p,key))c[key]=p[key];
   for(const key of ['x','y','depth','orientation'])if(own(p,key))v[key]=p[key];
@@ -147,6 +150,7 @@ export function edit(s,cmd,allocate){
   const k=cmd.containerId;need(own(a.shelves,k),'Architectural Shelf no longer exists');
   need(keysOnly(p,['name','w','h','b','appearance','roomId','x','y','depth','orientation']),'Unknown Shelf property');
   const c=s.cubbies[k],v=a.shelves[k];
+  for(const key of ['w','h','b'])if(own(p,key))need(Number.isInteger(p[key]),'Enter whole-number Shelf dimensions');
   for(const key of ['name','w','h','b','appearance'])if(own(p,key))c[key]=p[key];
   for(const key of ['roomId','x','y','depth','orientation'])if(own(p,key))v[key]=p[key];
   need(c.name===undefined||name(c.name),'Invalid Shelf name');

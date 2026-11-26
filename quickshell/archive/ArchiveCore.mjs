@@ -598,10 +598,12 @@ export function apply(s){
  if(!d||d.phase!=='ready'||!d.result.ok||d.result.unchanged||needsRadiusApproval(s))return updateSession(s,{error:'No approved latest proposal'});
  const view=projection(s),r=d.result;
  if(view.unresolved.length||JSON.stringify(view.caseOverflow.map(e=>e.id).sort())!==JSON.stringify(r.caseOverflow.map(e=>e.id).sort()))return updateSession(s,{error:'Unresolved ownership'});
- const next=clone(s.snapshot),m=rackAt(next,d.cubbyId,d.rackId),used=new Set();
- for(const c of Object.values(next.cubbies))for(const rack of c.mods)for(const meta of Object.values(rack.cellMeta||{}))used.add(meta.id);
+ const next=clone(s.snapshot),m=rackAt(next,d.cubbyId,d.rackId),used=Spatial.enabled(next)?editorIds(next):new Set();
+ if(!Spatial.enabled(next))for(const c of Object.values(next.cubbies))for(const rack of c.mods)for(const meta of Object.values(rack.cellMeta||{}))used.add(meta.id);
  const meta=clone(r.meta);
- for(const value of Object.values(meta))if(value.id.indexOf('~new-')===0){let id;do{id='hc'+next.next++;}while(used.has(id));value.id=id;used.add(id);}
+ try{
+  for(const value of Object.values(meta))if(value.id.indexOf('~new-')===0){value.id=allocateId(next,'hc',used);used.add(value.id);}
+ }catch(e){return updateSession(s,{error:String(e.message||e)});}
  Object.assign(m,d.proposed,{cellMeta:meta,scrollCells:clone(r.mapped)});
  for(const item of r.caseOverflow){const record=Object.assign({},item,{originCubbyId:d.cubbyId});Mixed.clearMixedOrigin(record);next.caseItems.push(record);}
  for(const item of next.caseItems)if(item.originCubbyId===d.cubbyId&&item.originRackId===d.rackId){
@@ -686,6 +688,16 @@ export function fixture(){
 export function commitMotion(s,q){
  if(!q||s.draft||q.baseRevision!==s.revision||!q.released||q.cells.size||q.carried.length||q.error)
   return updateSession(s,{error:'Motion is incomplete or stale'});
+ // File motion is not an application, Room, doorway or appearance edit.
+ // In spatial state do not accept a draft that also changes those domains.
+ if(Spatial.enabled(s.snapshot)||Spatial.enabled(q.draft)){
+  try{
+   if(!Spatial.enabled(s.snapshot)||!Spatial.enabled(q.draft)||
+      JSON.stringify(s.snapshot.spatial)!==JSON.stringify(q.draft.spatial)||
+      JSON.stringify(Spatial.appPlacements(s.snapshot))!==JSON.stringify(Spatial.appPlacements(q.draft)))
+    return updateSession(s,{error:'File motion changed spatial or application state'});
+  }catch(e){return updateSession(s,{error:'Invalid spatial motion draft'});}
+ }
  if(JSON.stringify(s.snapshot)===JSON.stringify(q.draft))return updateSession(s,{error:''});
  return commit(s,clone(q.draft));
 }
@@ -705,15 +717,19 @@ export function paintCell(s,cubbyId,rackId,key,color,depth){
 
 // N3r1: speculative structural edits use the same ownership/Undo commit boundary.
 function structuralError(s,message){return updateSession(s,{error:message});}
-function editorId(next,prefix){
+function editorIds(next){
  const used=new Set(Object.keys(next.cubbies));
  if(Spatial.enabled(next))for(const k of Object.keys(next.spatial.rooms).concat(Object.keys(next.spatial.doors||{})))used.add(k);
  for(const c of Object.values(next.cubbies))for(const m of c.mods){
   used.add(m.id);for(const meta of Object.values(m.cellMeta||{}))used.add(meta.id);
   for(const entry of m.items||[])if(entry.kind==='holder')used.add(entry.id);
  }
+ return used;
+}
+function allocateId(next,prefix,used){
  let id;do{if(next.next>=Number.MAX_SAFE_INTEGER)throw Error('Identity budget exhausted');id=prefix+next.next++;}while(used.has(id));return id;
 }
+function editorId(next,prefix){return allocateId(next,prefix,editorIds(next));}
 function editorColor(value){
  if(value!==null&&(typeof value!=='string'||!/^#[0-9a-fA-F]{6}$/.test(value)))throw Error('Use a six-digit hex color or reset');
  return value;
@@ -823,7 +839,9 @@ export function editStructure(s,command){
     }
    }
    const next=clone(candidate.snapshot);
-   Spatial.edit(next,command,prefix=>editorId(next,prefix));
+   // Nested appearance/edge objects must belong to the unpublished clone,
+   // not to the caller's mutable command or preview object.
+   Spatial.edit(next,clone(command),prefix=>editorId(next,prefix));
    if(JSON.stringify(next)===JSON.stringify(s.snapshot))return updateSession(s,{error:''});
    return commit(s,next);
   }
@@ -973,7 +991,11 @@ export function previewStructure(s,command){
 }
 export function applyStructure(s,proposal){
  if(!proposal||!proposal.ok||proposal.revision!==s.revision||s.draft)return structuralError(s,'No valid latest structural proposal');
- return editStructure(s,proposal.command);
+ const candidate=editStructure(s,proposal.command);
+ if((Spatial.enabled(s.snapshot)||Spatial.enabled(candidate.snapshot))&&!candidate.error&&
+    JSON.stringify(candidate.snapshot)!==JSON.stringify(proposal.snapshot))
+  return structuralError(s,'Structural preview changed; review a fresh proposal');
+ return candidate;
 }
 
  // Shared grid contract. Coordinates are cubby-local, not screen pixels.
