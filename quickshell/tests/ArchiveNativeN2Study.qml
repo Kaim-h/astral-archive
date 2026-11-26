@@ -3,6 +3,7 @@ import "../archive" as Archive
 import "../archive/ArchiveView.mjs" as View
 import "../archive/ArchiveCore.mjs" as Core
 import "../archive/ArchiveSpatial.mjs" as Spatial
+import "../archive/ArchiveRoomTransition.mjs" as Transition
 import "../archive/representation/B7Ownership.mjs" as Mixed
 import "../themes" as Themes
 
@@ -19,6 +20,73 @@ Rectangle {
     property bool physicalProfilesEnabled:false
     property bool roomPlanOpen:false
     property bool roomPerspective:false
+    // View-only motion preference and transition state. Not arrangement data.
+    property bool reducedRoomMotion:false
+    property var roomNavigation:null
+    property real roomProgress:0
+    readonly property bool roomNavigating:!!roomNavigation
+    readonly property var roomLayers:Transition.layers(roomProgress)
+    function roomMapping(id){
+        var r=archive.snapshot.spatial.shelves[id].roomId,plan=View.roomPlan(archive.snapshot,r)
+        if(!plan)return null
+        if(roomPerspective){
+            var projected=View.roomPerspective(archive.snapshot,plan,roomPlan.width,roomPlan.height)
+            return projected?{frame:projected.frame}:null
+        }
+        var k=Math.max(.001,Math.min(Math.max(1,roomPlan.width-64)/plan.room.w,Math.max(1,roomPlan.height-100)/plan.room.h))
+        return {x:(roomPlan.width-plan.room.w*k)/2,y:(roomPlan.height-plan.room.h*k)/2,scale:k}
+    }
+    function navigateRoom(id,entering){
+        if(!viewSwitchReady||checkpointLoadPending||materialPanel!==""||roomPlan.dragging||!Spatial.physicalProfiles(archive.snapshot)||Spatial.kind(archive.snapshot,id)!=="shelf")return false
+        if(entering&&!showRoomPlan||!entering&&showRoomPlan)return false
+        // Nested Cubby and Arrange remain explicit non-animated navigation.
+        if(sceneView.mode!=="browse"||!entering&&sceneView.reachableViewPath.length!==1){
+            if(entering&&!sceneView.openShelf(id))return false
+            roomPlanOpen=!entering;sceneView.clearSelection();return true
+        }
+        var s=archive.snapshot,p=s.spatial.shelves[id],mapping=roomMapping(id)
+        if(entering&&roomPlan.roomId!==p.roomId)return false
+        if(!mapping)return false
+        if(entering&&!sceneView.openShelf(id))return false
+        var g=Spatial.shelfGeometry(s,id),destination=View.fitEnvelope(g,sceneView.width,Math.max(1,sceneView.height-42),sceneView.zoom,sceneView.pan)
+        var geometry=Transition.capture(s,id,mapping,destination)
+        if(!geometry)return false
+        var palette=paletteFor(id),c=s.cubbies[id]
+        roomPlan.selectedShelf=id
+        sceneView.clearSelection()
+        roomProgress=entering?0:1
+        roomNavigation={id:id,entering:entering,geometry:geometry,palette:palette,
+            frameColor:View.frameColor(c,palette,0),backing:View.backingColor(c,palette,0)}
+        if(reducedRoomMotion){finishRoomNavigation();return true}
+        navigationOverlay.forceActiveFocus()
+        roomAnimation.from=roomProgress;roomAnimation.to=entering?1:0;roomAnimation.start()
+        return true
+    }
+    function finishRoomNavigation(){
+        var n=roomNavigation;if(!n)return
+        roomAnimation.stop()
+        roomProgress=n.entering?1:0
+        roomNavigation=null
+        roomPlanOpen=!n.entering
+        if(roomPlanOpen){roomPlan.selectedShelf=n.id;roomPlan.forceActiveFocus()}
+        else sceneView.forceActiveFocus()
+    }
+    function abortRoomNavigation(){
+        if(!roomNavigation)return
+        roomAnimation.stop();roomNavigation=null
+        // Settle to the current reachable view if the model was reset.
+        roomPlanOpen=false;roomProgress=1
+    }
+    function toggleRoom(){
+        if(!viewSwitchReady)return
+        var id=sceneView.reachableViewPath[0]
+        if(!navigateRoom(id,showRoomPlan))return
+    }
+    onReducedRoomMotionChanged:if(reducedRoomMotion&&roomNavigating)finishRoomNavigation()
+    NumberAnimation {
+        id:roomAnimation;target:study;property:"roomProgress";duration:500
+        onFinished:study.finishRoomNavigation()
+    }
     property var roomEditText:({})
     function startRoomShelfEdit(id,patch){
         if(!viewSwitchReady||roomPlan.dragging||!roomPlan.arranging)return
@@ -41,12 +109,12 @@ Rectangle {
         archive.proposeStructure(cmd)
     }
     readonly property bool showRoomPlan:roomPlanOpen&&Spatial.physicalProfiles(archive.snapshot)
-    readonly property bool viewSwitchReady:!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
+    readonly property bool viewSwitchReady:!roomNavigating&&!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
     // Optional isolated study adapter, injected by the standalone window.
     // No filesystem dependency in the shared scene or model.
     property var checkpointStore:null
     property bool checkpointLoadPending:false
-    readonly property bool checkpointReady:!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
+    readonly property bool checkpointReady:!roomNavigating&&!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
         !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker&&!roomPlan.dragging
     onCheckpointReadyChanged:if(!checkpointReady)checkpointLoadPending=false
     function checkpointView(){
@@ -214,7 +282,7 @@ Rectangle {
     property string retainedShape: ""
     Connections {
         target:archive
-        function onSnapshotChanged(){if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.roomPerspective=false}}
+        function onSnapshotChanged(){study.abortRoomNavigation();if(archive.resetting)study.roomPlanOpen=false;if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.roomPerspective=false}}
         function onStructuralProposalChanged(){
             study.structureApplyError=""
             if(study.materialPanel!==""&&!study.materialProposal)study.closeMaterials()
@@ -254,7 +322,7 @@ Rectangle {
         pickId=""
     }
     function switchMode(value) {
-        if(sceneView.busy||roomPlan.dragging)return
+        if(roomNavigating||sceneView.busy||roomPlan.dragging)return
         if(archive.draft||archive.structuralProposal)archive.cancel()
         closeContext();closeMaterials();rackInspector=false;pickId="";sceneView.mode=value
     }
@@ -463,7 +531,7 @@ Rectangle {
 
     Column {
         id:heading
-        enabled:!roomPlan.dragging&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
+        enabled:!study.roomNavigating&&!roomPlan.dragging&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
         anchors.top:parent.top
         anchors.left:parent.left
         anchors.right:parent.right
@@ -477,7 +545,7 @@ Rectangle {
             width:parent.width; spacing:5
             Archive.ArchiveButton { colors:study.colors; label:"Browse"; active:sceneView.mode==="browse"; onClicked:study.switchMode("browse") }
             Archive.ArchiveButton { colors:study.colors; label:"Arrange"; active:sceneView.mode==="arrange"; onClicked:study.switchMode("arrange") }
-            Archive.ArchiveButton { colors:study.colors; label:"Back"; visible:!study.showRoomPlan; enabled:sceneView.viewPath.length>1&&!archive.draft; onClicked:sceneView.back() }
+            Archive.ArchiveButton { colors:study.colors; label:"Back"; visible:!study.showRoomPlan; enabled:!archive.draft&&(sceneView.viewPath.length>1||Spatial.physicalProfiles(archive.snapshot)&&study.viewSwitchReady); onClicked:if(sceneView.viewPath.length>1)sceneView.back();else study.toggleRoom() }
             Archive.ArchiveButton { colors:study.colors; label:"Enter"; visible:!study.showRoomPlan; enabled:!archive.draft&&sceneView.cubby.mods.some(function(m){return m.id===sceneView.selectedModuleId&&m.type==="cubby"}); onClicked:sceneView.enterSelected() }
             Archive.ArchiveButton { colors:study.colors; label:"−"; hint:"Zoom out"; visible:!study.showRoomPlan; onClicked:sceneView.setZoom(sceneView.zoom/1.15) }
             Archive.ArchiveButton { colors:study.colors; label:Math.round(sceneView.zoom*100)+"%"; visible:!study.showRoomPlan; hint:"Reset camera"; onClicked:{sceneView.setZoom(1);sceneView.pan=Qt.point(0,0)} }
@@ -485,7 +553,8 @@ Rectangle {
             Archive.ArchiveButton { colors:study.colors; label:study.colors.name; onClicked:Themes.Theme.index=(Themes.Theme.index+1)%3 }
             Archive.ArchiveButton { colors:study.colors; label:"Undo"; enabled:!sceneView.busy&&!archive.draft&&!archive.structuralProposal&&archive.archiveState.history.length>0; onClicked:archive.undo() }
             Archive.ArchiveButton {objectName:"adopt-physical-profiles";colors:study.colors;label:"Adopt physical profiles…";visible:study.physicalProfilesEnabled&&!Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:archive.proposeStructure({kind:"spatialAdoptProfiles"})}
-            Archive.ArchiveButton {objectName:"toggle-room-plan";colors:study.colors;label:study.showRoomPlan?"Return to Shelf":"Room plan";visible:Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:{study.roomPlanOpen=!study.roomPlanOpen;sceneView.clearSelection()}}
+            Archive.ArchiveButton {objectName:"toggle-room-plan";colors:study.colors;label:study.showRoomPlan?"Return to Shelf":"Room plan";visible:Spatial.physicalProfiles(archive.snapshot);enabled:study.viewSwitchReady;onClicked:study.toggleRoom()}
+            Archive.ArchiveButton {objectName:"room-reduced-motion";colors:study.colors;label:study.reducedRoomMotion?"Motion reduced":"Room motion";active:study.reducedRoomMotion;visible:Spatial.physicalProfiles(archive.snapshot);onClicked:study.reducedRoomMotion=!study.reducedRoomMotion}
             Archive.ArchiveButton {objectName:"toggle-room-perspective";colors:study.colors;label:study.roomPerspective?"Plan":"Perspective";visible:study.showRoomPlan;enabled:study.viewSwitchReady;onClicked:study.roomPerspective=!study.roomPerspective}
             Archive.ArchiveButton {objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange"&&!study.showRoomPlan;enabled:study.structureReady;onClicked:study.openContext(12,12)}
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
@@ -503,7 +572,7 @@ Rectangle {
                     label:archive.snapshot.cubbies[modelData].name||modelData
                     active:sceneView.reachableViewPath[0]===modelData
                     enabled:!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!archive.draft&&!archive.structuralProposal
-                    onClicked:if(sceneView.openShelf(modelData))study.roomPlanOpen=false
+                    onClicked:{if(study.showRoomPlan&&roomPlan.roomId===archive.snapshot.spatial.shelves[modelData].roomId)study.navigateRoom(modelData,true);else if(sceneView.openShelf(modelData))study.roomPlanOpen=false}
                 }
             }
         }
@@ -528,7 +597,8 @@ Rectangle {
     }
     Archive.ArchiveScene {
         id:sceneView
-        visible:!study.showRoomPlan
+        visible:!study.showRoomPlan||study.roomNavigating
+        enabled:!study.showRoomPlan&&!study.roomNavigating
         controller:archive
         colors:study.sceneColors
         paletteOptions:Themes.Theme.palettes
@@ -543,11 +613,16 @@ Rectangle {
         onBookPlacementProposed:function(position){study.bookPositionText=String(position);structurePanel.forceActiveFocus()}
         onDestinationPressed:function(rackId,key){if(archive.draft&&rackId===archive.draft.rackId)study.chooseCell(key)}
     }
+    Rectangle {
+        anchors.fill:sceneView;visible:study.roomNavigating
+        color:study.roomNavigating?study.roomNavigation.palette.background:study.colors.background;opacity:study.roomNavigating?1-study.roomLayers.detail:0
+    }
     Archive.ArchiveRoomPlan {
         id:roomPlan
         objectName:"archive-room-plan"
         anchors.fill:sceneView
-        visible:study.showRoomPlan
+        visible:study.showRoomPlan||study.roomNavigating
+        opacity:study.roomNavigating?study.roomLayers.room:1
         enabled:study.viewSwitchReady
         snapshot:archive.snapshot
         roomId:Spatial.enabled(archive.snapshot)&&archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]]?archive.snapshot.spatial.shelves[sceneView.reachableViewPath[0]].roomId:""
@@ -566,7 +641,29 @@ Rectangle {
             var p=archive.snapshot.spatial.shelves[id]
             if(p){archive.proposeStructure({kind:"spatialShelfTurn",containerId:id,patch:{orientation:(p.orientation+90)%360}});structurePanel.forceActiveFocus()}
         }
-        onInspectShelf:function(id){if(study.viewSwitchReady&&sceneView.openShelf(id)){study.roomPlanOpen=false;sceneView.forceActiveFocus()}}
+        onInspectShelf:function(id){study.navigateRoom(id,true)}
+    }
+    Item {
+        id:navigationOverlay
+        objectName:"room-navigation-overlay"
+        anchors.fill:sceneView;z:30
+        visible:study.roomNavigating
+        clip:true
+        onWidthChanged:if(study.roomNavigating)study.finishRoomNavigation()
+        onHeightChanged:if(study.roomNavigating)study.finishRoomNavigation()
+        Keys.onEscapePressed:function(event){study.finishRoomNavigation();event.accepted=true}
+        Archive.ArchiveRoomTransition {
+            anchors.fill:parent
+            navigation:study.roomNavigation
+            progress:study.roomProgress
+        }
+        MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons;onWheel:function(wheel){wheel.accepted=true}}
+        Archive.ArchiveButton {
+            objectName:"room-navigation-skip"
+            anchors.right:parent.right;anchors.top:parent.top;anchors.margins:8
+            colors:study.colors;label:"Skip"
+            onClicked:study.finishRoomNavigation()
+        }
     }
     MouseArea {
         anchors.fill:parent;z:39;visible:study.contextOpen

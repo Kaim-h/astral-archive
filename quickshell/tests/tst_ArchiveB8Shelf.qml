@@ -13,7 +13,7 @@ Item {
     TestCase {
         name:"ArchiveB8Shelf"
         when:windowShown
-        function init(){study.roomPlanOpen=false;study.roomPerspective=false;study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
+        function init(){study.abortRoomNavigation();study.reducedRoomMotion=true;study.roomPlanOpen=false;study.roomPerspective=false;study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
         function clickNamed(name){
             var item=null,last=""
             tryVerify(function(){
@@ -25,6 +25,59 @@ Item {
                 last=next;return ok
             },3000,name)
             mouseClick(item,item.width/2,item.height/2)
+        }
+        function test_room_navigation_motion(){
+            var ctl=study.controller,scene=study.scene
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            tryVerify(function(){return scene.physicalFront})
+            var roomId=ctl.snapshot.spatial.shelves.root.roomId
+            verify(ctl.proposeStructure({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}}));verify(ctl.applyStructure())
+            verify(ctl.proposeStructure({kind:"spatialShelfEdit",containerId:"root",patch:{w:1450,h:1100,depth:185,orientation:90}}));verify(ctl.applyStructure())
+            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest"}}));verify(ctl.applyStructure())
+            var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+            scene.zoom=1.15;scene.pan=Qt.point(12,-9)
+            clickNamed("toggle-room-plan")
+            var plan=findChild(study,"archive-room-plan")
+            tryVerify(function(){return plan.visible&&!study.roomNavigating})
+            study.reducedRoomMotion=false
+            for(var perspective=0;perspective<2;perspective++){
+                if(perspective)clickNamed("toggle-room-perspective")
+                plan.selectedShelf="root"
+                // Actual input starts the transition, locks both arrangement
+                // surfaces and keeps the same selected root and camera.
+                var button=findChild(study,"plan-inspect-shelf")
+                mouseClick(button,button.width/2,button.height/2)
+                verify(study.roomNavigating)
+                verify(!scene.enabled&&!plan.enabled)
+                verify(!study.viewSwitchReady&&!study.checkpointReady)
+                verify(!study.navigateRoom("root",true))
+                tryVerify(function(){return study.roomProgress>0&&study.roomProgress<1})
+                grabImage(study).save("archive-b8-native-shelf-navigation-"+perspective+".png")
+                if(perspective)keyClick(Qt.Key_Escape)
+                else {
+                    var skip=findChild(study,"room-navigation-skip")
+                    mouseClick(skip,skip.width/2,skip.height/2)
+                }
+                tryVerify(function(){return !study.roomNavigating&&scene.visible&&!plan.visible})
+                compare(scene.cubbyId,"root");compare(scene.zoom,1.15);compare(scene.pan,Qt.point(12,-9))
+                compare(scene.frontEnvelope.w,Spatial.shelfGeometry(ctl.snapshot,"root").w)
+                verify(!!findChild(scene,"archive-book-org.example.Reader"))
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                // Reverse animation completes normally.
+                clickNamed("toggle-room-plan")
+                tryVerify(function(){return !study.roomNavigating&&plan.visible&&!scene.visible})
+                compare(plan.perspective,!!perspective);compare(plan.selectedShelf,"root")
+                compare(JSON.stringify(ctl.snapshot),before)
+            }
+            clickNamed("plan-inspect-shelf")
+            tryVerify(function(){return !study.roomNavigating&&scene.visible&&!plan.visible})
+            clickNamed("toggle-room-plan")
+            tryVerify(function(){return !study.roomNavigating&&plan.visible&&!scene.visible})
+            study.reducedRoomMotion=true
+            clickNamed("plan-inspect-shelf")
+            verify(!study.roomNavigating);tryVerify(function(){return scene.visible&&!plan.visible})
+            compare(scene.zoom,1.15);compare(scene.pan,Qt.point(12,-9))
+            compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
         }
         function test_room_arrangement_gestures(){
             var ctl=study.controller,scene=study.scene

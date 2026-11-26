@@ -10,6 +10,7 @@ import * as Doors from "../archive/ArchiveDoors.mjs";
 import * as View from "../archive/ArchiveView.mjs";
 import * as Architecture from "../archive/ArchiveArchitecture.mjs";
 import * as Projection from "../archive/ArchiveRoomProjection.mjs";
+import * as Transition from "../archive/ArchiveRoomTransition.mjs";
 import * as ShelfSample from "./ArchiveB8ShelfFixture.mjs";
 export function run(){
  let checks=0;
@@ -760,6 +761,31 @@ export function run(){
  refuse(roomy,{kind:'spatialShelfEdit',containerId:'root',patch:{w:null}});
  eq(View.roomEditOutline(ss,'root',{w:null}),null,'invalid numeric outline withheld');
  eq(ss,orig,'gesture adapters never mutate committed model');
+ }
+ {
+ const active=apply(sampleState,{kind:'spatialAdoptProfiles'}),roomId=active.snapshot.spatial.shelves.root.roomId;
+ const roomy=apply(active,{kind:'spatialRoomEdit',roomId,patch:{w:1800,h:2000}});
+ for(const profile of Spatial.shelfProfiles)for(const orientation of [0,90,180,270]){
+  const styled=apply(roomy,{kind:'spatialAppearance',containerId:'root',patch:{profile}});
+  const resized=apply(styled,{kind:'spatialShelfEdit',containerId:'root',patch:{w:1450,h:1100,depth:185,orientation}});
+  const s=resized.snapshot,before=Core.clone(s),g=Spatial.shelfGeometry(s,'root'),p=s.spatial.shelves.root;
+  const plan=View.roomPlan(s,roomId),scene=View.roomPerspective(s,plan,1200,720),dest=View.fitEnvelope(g,1200,678,1.15,{x:12,y:-9});
+  for(const mapping of [{x:30,y:40,scale:.35},{frame:scene.frame}]){
+   const n=Transition.capture(s,'root',mapping,dest);
+   yes(n&&n.id==='root','capture actual selected Shelf');
+   for(const q of [[0,g.depth,0],[g.w,g.depth,g.h],[g.aperture.x,g.depth,g.h-g.aperture.y]]){
+    const world=Architecture.planPoint(g,p,q[0],q[1]),start=Transition.point(n,q,0),end=Transition.point(n,q,1);
+    const expected=mapping.frame?Projection.project([world[0],world[1],q[2]],mapping.frame):[mapping.x+world[0]*mapping.scale,mapping.y+world[1]*mapping.scale];
+    eq(start.slice(0,2),expected.slice(0,2),'exact initial projection');
+    eq(end.slice(0,2),[dest.x+q[0]*dest.scale,dest.y+(g.h-q[2])*dest.scale],'exact live frontal endpoint');
+    for(const time of [.1,.3,.5,.7,.9])yes(Transition.point(n,q,time).every(Number.isFinite),'finite transition intermediate');
+   }
+   for(const time of [.25,.5,.75])yes(Transition.surfaces(n,time).length>0,'visible transition shell');
+  }
+  eq(s,before,'navigation never changes contents or geometry');
+ }
+ eq(Transition.layers(0),{room:1,detail:0,shell:0},'Room endpoint');
+ eq(Transition.layers(1),{room:0,detail:1,shell:0},'Shelf endpoint');
  }
  return checks;
 }
