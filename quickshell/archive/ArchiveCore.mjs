@@ -1015,6 +1015,8 @@ export function previewStructure(s,command){
  const candidate=editStructure(s,command);
  const result={revision:s.revision,command:clone(command),ok:!candidate.error&&candidate.snapshot!==s.snapshot,error:candidate.error||'',snapshot:candidate.error?null:candidate.snapshot,caseTransferCount:candidate.error?0:Math.max(0,candidate.snapshot.caseItems.length-s.snapshot.caseItems.length)};
  if(Spatial.enabled(s.snapshot)){
+  if(command&&command.kind==='spatialAdoptProfiles'&&!Spatial.physicalProfiles(s.snapshot))
+   result.profileAdoption=Spatial.profileAdoptionReport(s.snapshot);
   result.appUnplacementCount=candidate.error?0:Math.max(0,Spatial.appPlacements(s.snapshot).length-Spatial.appPlacements(candidate.snapshot).length);
   result.removedDoorIds=candidate.error?[]:Object.keys(s.snapshot.spatial.doors||{}).filter(k=>!Object.prototype.hasOwnProperty.call(candidate.snapshot.spatial.doors||{},k));
  }

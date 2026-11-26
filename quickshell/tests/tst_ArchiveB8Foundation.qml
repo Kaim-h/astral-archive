@@ -8,9 +8,29 @@ import "ArchiveB8FoundationCases.mjs" as Cases
 Item {
     Archive.ArchiveModel { id: legacy }
     Archive.ArchiveModel { id: spatial; spatialEnabled: true }
+    Archive.ArchiveModel { id: profiles; spatialEnabled: true; physicalProfilesEnabled: true }
     TestCase {
         name: "ArchiveB8Foundation"
         function test_shared_contract() { verify(Cases.run()>50) }
+        function test_profile_controller_gate() {
+            profiles.reset(Core.fixture())
+            verify(profiles.proposeStructure({kind:"spatialPromote"}))
+            verify(profiles.applyStructure())
+            spatial.reset(profiles.snapshot)
+            verify(!spatial.proposeStructure({kind:"spatialAdoptProfiles"}))
+            verify(profiles.proposeStructure({kind:"spatialAdoptProfiles"}))
+            verify(profiles.applyStructure())
+            var saved=profiles.exportCheckpoint({path:["root"],theme:1,cameras:{}})
+            verify(saved.length>0,profiles.checkpointError)
+            compare(JSON.parse(saved).version,4)
+            var prior=JSON.stringify(spatial.snapshot)
+            verify(spatial.importCheckpoint(saved)===null)
+            compare(JSON.stringify(spatial.snapshot),prior)
+            verify(profiles.undo())
+            compare(JSON.stringify(profiles.snapshot),prior)
+            verify(!!profiles.importCheckpoint(saved),profiles.checkpointError)
+            compare(JSON.stringify(profiles.snapshot),JSON.stringify(Checkpoint.decode(saved).snapshot))
+        }
         function test_controller_opt_in() {
             legacy.reset(Core.fixture()); spatial.reset(Core.fixture())
             verify(!legacy.proposeStructure({kind:"spatialPromote"}))

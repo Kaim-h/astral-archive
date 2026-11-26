@@ -16,7 +16,8 @@ function record(v,placed){
 export function preflight(s,formatVersion=2){
  if(!plain(s)||!plain(s.cubbies)||!Array.isArray(s.caseItems)||s.caseItems.length>limits.records||!Number.isSafeInteger(s.next)||s.next<1)fail('Invalid checkpoint state');
  const spatial=Spatial.enabled(s);
- if(spatial!==(formatVersion===3))fail('Spatial state requires version 3');
+ if(spatial!==(formatVersion===3||formatVersion===4))fail('Spatial state requires a spatial checkpoint version');
+ if(Spatial.physicalProfiles(s)!==(formatVersion===4))fail('Physical profile state requires version 4');
  const keys=Object.keys(s.cubbies);if(!keys.length||keys.length>limits.cubbies||(!spatial&&!keys.includes('root')))fail('Physical container budget or root');
  let count=0,cells=0,fixtures=0;const children=new Set();
  function addRecord(v,placed){record(v,placed);if(++count>limits.records)fail('Record budget exceeded');}
@@ -36,7 +37,7 @@ export function preflight(s,formatVersion=2){
      if(!plain(e))fail('Invalid shelf entry');
      if(++fixtures>limits.fixtures)fail('Fixture budget exceeded');
      if(e.kind==='object')addRecord(e.record,false);
-     else if(e.kind==='app'){if(!spatial||!id(e.appId))fail('Application placement requires spatial v3');}
+     else if(e.kind==='app'){if(!spatial||!id(e.appId))fail('Application placement requires spatial state');}
      else if(e.kind==='holder'){
       if(!id(e.id)||!Array.isArray(e.slots)||!e.slots.length||e.slots.length>48)fail('Invalid holder');
       for(const r of e.slots)if(r!==null)addRecord(r,false);
@@ -65,5 +66,5 @@ export function preflight(s,formatVersion=2){
 }
 
 export function error(s){
- try{preflight(s,Spatial.enabled(s)?3:2);return null}catch(e){return String(e.message||e)}
+ try{preflight(s,Spatial.physicalProfiles(s)?4:Spatial.enabled(s)?3:2);return null}catch(e){return String(e.message||e)}
 }

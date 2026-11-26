@@ -596,5 +596,75 @@ export function run(){
  const doorwayBefore=JSON.stringify(doorway),doorReport=Architecture.inspectProfileLayout(doorway);
  yes(!doorReport.ok&&doorReport.conflicts.some(x=>x.kind==='door'&&x.doorId===d1),'new envelope touches shared doorway');
  eq(JSON.stringify(doorway),doorwayBefore,'obstructed opening retained');
+ // N3b explicit whole-snapshot adoption.
+ {
+ const adoption={kind:'spatialAdoptProfiles'},oldSave=Checkpoint.encode(sampleState,view);
+ eq(JSON.parse(oldSave).version,3,'unadopted v3');
+ const proposal=Core.previewStructure(sampleState,adoption);
+ yes(proposal.ok,proposal.error);yes(proposal.profileAdoption.ok,'adoption report ready');
+ eq(proposal.profileAdoption.shelves.root.previous.box,Spatial.footprint(sample,'root'),'previous footprint shown');
+ const active=apply(sampleState,adoption);
+ yes(Spatial.physicalProfiles(active.snapshot),'explicit policy');
+ eq(active.snapshot.cubbies,sample.cubbies,'all interiors and supported positions unchanged');
+ eq(active.snapshot.spatial.shelves,sample.spatial.shelves,'adoption anchors unchanged');
+ eq(Core.owners(active.snapshot),Core.owners(sample),'owners unchanged');
+ eq(Spatial.appPlacements(active.snapshot),Spatial.appPlacements(sample),'app placement unchanged');
+ eq(Spatial.footprint(active.snapshot,'root'),proposal.profileAdoption.shelves.root.box,'preview and active footprint agree');
+ eq(Core.undo(active).snapshot,sample,'exact adoption Undo');
+ eq(Checkpoint.encode(Core.undo(active),view),oldSave,'Undo returns exact v3');
+ const activeSave=Checkpoint.encode(active,view);
+ eq(JSON.parse(activeSave).version,4,'active writer v4');
+ eq(Checkpoint.decode(activeSave),{snapshot:active.snapshot,view},'v4 exact checkpoint');
+ eq(Checkpoint.decode(oldSave).snapshot,sample,'old v3 never expands');
+ for(const v of [2,3]){
+  const mislabeled=JSON.parse(activeSave);mislabeled.version=v;
+  let failed=false;try{Checkpoint.decode(JSON.stringify(mislabeled));}catch(e){failed=true;}yes(failed,'reject mislabeled active checkpoint');
+ }
+ const unmarked=JSON.parse(activeSave);delete unmarked.snapshot.spatial.geometryPolicy;
+ let failed=false;try{Checkpoint.decode(JSON.stringify(unmarked));}catch(e){failed=true;}yes(failed,'reject unmarked v4');
+ const unknown=Core.clone(active.snapshot);unknown.spatial.geometryPolicy='unknown';invalid(unknown,'unknown geometry policy');
+ refuse(active,adoption);
+ for(const specimen of [tight,adjacent,doorway]){
+  const state=Core.session(specimen),preview=Core.previewStructure(state,adoption);
+  refuse(state,adoption);yes(!preview.profileAdoption.ok,'adoption conflict report');
+  const rejected=Core.applyStructure(state,preview);eq(rejected.snapshot,specimen,'invalid adoption Apply isolated');eq(rejected.history,state.history,'invalid adoption no Undo');
+ }
+ const crossing=Core.clone(doorway);crossing.spatial.shelves.root.x++;
+ const crossReport=Architecture.inspectProfileLayout(crossing);
+ yes(crossReport.conflicts.some(x=>x.kind==='wall')&&crossReport.conflicts.some(x=>x.kind==='door'),'crossed wall and door both reported');
+ const near=Core.clone(doorway);near.spatial.shelves.root.x--;
+ const nearState=apply(Core.session(near),adoption);
+ refuse(nearState,{kind:'spatialShelfEdit',containerId:'root',patch:{x:doorway.spatial.shelves.root.x}});
+ refuse(nearState,{kind:'spatialAppearance',containerId:'root',patch:{profile:'pilaster'}});
+ for(const profile of Spatial.shelfProfiles){
+  const changed=apply(active,{kind:'spatialAppearance',containerId:'root',patch:{profile}});
+  const g=Spatial.shelfGeometry(changed.snapshot,'root');
+  eq(Spatial.footprint(changed.snapshot,'root').w,g.w,'profile authoritative width');
+  eq(changed.snapshot.cubbies.root.mods,sample.cubbies.root.mods,'profile keeps fixtures');
+  eq(Core.undo(changed).snapshot,active.snapshot,'profile exact Undo');
+ }
+ const tall=apply(active,{kind:'spatialShelfEdit',containerId:'root',patch:{h:1060,depth:170}});
+ eq(tall.snapshot.cubbies.root.mods,sample.cubbies.root.mods,'height edit retains interior-local coordinates');
+ eq(Spatial.footprint(tall.snapshot,'root').h,170,'depth independently updates footprint');
+ const turnRoom=active.snapshot.spatial.shelves.root.roomId;
+ const roomy=apply(active,{kind:'spatialRoomEdit',roomId:turnRoom,patch:{h:2000}});
+ const centered=apply(roomy,{kind:'spatialShelfEdit',containerId:'root',patch:{y:900}});
+ for(const start of [roomy,centered]){
+  const beforeBox=Spatial.footprint(start.snapshot,'root');
+  const turned=apply(start,{kind:'spatialShelfTurn',containerId:'root',patch:{orientation:90}});
+  const afterBox=Spatial.footprint(turned.snapshot,'root');
+  eq(afterBox.w,beforeBox.h,'turn exchanges depth and width');
+  yes(Math.abs(afterBox.x+afterBox.w/2-beforeBox.x-beforeBox.w/2)<=.5,'turn keeps x center to whole unit');
+  if(start===roomy)eq(afterBox.y,0,'near-wall minimal inward translation');
+  else yes(Math.abs(afterBox.y+afterBox.h/2-beforeBox.y-beforeBox.h/2)<=.5,'turn keeps y center to whole unit');
+  eq(Core.undo(turned).snapshot,start.snapshot,'turn exact Undo');
+  eq(turned.snapshot.cubbies,start.snapshot.cubbies,'turn does not move contents');
+ }
+ const fraction=Core.clone(sample);fraction.cubbies.root.b=12.25;
+ eq(Core.validate(fraction),null,'fractional base valid');
+ const fractional=apply(Core.session(fraction),adoption);
+ eq(fractional.snapshot.cubbies,fraction.cubbies,'fractional adoption exact');
+ eq(Checkpoint.decode(Checkpoint.encode(fractional,view)).snapshot,fractional.snapshot,'fractional v4 roundtrip');
+ }
  return checks;
 }

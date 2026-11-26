@@ -1,5 +1,5 @@
 // B8-N3a candidate geometry, shared by future front/plan/perspective views.
-// This module is deliberately not yet a persisted geometry migration.
+// Pure geometry; ArchiveSpatial owns activation and persistence.
 // S18r4 profiles and S15r4 H glyph establish direction, not native constants.
 import * as Doors from "./ArchiveDoors.mjs";
 

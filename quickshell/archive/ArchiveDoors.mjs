@@ -31,7 +31,8 @@ export function geometry(s,d,footprint){
   for(const k of Object.keys(s.spatial.shelves)){
    if(s.spatial.shelves[k].roomId!==side.roomId)continue;
    const p=footprint(s,k);
-   const touches=side.side==='north'?p.y===0:side.side==='south'?p.y+p.h===r.h:side.side==='west'?p.x===0:p.x+p.w===r.w;
+   // Crossing also obstructs in hypothetical invalid layouts. In-bounds contact unchanged.
+   const touches=side.side==='north'?p.y<=0&&p.y+p.h>=0:side.side==='south'?p.y<=r.h&&p.y+p.h>=r.h:side.side==='west'?p.x<=0&&p.x+p.w>=0:p.x<=r.w&&p.x+p.w>=r.w;
    const lo=side.start+(side.vertical?p.y:p.x),hi=lo+(side.vertical?p.h:p.w);
    need(!touches||!overlap(start,end,lo,hi),'Door obstructed by Shelf footprint');
   }

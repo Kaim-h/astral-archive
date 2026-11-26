@@ -1,6 +1,7 @@
 // B8-N1a: opt-in spatial hierarchy on the existing physical-container registry.
 // No renderer, file I/O, automatic migration, or second ownership inventory.
 import * as Doors from "./ArchiveDoors.mjs";
+import * as Architecture from "./ArchiveArchitecture.mjs";
 import * as Mixed from "./representation/B7Ownership.mjs";
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const plain=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -16,10 +17,27 @@ export function exterior(c){
  const b=c.b===undefined?11:c.b;
  return {w:c.w+2*b,h:c.h+2*b};
 }
+// Snapshot-wide activation; absent policy retains the legacy envelope.
+export const profilePolicy='profile-v1';
+export function physicalProfiles(s){return enabled(s)&&s.spatial.geometryPolicy===profilePolicy;}
+export function shelfGeometry(s,shelfId){
+ const p=s.spatial.shelves[shelfId],c=s.cubbies[shelfId];
+ return Architecture.shelfGeometry(c,shelfProfile(s,shelfId),p.depth);
+}
 export function footprint(s,shelfId){
+ if(physicalProfiles(s))return Architecture.profileFootprint(shelfGeometry(s,shelfId),s.spatial.shelves[shelfId]);
  const p=s.spatial.shelves[shelfId],c=s.cubbies[shelfId],e=exterior(c);
  const sideways=p.orientation===90||p.orientation===270;
  return {x:p.x,y:p.y,w:sideways?p.depth:e.w,h:sideways?e.w:p.depth};
+}
+// Both envelopes and all conflicts, including invalid adoption proposals.
+export function profileAdoptionReport(s){
+ const report=Architecture.inspectProfileLayout(s);
+ for(const k of Object.keys(report.shelves)){
+  const c=s.cubbies[k],b=c.b===undefined?11:c.b,e=exterior(c);
+  report.shelves[k].previous={box:footprint(s,k),w:e.w,h:e.h,aperture:{x:b,y:b,w:c.w,h:c.h}};
+ }
+ return report;
 }
 function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
 function inside(a,w,h){return a.x>=0&&a.y>=0&&a.x+a.w<=w&&a.y+a.h<=h;}
@@ -35,7 +53,7 @@ export function validate(s){
  if(!enabled(s))return null;
  try{
   const a=s.spatial;
-  need(keysOnly(a,['rooms','shelves','appearance','apps','doors'])&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
+  need(keysOnly(a,['rooms','shelves','appearance','apps','doors','geometryPolicy'])&&(a.geometryPolicy===undefined||a.geometryPolicy===profilePolicy)&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
   const rooms=Object.keys(a.rooms),shelves=Object.keys(a.shelves),roomBoxes=[],shelfBoxes=new Map();
   need(rooms.length>0&&rooms.length<=spatialLimits.rooms&&shelves.length>0&&shelves.length<=128,'Spatial room/shelf budget');
   for(const k of rooms){
@@ -135,7 +153,22 @@ export function edit(s,cmd,allocate){
  }
  need(enabled(s),'Enable spatial study explicitly');
  const a=s.spatial;
- if(cmd.kind==='spatialRoomCreate'){
+ if(cmd.kind==='spatialAdoptProfiles'){
+  need(!physicalProfiles(s)&&keysOnly(p,[]),'Profiles already adopted or unexpected adoption properties');
+  // Core validates the complete clone. Never auto-relocate to fit.
+  a.geometryPolicy=profilePolicy;
+ }else if(cmd.kind==='spatialShelfTurn'){
+  const k=cmd.containerId;
+  need(physicalProfiles(s)&&own(a.shelves,k)&&keysOnly(p,['orientation']),'Turn requires adopted architectural Shelf');
+  const v=a.shelves[k],r=a.rooms[v.roomId],old=footprint(s,k);
+  need([0,90,180,270].includes(p.orientation)&&Math.abs(p.orientation-v.orientation)%180===90,'Choose a quarter turn');
+  v.orientation=p.orientation;
+  const next=footprint(s,k);
+  need(next.w<=r.w&&next.h<=r.h,'Turn cannot fit inside Room');
+  // Center to nearest whole stored unit; only selected Shelf moves inward.
+  v.x=Math.max(0,Math.min(Math.floor(r.w-next.w),Math.round(old.x+(old.w-next.w)/2)));
+  v.y=Math.max(0,Math.min(Math.floor(r.h-next.h),Math.round(old.y+(old.h-next.h)/2)));
+ }else if(cmd.kind==='spatialRoomCreate'){
   const k=allocate('room-'),r={id:k,name:'New Room',x:0,y:0,w:1000,h:800};
   patch(r,p,['name','x','y','w','h','appearance']);a.rooms[k]=r;
  }else if(cmd.kind==='spatialRoomEdit'){
