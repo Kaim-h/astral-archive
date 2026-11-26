@@ -148,7 +148,9 @@ Rectangle {
         if(sceneView.mode!=="browse"||!entering&&sceneView.reachableViewPath.length!==1){
             if(entering&&!sceneView.openShelf(id))return false
             if(mapEnabled)activeRoomId=targetRoom
-            roomPlanOpen=!entering;sceneView.clearSelection();return true
+            roomPlanOpen=!entering;sceneView.clearSelection()
+            if(mapEnabled){if(roomPlanOpen)roomPlan.selectedShelf=id;focusActiveLayer()}
+            return true
         }
         var s=archive.snapshot,p=s.spatial.shelves[id],mapping=roomMapping(id)
         if(entering&&roomPlan.roomId!==p.roomId)return false

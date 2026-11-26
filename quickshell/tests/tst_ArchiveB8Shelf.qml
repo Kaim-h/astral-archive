@@ -165,6 +165,12 @@ Item {
                 mouseDoubleClickSequence(plan,pt.x,pt.y,Qt.LeftButton)
                 tryVerify(function(){return scene.visible&&!plan.visible&&!map.visible})
                 compare(scene.cubbyId,"root")
+                // Real nested-Cubby input, then the direct upper-layer path.
+                clickNamed("cubby-cubby-child");tryCompare(scene,"cubbyId","child")
+                clickNamed("toggle-room-plan");tryVerify(function(){return plan.visible&&plan.activeFocus})
+                compare(plan.roomId,rootRoom);compare(plan.selectedShelf,"root")
+                clickNamed("toggle-room-plan");tryVerify(function(){return scene.visible&&scene.activeFocus})
+                compare(scene.cubbyId,"root")
                 var shelfMapCenter=buttonCenter(mapButton),shelfPlanCenter=buttonCenter(roomButton)
                 verify(!perspectiveButton.visible&&!perspectiveButton.enabled)
                 clickNamed("toggle-room-plan");tryVerify(function(){return plan.visible})
@@ -519,7 +525,18 @@ Item {
                 grabImage(study).save("archive-b8-native-shelf-map-horizontal-south-perspective.png")
                 clickNamed("toggle-room-perspective")
                 grabImage(study).save("archive-b8-native-shelf-map-horizontal-south-plan.png")
-                clickNamed("open-map-room");clickNamed("map-fit")
+                // Return to the actual south Shelf, switch to root directly,
+                // and ensure the atlas uses that Shelf's Room rather than a
+                // stale active Room ID from the previous upper layer.
+                var southShelf=Object.keys(ctl.snapshot.spatial.shelves).find(k=>ctl.snapshot.spatial.shelves[k].roomId===south)
+                var shelfBox=Spatial.footprint(ctl.snapshot,southShelf)
+                var sp=plan.pointFor(shelfBox.x+shelfBox.w/2,shelfBox.y+shelfBox.h/2)
+                mouseDoubleClickSequence(plan,sp.x,sp.y,Qt.LeftButton)
+                tryCompare(scene,"cubbyId",southShelf);tryVerify(function(){return scene.visible&&scene.activeFocus})
+                clickNamed("open-shelf-root");tryCompare(scene,"cubbyId","root")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                compare(map.selectedRoom,hall)
+                clickNamed("map-fit")
                 paints=map.mapPaints;var start=Date.now();clickNamed("map-zoom-in");tryVerify(function(){return map.mapPaints>paints})
                 var elapsed=Date.now()-start
                 // Deliberate idle measurement, not an interaction retry.
