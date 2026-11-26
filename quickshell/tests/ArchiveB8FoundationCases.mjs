@@ -781,11 +781,23 @@ export function run(){
     for(const time of [.1,.3,.5,.7,.9])yes(Transition.point(n,q,time).every(Number.isFinite),'finite transition intermediate');
    }
    for(const time of [.25,.5,.75])yes(Transition.surfaces(n,time).length>0,'visible transition shell');
+   for(const time of [.60,.65,.699]){
+    const a=Transition.point(n,[0,g.depth,g.h],time),b=Transition.point(n,[g.w,g.depth,g.h],time),c=Transition.point(n,[0,g.depth,0],time);
+    yes(Math.abs(a[1]-b[1])<1e-7&&Math.abs(a[0]-c[0])<1e-7,'flat carrier front aligned');
+    yes(Math.abs((b[0]-a[0])/g.w-(c[1]-a[1])/g.h)<1e-7,'flat carrier uniform fit');
+   }
+   for(const time of [.70,.75,.90,1])for(const q of [[0,g.depth,g.h],[g.w,g.depth,0],[g.aperture.x,g.depth,g.h-g.aperture.y]])
+    eq(Transition.point(n,q,time),Transition.point(n,q,1),'live reveal endpoint already exact');
   }
   eq(s,before,'navigation never changes contents or geometry');
  }
- eq(Transition.layers(0),{room:1,detail:0,shell:0},'Room endpoint');
- eq(Transition.layers(1),{room:0,detail:1,shell:0},'Shelf endpoint');
+ eq(Transition.layers(0),{room:1,detail:0,shell:0,flat:false,live:false},'Room endpoint');
+ eq(Transition.layers(1),{room:0,detail:1,shell:0,flat:false,live:true},'Shelf endpoint');
+ for(let i=16;i<=100;i++){
+  const p=i/100,l=Transition.layers(p);
+  eq(l.shell+(l.flat?1:0)+(l.live?1:0),1,'exactly one opaque carrier after origin dissolve');
+  if(!l.live)eq(l.detail,0,'no interior reveal before exact live endpoint');
+ }
  }
  {
  // C03: synthetic crossing planes, coplanar accents and concave polygon.

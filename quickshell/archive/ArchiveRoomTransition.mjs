@@ -26,7 +26,8 @@ export function capture(s,id,mapping,destination){
 export function point(n,q,progress){
  const p=clamp(progress),g=n.g,d=n.destination,fromPerspective=!!n.mapping.frame;
  if(p===0)return sourcePoint(g,n.p,n.mapping,q).concat(0);
- if(p===1)return [d.x+q[0]*d.scale,d.y+(g.h-q[2])*d.scale,q[1]];
+ // The destination is reached before interior reveal starts. No last-frame refit.
+ if(p>=.70)return [d.x+q[0]*d.scale,d.y+(g.h-q[2])*d.scale,q[1]];
  const turn=smooth((p-(fromPerspective?.10:.02))/(fromPerspective?.48:.58)),
        focus=smooth((p-(fromPerspective?0:.08))/(fromPerspective?.70:.62)),
        yaw=(n.p.orientation>180?n.p.orientation-360:n.p.orientation)*Math.PI/180*(1-turn),
@@ -40,8 +41,11 @@ export function point(n,q,progress){
 }
 export function layers(progress){
  const p=clamp(progress);
+ // Origin-to-shell dissolve only. At .60 the rotation is complete and
+ // the exact same flat front artwork takes over while uniform focus ends.
+ // At .70 the live front is opaque; only its interior detail fades in.
  return {room:1-smooth(p/.30),detail:smooth((p-.70)/.23),
-         shell:smooth(p/.16)*(1-smooth((p-.70)/.23))};
+         shell:p<.60?smooth(p/.16):0,flat:p>=.60&&p<.70,live:p>=.70};
 }
 export function surfaces(n,progress){
  if(!n)return [];

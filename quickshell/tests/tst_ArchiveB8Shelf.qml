@@ -51,7 +51,7 @@ Item {
                 verify(!scene.enabled&&!plan.enabled)
                 verify(!study.viewSwitchReady&&!study.checkpointReady)
                 verify(!study.navigateRoom("root",true))
-                tryVerify(function(){return study.roomProgress>0&&study.roomProgress<1})
+                tryVerify(function(){return study.roomProgress>=.25&&study.roomProgress<.60})
                 grabImage(study).save("archive-b8-native-shelf-navigation-"+perspective+".png")
                 if(perspective)keyClick(Qt.Key_Escape)
                 else {
@@ -78,6 +78,69 @@ Item {
             verify(!study.roomNavigating);tryVerify(function(){return scene.visible&&!plan.visible})
             compare(scene.zoom,1.15);compare(scene.pan,Qt.point(12,-9))
             compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+        }
+        function test_room_continuous_carrier(){
+            var ctl=study.controller,scene=study.scene
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            tryVerify(function(){return scene.physicalFront})
+            var roomId=ctl.snapshot.spatial.shelves.root.roomId,other=Object.keys(ctl.snapshot.spatial.shelves).find(k=>k!=="root")
+            function edit(cmd){verify(ctl.proposeStructure(cmd));verify(ctl.applyStructure())}
+            edit({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}})
+            edit({kind:"spatialShelfEdit",containerId:other,patch:{roomId:roomId,x:1000,y:250,depth:250,orientation:0}})
+            edit({kind:"spatialAppearance",containerId:other,patch:{profile:"pilaster",palette:0}})
+            // Independent board beside the rack leaves the required full
+            // 160-unit book envelope clear, without changing Shelf geometry.
+            edit({kind:"create",type:"shelf",cubbyId:other,patch:{x:560,y:200,w:130,h:15}})
+            var board=ctl.snapshot.cubbies[other].mods.find(m=>m.type==="shelf").id
+            edit({kind:"spatialAppPlace",appId:"org.example.Atlas",containerId:other,moduleId:board,patch:{x:50}})
+            var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+            clickNamed("open-shelf-"+other);scene.zoom=1.15;scene.pan=Qt.point(13,-8)
+            clickNamed("open-shelf-root");scene.zoom=.85;scene.pan=Qt.point(-11,7)
+            clickNamed("toggle-room-plan")
+            var plan=findChild(study,"archive-room-plan"),animation=findChild(study,"room-navigation-animation")
+            var carrier=findChild(study,"room-navigation-carrier"),interior=findChild(scene,"cubby-interior")
+            verify(!!animation&&!!carrier&&!!interior)
+            study.reducedRoomMotion=false
+            function captureBand(low,high,name){
+                tryVerify(function(){return study.roomNavigating&&study.roomProgress>=low&&study.roomProgress<high},1500,name)
+                animation.pause();wait(40)
+                verify(study.roomProgress>=low&&study.roomProgress<high)
+                grabImage(study).save("archive-b8-native-shelf-carrier-"+name+".png")
+                console.log("B8 carrier",name,"progress",study.roomProgress,"paintCount",carrier.projectedPaintCount,"last projected JS paint ms",carrier.projectedPaintMs)
+                animation.resume()
+            }
+            for(var perspective=0;perspective<2;perspective++){
+                if(perspective)clickNamed("toggle-room-perspective")
+                var box=Spatial.footprint(ctl.snapshot,other),pt=plan.pointFor(box.x+box.w/2,box.y+box.h/2)
+                if(perspective){
+                    var ref=View.roomPerspective(ctl.snapshot,View.roomPlan(ctl.snapshot,roomId),1000,700).frame,f=plan.perspectiveData.frame
+                    pt=Qt.point((708-ref.ox)/ref.scale*f.scale+f.ox,(252-ref.oy)/ref.scale*f.scale+f.oy)
+                }
+                mouseClick(plan,pt.x,pt.y);tryCompare(plan,"selectedShelf",other)
+                var oldWidth=scene.width,oldHeight=scene.height
+                clickNamed("plan-inspect-shelf")
+                verify(study.roomNavigating);compare(scene.cubbyId,other)
+                compare(scene.zoom,1.15);compare(scene.pan,Qt.point(13,-8))
+                var destination=study.roomNavigation.geometry.destination
+                captureBand(.25,.56,perspective+"-midturn")
+                captureBand(.76,.95,perspective+"-reveal")
+                tryVerify(function(){return !study.roomNavigating&&scene.visible&&!plan.visible})
+                compare(scene.width,oldWidth);compare(scene.height,oldHeight)
+                compare(scene.camera,destination);compare(interior.opacity,1)
+                verify(!!findChild(scene,"archive-book-org.example.Atlas"))
+                grabImage(study).save("archive-b8-native-shelf-carrier-"+perspective+"-settled.png")
+                clickNamed("toggle-room-plan")
+                captureBand(.24,.56,perspective+"-reverse")
+                tryVerify(function(){return !study.roomNavigating&&plan.visible&&!scene.visible})
+                compare(plan.selectedShelf,other);compare(plan.perspective,!!perspective)
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+            }
+            // Actual root selector verifies the distinct previous camera.
+            clickNamed("open-shelf-root")
+            tryVerify(function(){return !study.roomNavigating&&scene.cubbyId==="root"&&!plan.visible})
+            compare(scene.zoom,.85);compare(scene.pan,Qt.point(-11,7))
+            compare(JSON.stringify(ctl.snapshot),before)
+            study.reducedRoomMotion=true
         }
         function test_room_arrangement_gestures(){
             var ctl=study.controller,scene=study.scene
