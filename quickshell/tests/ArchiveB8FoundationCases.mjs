@@ -1005,5 +1005,33 @@ export function run(){
   eq([g.aperture.w,g.aperture.h],[c.w,c.h],'seed preserves interior');
  }
  }
+ {
+ // N4a: one atlas projection, exact shared openings and occupied footprints.
+ const state=apply(Core.session(ShelfSample.roomFixture()),{kind:'spatialAdoptIndependentProfiles'}),s=state.snapshot,before=Core.clone(s);
+ const map=View.mapPlan(s),id=s.spatial.shelves.root.roomId,room=s.spatial.rooms[id],root=Spatial.footprint(s,'root');
+ const item=map.rooms.find(r=>r.id===id).shelves.find(v=>v.id==='root');
+ eq(item.box,{x:room.x+root.x,y:room.y+root.y,w:root.w,h:root.h},'atlas uses authoritative occupied footprint');
+ for(const d of map.doors)eq(d,Object.assign({id:d.id},Spatial.doorGeometry(s,d.id)),'atlas same shared opening');
+ const empty=map.rooms.find(r=>!r.shelves.length);yes(empty,'empty atlas Room selectable');
+ for(const [w,h] of [[1366,756],[740,725]])for(const z of [1,.5,4]){
+  const f=View.mapFrame(map,w,h,z),x=empty.x+empty.w/2,y=empty.y+empty.h/2;
+  const world=View.mapAt(f,f.x+x*f.scale,f.y+y*f.scale);
+  yes(Math.abs(world.x-x)<1e-7&&Math.abs(world.y-y)<1e-7,'atlas mapping roundtrip');
+  eq(View.mapRoomHit(map,world.x,world.y),empty.id,'empty room hit');
+ }
+ eq(View.mapRoomHit(map,room.x+room.w,room.y+10),empty.id,'shared boundary half-open selection');
+ eq(s,before,'atlas never mutates arrangement');
+ // Owner requirement: both wall faces block creation and editing; the
+ // actual architectural footprint (not aperture or miniature glyph) counts.
+ const door=Object.values(s.spatial.doors)[0],east=door.b.roomId;
+ const onA=apply(state,{kind:'spatialShelfEdit',containerId:'root',patch:{x:room.w-root.w}});
+ refuse(onA,{kind:'spatialDoorCreate',patch:{a:door.a,b:door.b,start:60,end:120}});
+ refuse(onA,{kind:'spatialDoorEdit',doorId:door.id,patch:{start:60,end:120}});
+ const onB=apply(state,{kind:'spatialShelfCreate',roomId:east,patch:{x:0,y:50,w:700,h:500,depth:160,orientation:0}});
+ refuse(onB,{kind:'spatialDoorCreate',patch:{a:door.b,b:door.a,start:60,end:120}});
+ refuse(onB,{kind:'spatialDoorEdit',doorId:door.id,patch:{start:60,end:120}});
+ eq(Core.validate(onA.snapshot),null,'wall Shelf with unobstructed original doorway remains valid');
+ eq(Core.validate(onB.snapshot),null,'opposite wall Shelf with unobstructed original doorway remains valid');
+ }
  return checks;
 }

@@ -361,3 +361,35 @@ export function reconcileCameras(previous,next,history,cameras,undoing,activeId,
     for(const id of Object.keys(out))if(!keep.has(id))delete out[id];
     return out;
 }
+
+
+// N4a: top-down atlas from committed authoritative Rooms, Shelf footprints
+// and one shared door record. No copied arrangement or renderer-side solver.
+export function mapPlan(s){
+    if(!Spatial.physicalProfiles(s))return null;
+    const rooms=Object.values(s.spatial.rooms).map(r=>({id:r.id,name:r.name,x:r.x,y:r.y,w:r.w,h:r.h,shelves:[]}));
+    if(!rooms.length)return null;
+    const byId=new Map(rooms.map(r=>[r.id,r]));
+    for(const [id,p] of Object.entries(s.spatial.shelves)){
+        const room=byId.get(p.roomId),box=Spatial.footprint(s,id);
+        room.shelves.push({id,box:{x:room.x+box.x,y:room.y+box.y,w:box.w,h:box.h}});
+    }
+    const doors=Object.keys(s.spatial.doors||{}).map(id=>Object.assign({id},Spatial.doorGeometry(s,id)));
+    const x=Math.min(...rooms.map(r=>r.x)),y=Math.min(...rooms.map(r=>r.y)),
+        right=Math.max(...rooms.map(r=>r.x+r.w)),bottom=Math.max(...rooms.map(r=>r.y+r.h));
+    return {rooms,doors,bounds:{x,y,w:right-x,h:bottom-y}};
+}
+export function mapFrame(data,w,h,zoom=1,center=null){
+    if(!data||![w,h,zoom].every(Number.isFinite)||w<=0||h<=0)return null;
+    const b=data.bounds,k=Math.min(Math.max(1,w-64)/b.w,Math.max(1,h-100)/b.h)*Math.max(.25,Math.min(8,zoom));
+    const c=center&&[center.x,center.y].every(Number.isFinite)?center:{x:b.x+b.w/2,y:b.y+b.h/2};
+    return {scale:k,x:w/2-c.x*k,y:h/2-c.y*k,cx:c.x,cy:c.y};
+}
+export function mapAt(frame,x,y){
+    return frame&&[x,y].every(Number.isFinite)?{x:(x-frame.x)/frame.scale,y:(y-frame.y)/frame.scale}:null;
+}
+export function mapRoomHit(data,x,y){
+    if(!data||![x,y].every(Number.isFinite))return '';
+    const r=data.rooms.find(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h);
+    return r?r.id:'';
+}

@@ -113,6 +113,59 @@ Item {
                 }
             }finally{study.parent.width=original;study.roomPlanOpen=false}
         }
+        function test_map_room_navigation(){
+            var ctl=study.controller,scene=study.scene,original=study.parent.width
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var s=ctl.snapshot,before=JSON.stringify(s),history=ctl.archiveState.history.length
+                var rootRoom=s.spatial.shelves.root.roomId
+                var empty=Object.keys(s.spatial.rooms).find(function(id){return !Object.values(s.spatial.shelves).some(function(p){return p.roomId===id})})
+                verify(!!empty)
+                var map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
+                clickNamed("open-map-room")
+                tryVerify(function(){return map.visible&&!plan.visible&&!scene.visible})
+                grabImage(study).save("archive-b8-native-shelf-map-overview.png")
+                clickNamed("map-zoom-in")
+                verify(map.zoom>1)
+                var zoom=map.zoom,center=JSON.stringify(map.center)
+                var r=s.spatial.rooms[empty],pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)
+                // Use a visible point after zoom; fit if necessary.
+                if(pt.x<0||pt.x>=map.width||pt.y<0||pt.y>=map.height){clickNamed("map-fit");zoom=map.zoom;center=JSON.stringify(map.center);pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)}
+                compare(map.hit(pt.x,pt.y),empty)
+                mouseDoubleClickSequence(map,pt.x,pt.y,Qt.LeftButton)
+                tryVerify(function(){return plan.visible&&!map.visible&&!scene.visible})
+                compare(plan.roomId,empty);compare(plan.planData.shelves.length,0)
+                verify(!findChild(study,"toggle-room-plan").enabled)
+                grabImage(study).save("archive-b8-native-shelf-map-empty-room.png")
+                clickNamed("toggle-room-perspective")
+                tryVerify(function(){return !!plan.visibilityRaster})
+                compare(plan.roomId,empty)
+                clickNamed("open-map-room")
+                tryVerify(function(){return map.visible&&!plan.visible})
+                compare(map.selectedRoom,empty);compare(map.zoom,zoom);compare(JSON.stringify(map.center),center)
+                clickNamed("map-fit")
+                r=s.spatial.rooms[rootRoom];pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)
+                mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,rootRoom)
+                clickNamed("map-enter-room")
+                tryVerify(function(){return plan.visible&&plan.perspective})
+                compare(plan.roomId,rootRoom)
+                clickNamed("toggle-room-perspective")
+                var b=Spatial.footprint(s,"root");pt=plan.pointFor(b.x+b.w/2,b.y+b.h/2)
+                mouseDoubleClickSequence(plan,pt.x,pt.y,Qt.LeftButton)
+                tryVerify(function(){return scene.visible&&!plan.visible&&!map.visible})
+                compare(scene.cubbyId,"root")
+                clickNamed("toggle-room-plan");tryVerify(function(){return plan.visible})
+                compare(plan.roomId,rootRoom);compare(plan.selectedShelf,"root")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                study.parent.width=740;tryVerify(function(){return map.width===740})
+                grabImage(study).save("archive-b8-native-shelf-map-narrow.png")
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                ctl.reset(Sample.fixture())
+                tryVerify(function(){return !map.visible&&!plan.visible&&scene.visible})
+            }finally{study.mapEnabled=false;study.parent.width=original;study.roomPlanOpen=false;study.roomPerspective=false}
+        }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
             var payload=null,persisted=false,attempts=0,rejectWrite=true
