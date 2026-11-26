@@ -2,6 +2,7 @@
 // originate in ArchiveCore; this module never mutates committed snapshots.
 import * as Core from "./ArchiveCore.mjs";
 import * as Spatial from "./ArchiveSpatial.mjs";
+import * as Doors from "./ArchiveDoors.mjs";
 import * as Architecture from "./ArchiveArchitecture.mjs";
 import * as RoomProjection from "./ArchiveRoomProjection.mjs";
 import * as Mixed from "./representation/B7Ownership.mjs";
@@ -392,4 +393,70 @@ export function mapRoomHit(data,x,y){
     if(!data||![x,y].every(Number.isFinite))return '';
     const r=data.rooms.find(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h);
     return r?r.id:'';
+}
+
+// N4b: transient Room arrangement helpers. Core remains the validator.
+export function mapRoomDraft(data){
+    if(!data)return null;
+    const b=data.bounds,w=1000,h=800,limit=Spatial.spatialLimits.mapCoordinate;
+    const positions=[[b.x+b.w,b.y],[b.x-w,b.y],[b.x,b.y+b.h],[b.x,b.y-h]];
+    const pos=positions.find(v=>v.every(n=>Number.isInteger(n)&&Math.abs(n)<=limit));
+    return {name:'New Room',x:pos?pos[0]:0,y:pos?pos[1]:0,w,h};
+}
+export function mapRoomOutline(s,cmd){
+    if(!cmd||!Spatial.physicalProfiles(s))return null;
+    const r=cmd.kind==='spatialRoomCreate'?{}:s.spatial.rooms[cmd.roomId];
+    if(!r)return null;
+    const b=Object.assign({},r,cmd.patch||{});
+    if(![b.x,b.y,b.w,b.h].every(Number.isFinite)||b.w<=0||b.h<=0||
+       Math.abs(b.x)>Spatial.spatialLimits.mapCoordinate||Math.abs(b.y)>Spatial.spatialLimits.mapCoordinate||
+       b.w>Spatial.spatialLimits.roomSize||b.h>Spatial.spatialLimits.roomSize)return null;
+    return {x:b.x,y:b.y,w:b.w,h:b.h};
+}
+export function mapRoomLostDoors(s,cmd){
+    if(!cmd||!Spatial.physicalProfiles(s)||!['spatialRoomEdit','spatialRoomDelete'].includes(cmd.kind)||
+       !Object.prototype.hasOwnProperty.call(s.spatial.rooms,cmd.roomId))return [];
+    if(cmd.kind==='spatialRoomEdit'&&!mapRoomOutline(s,cmd))return [];
+    if(cmd.kind==='spatialRoomDelete'&&Object.values(s.spatial.shelves).some(p=>p.roomId===cmd.roomId))return [];
+    const copy=Core.clone(s);
+    if(cmd.kind==='spatialRoomDelete')delete copy.spatial.rooms[cmd.roomId];
+    else Object.assign(copy.spatial.rooms[cmd.roomId],cmd.patch);
+    return Doors.invalidated(copy,Spatial.footprint);
+}
+export function mapRoomGesture(data,id,kind,frame,x,y){
+    const r=data&&data.rooms.find(v=>v.id===id),start=mapAt(frame,x,y);
+    if(!r||!start||!['move','resize'].includes(kind))return null;
+    return {id,kind,start,frame:Object.assign({},frame),box:{x:r.x,y:r.y,w:r.w,h:r.h},
+        neighbors:data.rooms.filter(v=>v.id!==id).map(v=>({x:v.x,y:v.y,w:v.w,h:v.h}))};
+}
+export function mapRoomGesturePatch(g,x,y,snap,interval,magnetic){
+    if(!g)return null;
+    const point=mapAt(g.frame,x,y);if(!point)return null;
+    const dx=Core.snapCoordinate(point.x-g.start.x,interval,snap),dy=Core.snapCoordinate(point.y-g.start.y,interval,snap),b=g.box;
+    if(!dx&&!dy)return {};
+    const patch=g.kind==='move'?{x:b.x+dx,y:b.y+dy}:{w:b.w+dx,h:b.h+dy};
+    if(magnetic){
+        // Screen-space tolerance, frozen with the gesture. Prefer nearest
+        // wall correction with perpendicular span contact. Core checks overlap.
+        const limit=10/g.frame.scale;
+        let r=Object.assign({},b,patch);
+        function nearest(axis){
+            const size=axis==='x'?'w':'h',other=axis==='x'?'y':'x',otherSize=axis==='x'?'h':'w';
+            let best=null;
+            for(const n of g.neighbors){
+                if(r[other]>=n[other]+n[otherSize]||n[other]>=r[other]+r[otherSize])continue;
+                const edges=g.kind==='move'?[r[axis],r[axis]+r[size]]:[r[axis]+r[size]];
+                for(const a of edges)for(const target of [n[axis],n[axis]+n[size]]){
+                    const d=target-a;
+                    if(Math.abs(d)<=limit&&(best===null||Math.abs(d)<Math.abs(best)))best=d;
+                }
+            }
+            return best===null?0:best;
+        }
+        const xShift=dx?nearest('x'):0;
+        if(g.kind==='move')r.x=patch.x+=xShift;else r.w=patch.w+=xShift;
+        const yShift=dy?nearest('y'):0;
+        if(g.kind==='move')patch.y+=yShift;else patch.h+=yShift;
+    }
+    return patch;
 }

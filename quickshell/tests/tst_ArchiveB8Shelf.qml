@@ -196,6 +196,55 @@ Item {
                 tryVerify(function(){return !map.visible&&!plan.visible&&scene.visible})
             }finally{study.mapNavigationDiagnostics=false;study.mapEnabled=false;study.parent.width=original;study.roomPlanOpen=false;study.roomPerspective=false}
         }
+        function test_map_room_arrangement(){
+            var ctl=study.controller,scene=study.scene
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
+                var originalRooms=Object.keys(ctl.snapshot.spatial.rooms)
+                var map=findChild(study,"archive-map-room")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                study.switchMode("arrange")
+                clickNamed("map-add-room")
+                tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                compare(JSON.stringify(ctl.snapshot),before)
+                clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
+                clickNamed("map-add-room");clickNamed("structure-apply")
+                var id=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!originalRooms.includes(k))
+                verify(!!id);compare(map.selectedRoom,id)
+                clickNamed("map-edit-room")
+                var input=findChild(study,"map-room-input-w");verify(!!input)
+                input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
+                for(var digit of "10")keyClick(digit)
+                tryVerify(function(){return !ctl.structuralProposal.ok});verify(!findChild(study,"structure-apply").enabled)
+                input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
+                for(var digit of "900")keyClick(digit)
+                tryVerify(function(){return ctl.structuralProposal.ok})
+                clickNamed("structure-apply");compare(ctl.snapshot.spatial.rooms[id].w,900)
+                verify(ctl.undo());verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                var empty=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!Object.values(ctl.snapshot.spatial.shelves).some(p=>p.roomId===k))
+                var r=ctl.snapshot.spatial.rooms[empty],pt=map.pointFor(r.x+r.w/2,r.y+r.h/2),end=map.pointFor(r.x+r.w/2+200,r.y+r.h/2)
+                mousePress(map,pt.x,pt.y,Qt.LeftButton);tryVerify(function(){return map.dragging})
+                mouseMove(map,end.x,end.y,20,Qt.LeftButton);tryVerify(function(){return !!map.dragPatch})
+                compare(JSON.stringify(ctl.snapshot),before);verify(!ctl.structuralProposal)
+                keyClick(Qt.Key_Escape);tryVerify(function(){return !map.dragging})
+                mouseRelease(map,end.x,end.y,Qt.LeftButton);verify(!ctl.structuralProposal)
+                mousePress(map,pt.x,pt.y,Qt.LeftButton);mouseMove(map,end.x,end.y,20,Qt.LeftButton);mouseRelease(map,end.x,end.y,Qt.LeftButton)
+                tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
+                compare(JSON.stringify(ctl.snapshot),before)
+                clickNamed("map-room-resolve-doors");tryVerify(function(){return ctl.structuralProposal.ok})
+                verify(ctl.structuralProposal.removedDoorIds.length===1)
+                clickNamed("structure-apply");verify(!Object.keys(ctl.snapshot.spatial.doors).length)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                map.selectedRoom=empty
+                clickNamed("map-delete-room");tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
+                clickNamed("map-room-resolve-doors");clickNamed("structure-apply")
+                verify(!ctl.snapshot.spatial.rooms[empty]);verify(ctl.undo())
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+            }finally{study.mapEnabled=false;study.switchMode("browse")}
+        }
         function test_checkpoint_preference_write_failure(){
             var ctl=study.controller,scene=study.scene,oldStore=study.checkpointStore,oldPref=study.roomPreferenceStore
             var payload=null,persisted=false,attempts=0,rejectWrite=true

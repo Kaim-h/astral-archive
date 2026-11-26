@@ -40,7 +40,7 @@ Rectangle {
         console.log("B8 map navigation",stage,JSON.stringify({
             mapEnabled:mapEnabled,physical:Spatial.physicalProfiles(archive.snapshot),
             ready:viewSwitchReady,checkpointLoad:checkpointLoadPending,materialOpen:materialPanel!=="",
-            planDrag:roomPlan.dragging,mapPan:mapView.panning,headingEnabled:heading.enabled,
+            planDrag:roomPlan.dragging,mapPan:(mapView.panning||mapView.dragging),headingEnabled:heading.enabled,
             navigating:roomNavigating,busy:sceneView.busy,pointer:!!sceneView.pointer,
             prepared:!!sceneView.prepared,furnitureDrag:!!sceneView.furnitureDrag,bookDrag:!!sceneView.bookDrag,
             draft:!!archive.draft,proposal:!!archive.structuralProposal,context:contextOpen,picker:bookPicker,
@@ -52,7 +52,7 @@ Rectangle {
     }
     function openMap(){
         traceMapNavigation("openMap entered")
-        if(!mapEnabled||!Spatial.physicalProfiles(archive.snapshot)||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||roomPlan.dragging||mapView.panning){
+        if(!mapEnabled||!Spatial.physicalProfiles(archive.snapshot)||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||roomPlan.dragging||(mapView.panning||mapView.dragging)){
             traceMapNavigation("openMap returned false")
             return false
         }
@@ -62,7 +62,7 @@ Rectangle {
         return true
     }
     function enterMapRoom(id){
-        if(!showMap||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||mapView.panning||sceneView.mode!=="browse"||!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,id))return false
+        if(!showMap||!viewSwitchReady||checkpointLoadPending||materialPanel!==""||(mapView.panning||mapView.dragging)||sceneView.mode!=="browse"||!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,id))return false
         activeRoomId=id;mapView.selectedRoom=id;mapOpen=false;roomPlanOpen=true
         sceneView.clearSelection();roomPlan.forceActiveFocus();return true
     }
@@ -180,6 +180,31 @@ Rectangle {
         id:roomAnimation;objectName:"room-navigation-animation";target:study;property:"roomProgress";duration:500
         onFinished:study.finishRoomNavigation()
     }
+    property var mapRoomEditText:({})
+    function startMapRoomEdit(kind,id,patch){
+        if(!showMap||!viewSwitchReady||checkpointLoadPending||(mapView.panning||mapView.dragging)||sceneView.mode!=="arrange")return
+        var r=kind==="spatialRoomCreate"?View.mapRoomDraft(mapView.dataModel):archive.snapshot.spatial.rooms[id]
+        if(!r)return
+        var cmd={kind:kind,patch:kind==="spatialRoomCreate"?r:patch||{}}
+        if(kind!=="spatialRoomCreate")cmd.roomId=id
+        var raw={};for(var key of ["name","x","y","w","h"])raw[key]=String(cmd.patch[key]!==undefined?cmd.patch[key]:r[key])
+        mapRoomEditText=raw;archive.proposeStructure(cmd);structurePanel.forceActiveFocus()
+    }
+    function setMapRoomValue(key,value){
+        var q=archive.structuralProposal;if(!q||!["spatialRoomCreate","spatialRoomEdit"].includes(q.command.kind))return
+        var raw=Object.assign({},mapRoomEditText);raw[key]=value;mapRoomEditText=raw
+        var cmd=Core.clone(q.command);delete cmd.removeDoors
+        var n=key==="name"?value:/^-?[0-9]+$/.test(value)?Number(value):null
+        if(cmd.kind==="spatialRoomEdit"&&n===archive.snapshot.spatial.rooms[cmd.roomId][key])delete cmd.patch[key]
+        else cmd.patch[key]=n
+        archive.proposeStructure(cmd)
+    }
+    function acknowledgeMapRoomDoors(){
+        var q=archive.structuralProposal;if(!q||!["spatialRoomEdit","spatialRoomDelete"].includes(q.command.kind))return
+        var cmd=Core.clone(q.command),lost=View.mapRoomLostDoors(archive.snapshot,cmd);if(!lost.length)return
+        if(cmd.removeDoors)delete cmd.removeDoors;else cmd.removeDoors=lost
+        archive.proposeStructure(cmd)
+    }
     property var roomEditText:({})
     function startRoomShelfEdit(id,patch){
         if(!viewSwitchReady||roomPlan.dragging||!roomPlan.arranging)return
@@ -208,7 +233,7 @@ Rectangle {
     property var checkpointStore:null
     property bool checkpointLoadPending:false
     readonly property bool checkpointReady:!roomNavigating&&!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
-        !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker&&!roomPlan.dragging&&!mapView.panning
+        !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)
     onCheckpointReadyChanged:if(!checkpointReady)checkpointLoadPending=false
     function checkpointView(){
         // Prune deleted cubby cameras and capture the currently open camera
@@ -424,7 +449,7 @@ Rectangle {
         pickId=""
     }
     function switchMode(value) {
-        if(roomNavigating||sceneView.busy||roomPlan.dragging)return
+        if(roomNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning)return
         if(archive.draft||archive.structuralProposal)archive.cancel()
         closeContext();closeMaterials();rackInspector=false;pickId="";sceneView.mode=value
     }
@@ -485,7 +510,10 @@ Rectangle {
     function confirmStructure(){
         structureApplyAttempts++
         structureApplyError=""
+        var oldRooms=structurePanel.mapRoomCommand?Object.keys(archive.snapshot.spatial.rooms):[]
+        var created=structurePanel.mapRoomCommand&&structurePanel.cmd.kind==="spatialRoomCreate"
         if(archive.applyStructure()){
+            if(created)mapView.selectedRoom=Object.keys(archive.snapshot.spatial.rooms).find(id=>!oldRooms.includes(id))||""
             sceneView.message="Arrangement updated · Undo available";sceneView.clearSelection()
             return true
         }
@@ -633,7 +661,7 @@ Rectangle {
 
     Column {
         id:heading
-        enabled:!study.roomNavigating&&!roomPlan.dragging&&!mapView.panning&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
+        enabled:!study.roomNavigating&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
         anchors.top:parent.top
         anchors.left:parent.left
         anchors.right:parent.right
@@ -844,6 +872,15 @@ Rectangle {
         enabled:study.showMap&&study.viewSwitchReady
         atlasEnabled:study.mapEnabled
         snapshot:archive.snapshot;colors:study.colors
+        arranging:sceneView.mode==="arrange"
+        snapEnabled:sceneView.snapEnabled;showGrid:sceneView.showGrid;snapDistance:sceneView.snapDistance
+        proposalCommand:structurePanel.mapRoomCommand?structurePanel.cmd:null
+        proposalValid:!!archive.structuralProposal&&archive.structuralProposal.ok
+        onToggleGrid:sceneView.showGrid=!sceneView.showGrid
+        onToggleSnap:sceneView.snapEnabled=!sceneView.snapEnabled
+        onAddRoom:study.startMapRoomEdit("spatialRoomCreate","",{})
+        onEditRoom:function(id,patch){study.startMapRoomEdit("spatialRoomEdit",id,patch)}
+        onDeleteRoom:function(id){study.startMapRoomEdit("spatialRoomDelete",id,{})}
         onEnterRoom:function(id){study.enterMapRoom(id)}
     }
     Item {
@@ -1270,7 +1307,7 @@ Rectangle {
         availableWidth:study.width-16
         availableHeight:sceneView.height-16
         preferredWidth:265
-        preferredHeight:shelfAppearance?450:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
+        preferredHeight:shelfAppearance?450:mapRoomCommand?410:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
         property var proposal:study.materialProposal?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
@@ -1284,7 +1321,10 @@ Rectangle {
         readonly property bool adopting:!!cmd&&["spatialAdoptProfiles","spatialAdoptIndependentProfiles"].includes(cmd.kind)
         readonly property bool shelfTurn:!!cmd&&cmd.kind==="spatialShelfTurn"
         readonly property bool roomShelfEdit:!!cmd&&cmd.kind==="spatialShelfEdit"
-        readonly property bool spatialConfirmation:!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAdoptIndependentProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
+        readonly property bool mapRoomCommand:!!cmd&&["spatialRoomCreate","spatialRoomEdit","spatialRoomDelete"].includes(cmd.kind)
+        readonly property bool mapRoomFields:mapRoomCommand&&cmd.kind!=="spatialRoomDelete"
+        readonly property var lostMapDoors:mapRoomCommand?View.mapRoomLostDoors(archive.snapshot,cmd):[]
+        readonly property bool spatialConfirmation:mapRoomCommand||!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAdoptIndependentProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
@@ -1305,7 +1345,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove empty Room":structurePanel.cmd.kind==="spatialRoomCreate"?"Add Room":"Room dimensions"):structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:"Cancel fixture adjustment";onClicked:archive.cancelStructure()}
@@ -1323,7 +1363,7 @@ Rectangle {
                 readonly property var cmd:structurePanel.cmd
                 Text {
                     width:parent.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
-                    text:!structurePanel.proposal?"":structurePanel.roomShelfEdit?
+                    text:!structurePanel.proposal?"":structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove this empty Room only. Resolve any attached openings explicitly.":"Exact world X/Y, width and depth. Local Shelf geometry and identities stay unchanged. Apply when valid."):structurePanel.roomShelfEdit?
                         "Position uses occupied top-left. Width and height describe the interior; depth is independent. Invalid dimensions retain the original arrangement.":structurePanel.shelfTurn?
                         "Quarter-turn of selected Shelf only. Preview outline shows validated new footprint; wall correction is minimal. Apply or Cancel.":structurePanel.adopting?
                         "Adopt real outer profiles for every Shelf. Interior, positions and ownership remain unchanged. Review old/new bounds; unresolved conflicts prevent Apply.":structurePanel.removing?
@@ -1406,6 +1446,31 @@ Rectangle {
                             }
                         }
                     }
+                }
+                Column {
+                    visible:structurePanel.mapRoomCommand
+                    width:contentStructure.width;spacing:5
+                    Repeater {
+                        model:structurePanel.mapRoomFields?[{key:"name",name:"Name"},{key:"x",name:"X"},{key:"y",name:"Y"},{key:"w",name:"Width"},{key:"h",name:"Depth"}]:[]
+                        Row {
+                            required property var modelData
+                            width:contentStructure.width;spacing:5
+                            Text {width:55;text:parent.modelData.name;color:study.colors.engraving;font.pixelSize:11;anchors.verticalCenter:parent.verticalCenter}
+                            Rectangle {
+                                width:Math.max(50,contentStructure.width-60);height:26;radius:4;color:study.colors.background;border.color:study.colors.metal
+                                TextInput {
+                                    objectName:"map-room-input-"+parent.parent.modelData.key
+                                    anchors.fill:parent;anchors.margins:4;clip:true
+                                    text:study.mapRoomEditText[parent.parent.modelData.key]||""
+                                    color:study.colors.text;font.pixelSize:11;maximumLength:parent.parent.modelData.key==="name"?80:12;selectByMouse:true
+                                    Accessible.name:"Exact Room "+parent.parent.modelData.name
+                                    onTextEdited:study.setMapRoomValue(parent.parent.modelData.key,text)
+                                }
+                            }
+                        }
+                    }
+                    Text {width:parent.width;wrapMode:Text.WordWrap;color:study.colors.engraving;font.pixelSize:11;visible:structurePanel.lostMapDoors.length>0;text:"Affected openings: "+structurePanel.lostMapDoors.join(", ")}
+
                 }
                 Column {
                     visible:structurePanel.roomShelfEdit
@@ -1506,7 +1571,7 @@ Rectangle {
                     Archive.ArchiveButton {objectName:"book-plus";colors:study.colors;label:"+";onClicked:study.stepBook(10)}
                 }
                 Repeater {
-                    model:contentStructure.cmd&&!structurePanel.removing&&!structurePanel.cubbyEdit&&!structurePanel.bookEdit&&!structurePanel.bookRemove&&!structurePanel.supportEdit&&!structurePanel.shelfAppearance&&!structurePanel.roomShelfEdit&&!structurePanel.shelfTurn&&!structurePanel.adopting?(structurePanel.holderEdit?["x","w","count"]:contentStructure.cmd.type==="shelf"||contentStructure.cmd.kind==="shelf"?["x","y","w"]:["x","y","w","h"]):[]
+                    model:contentStructure.cmd&&!structurePanel.removing&&!structurePanel.cubbyEdit&&!structurePanel.bookEdit&&!structurePanel.bookRemove&&!structurePanel.supportEdit&&!structurePanel.shelfAppearance&&!structurePanel.roomShelfEdit&&!structurePanel.mapRoomCommand&&!structurePanel.shelfTurn&&!structurePanel.adopting?(structurePanel.holderEdit?["x","w","count"]:contentStructure.cmd.type==="shelf"||contentStructure.cmd.kind==="shelf"?["x","y","w"]:["x","y","w","h"]):[]
                     Row {
                         required property string modelData
                         spacing:5
@@ -1539,6 +1604,12 @@ Rectangle {
                 width:parent.width;wrapMode:Text.WordWrap;color:study.colors.engraving;font.pixelSize:11
                 text:structurePanel.proposal?study.structureApplyError||structurePanel.proposal.error||(structurePanel.movedCount?
                     "Preview moves "+structurePanel.movedCount+" fixture(s). Sizes and contents unchanged.":!structurePanel.proposal.ok?"No changes":"Ready to apply"):""
+            }
+            Archive.ArchiveButton {
+                objectName:"map-room-resolve-doors";colors:study.colors
+                visible:structurePanel.lostMapDoors.length>0
+                label:structurePanel.mapRoomCommand&&structurePanel.cmd.removeDoors?"Keep openings":"Remove listed openings"
+                onClicked:study.acknowledgeMapRoomDoors()
             }
             Archive.ArchiveButton {
                 objectName:"shelf-suggest"

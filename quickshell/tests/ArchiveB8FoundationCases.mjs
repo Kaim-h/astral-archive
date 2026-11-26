@@ -1033,5 +1033,40 @@ export function run(){
  eq(Core.validate(onA.snapshot),null,'wall Shelf with unobstructed original doorway remains valid');
  eq(Core.validate(onB.snapshot),null,'opposite wall Shelf with unobstructed original doorway remains valid');
  }
+ {
+  // N4b: direct and exact Room changes share the authoritative transaction.
+  const state=apply(Core.session(ShelfSample.roomFixture()),{kind:'spatialAdoptIndependentProfiles'}),s=state.snapshot;
+  const data=View.mapPlan(s),empty=data.rooms.find(r=>!r.shelves.length),filled=data.rooms.find(r=>r.shelves.length),door=Object.keys(s.spatial.doors)[0];
+  const draft=View.mapRoomDraft(data),create=apply(state,{kind:'spatialRoomCreate',patch:draft});
+  const id=Object.keys(create.snapshot.spatial.rooms).find(k=>!s.spatial.rooms[k]);
+  eq(Core.undo(create).snapshot,s,'room creation exact Undo');
+  const rename=apply(create,{kind:'spatialRoomEdit',roomId:id,patch:{name:'Reading Room'}});
+  eq(rename.snapshot.spatial.rooms[id].name,'Reading Room','exact rename');
+  eq(rename.snapshot.cubbies,s.cubbies,'no contents change');
+  const del=apply(rename,{kind:'spatialRoomDelete',roomId:id});
+  eq(Core.undo(del).snapshot,rename.snapshot,'empty deletion exact Undo');
+  refuse(state,{kind:'spatialRoomDelete',roomId:filled.id});
+  refuse(state,{kind:'spatialRoomEdit',roomId:filled.id,patch:{w:130,h:100}});
+  const cmd={kind:'spatialRoomEdit',roomId:empty.id,patch:{x:empty.x+200}};
+  eq(View.mapRoomLostDoors(s,cmd),[door],'exact lost doorway list');
+  refuse(state,cmd);
+  const separated=apply(state,Object.assign({},cmd,{removeDoors:[door]}));
+  eq(separated.snapshot.cubbies,s.cubbies,'separation keeps contents');
+  eq(separated.snapshot.spatial.shelves,s.spatial.shelves,'separation keeps local attachments');
+  eq(Core.undo(separated).snapshot,s,'separation exact Undo');
+  eq(View.mapRoomLostDoors(s,{kind:'spatialRoomDelete',roomId:empty.id}),[door],'empty deletion reports openings');
+  refuse(state,{kind:'spatialRoomDelete',roomId:empty.id});
+  const deleted=apply(state,{kind:'spatialRoomDelete',roomId:empty.id,removeDoors:[door]});
+  eq(Core.undo(deleted).snapshot,s,'door removal and Room deletion one Undo');
+  const f=View.mapFrame(data,1366,756,1),x=f.x+(empty.x+50)*f.scale,y=f.y+(empty.y+50)*f.scale;
+  const g=View.mapRoomGesture(data,empty.id,'move',f,x,y);
+  eq(View.mapRoomGesturePatch(g,x+37*f.scale,y+11*f.scale,true,20,false),{x:empty.x+40,y:empty.y+20},'relative snap');
+  eq(View.mapRoomGesturePatch(g,x+37*f.scale,y+11*f.scale,false,20,false),{x:empty.x+37,y:empty.y+11},'free whole units');
+  const resize=View.mapRoomGesture(data,empty.id,'resize',f,x,y);
+  eq(View.mapRoomGesturePatch(resize,x+37*f.scale,y+11*f.scale,true,20,false),{w:empty.w+40,h:empty.h+20},'relative resize');
+  eq(View.mapRoomGesturePatch(g,x,y,true,20,true),{},'no displacement does not magnetically move');
+  eq(View.mapRoomGesturePatch(g,x+6*f.scale,y,false,20,true),{x:empty.x,y:empty.y},'near wall magnet');
+  eq(View.mapRoomOutline(s,cmd),{x:empty.x+200,y:empty.y,w:empty.w,h:empty.h},'uncommitted outline');
+ }
  return checks;
 }
