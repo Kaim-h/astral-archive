@@ -141,6 +141,76 @@ Item {
             }
             study.roomPlanOpen=false;study.switchMode("browse")
         }
+        function test_casework_proportion_comparison(){
+            var ctl=study.controller,scene=study.scene,theme=Themes.Theme.index
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            var roomId=ctl.snapshot.spatial.shelves.root.roomId
+            verify(ctl.proposeStructure({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}}));verify(ctl.applyStructure())
+            var before=JSON.stringify(ctl.snapshot),interior=JSON.stringify(ctl.snapshot.cubbies.root.mods)
+            try{
+                // Research-only synthetic fixture edits to compare effective
+                // frame scales. Not a migration, production preference, or
+                // approval to replace stored b. Every edit is undone.
+                Themes.Theme.index=1
+                for(var b of [12,24,27]){
+                    if(ctl.snapshot.cubbies.root.b!==b){verify(ctl.proposeStructure({kind:"spatialShelfEdit",containerId:"root",patch:{b:b}}));verify(ctl.applyStructure())}
+                    verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest"}}));verify(ctl.applyStructure())
+                    tryVerify(function(){return scene.physicalFront&&scene.frontEnvelope.profile==="crest"&&scene.cubby.b===b})
+                    compare(JSON.stringify(ctl.snapshot.cubbies.root.mods),interior)
+                    wait(100)
+                    grabImage(study).save("archive-b8-native-shelf-comparison-crest-b"+b+".png")
+                    if(b===24){
+                        for(var profile of ["cornice","pilaster"]){
+                            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:profile}}));verify(ctl.applyStructure())
+                            tryVerify(function(){return scene.frontEnvelope.profile===profile})
+                            wait(100)
+                            grabImage(study).save("archive-b8-native-shelf-comparison-"+profile+"-b24.png")
+                            verify(ctl.undo())
+                        }
+                        for(var index of [0,2]){
+                            Themes.Theme.index=index;wait(100)
+                            grabImage(study).save("archive-b8-native-shelf-comparison-crest-b24-theme"+index+".png")
+                        }
+                        Themes.Theme.index=1
+                    }
+                    verify(ctl.undo());if(ctl.snapshot.cubbies.root.b!==JSON.parse(before).cubbies.root.b)verify(ctl.undo())
+                    compare(JSON.stringify(ctl.snapshot),before)
+                }
+            }finally{Themes.Theme.index=theme}
+        }
+        function test_room_depth_visibility(){
+            var ctl=study.controller,scene=study.scene
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            tryVerify(function(){return scene.physicalFront})
+            var roomId=ctl.snapshot.spatial.shelves.root.roomId,other=Object.keys(ctl.snapshot.spatial.shelves).find(k=>k!=="root")
+            verify(ctl.proposeStructure({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}}));verify(ctl.applyStructure())
+            verify(ctl.proposeStructure({kind:"spatialShelfEdit",containerId:other,patch:{roomId:roomId,x:1000,y:250,depth:250,orientation:0}}));verify(ctl.applyStructure())
+            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:other,patch:{profile:"pilaster"}}));verify(ctl.applyStructure())
+            var before=JSON.stringify(ctl.snapshot)
+            clickNamed("toggle-room-plan");clickNamed("toggle-room-perspective")
+            var plan=findChild(study,"archive-room-plan"),art=findChild(study,"room-depth-art")
+            tryVerify(function(){return !!plan.visibilityRaster&&art.paintCount>0})
+            var ref=View.roomPerspective(ctl.snapshot,View.roomPlan(ctl.snapshot,roomId),1000,700).frame,actual=plan.perspectiveData.frame
+            // Independent pinned Bugfinder coordinates, mapped by the same
+            // camera's affine fit, never chosen using the current hit result.
+            var x=(708-ref.ox)/ref.scale*actual.scale+actual.ox
+            var y=(252-ref.oy)/ref.scale*actual.scale+actual.oy
+            mouseClick(plan,x,y);tryCompare(plan,"selectedShelf",other)
+            var q=Projection.rasterFaceAt(plan.visibilityRaster,x,y)
+            compare(q.shelfId,other);compare(q.role,"right-post")
+            var expected=View.roomPerspectiveColor(ctl.snapshot,q,plan.palettes,plan.desktopPalette,plan.colors),point=plan.mapToItem(study,x,y),shot
+            tryVerify(function(){
+                shot=grabImage(study)
+                var px=Math.floor(point.x*shot.width/study.width),py=Math.floor(point.y*shot.height/study.height)
+                return Math.abs(shot.red(px,py)-parseInt(expected.slice(1,3),16))<10&&Math.abs(shot.green(px,py)-parseInt(expected.slice(3,5),16))<10&&Math.abs(shot.blue(px,py)-parseInt(expected.slice(5,7),16))<10
+            },3000,"Near Shelf post appears over east wall")
+            shot.save("archive-b8-native-shelf-depth-multiple.png")
+            var paints=art.paintCount;wait(250);compare(art.paintCount,paints)
+            clickNamed("plan-inspect-shelf")
+            tryVerify(function(){return scene.visible&&!plan.visible});compare(scene.cubbyId,other)
+            paints=art.paintCount;wait(250);compare(art.paintCount,paints)
+            compare(JSON.stringify(ctl.snapshot),before)
+        }
         function test_room_perspective_and_rotation(){
             var ctl=study.controller,scene=study.scene
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")

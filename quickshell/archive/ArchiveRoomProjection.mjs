@@ -104,10 +104,27 @@ export function roomMesh(s,roomId,openings){
  }
  return {room,maxHeight,faces,segments};
 }
-// Bounded first renderer: back-face culling and painter ordering.
-// Selection consumes the same painted order, not an unrelated hit rectangle.
-// Interpenetrating projected faces can defeat average-depth sorting; no
-// claim of exact depth buffering or full occlusion acceptance at this stage.
+// Back-face culling and projected planar faces. Average depth remains a
+// stable iteration order for historical callers, NOT the visibility rule.
+export function depthPlane(points){
+ const a=points[0];
+ for(let i=1;i<points.length-1;i++){
+  const b=points[i+1],c=points[i],ux=b[0]-a[0],uy=b[1]-a[1],vx=c[0]-a[0],vy=c[1]-a[1],den=ux*vy-uy*vx;
+  if(Math.abs(den)<=1e-8)continue;
+  const m=((b[2]-a[2])*vy-uy*(c[2]-a[2]))/den,n=(ux*(c[2]-a[2])-(b[2]-a[2])*vx)/den;
+  return {m,n,k:a[2]-m*a[0]-n*a[1]};
+ }
+ return null;
+}
+const depthEpsilon=1e-10;
+// Accents are coplanar with the supporting front. Later stable face index
+// wins ties, except that an accent wins over its own supporting face.
+function priority(f){return f.role==='capital'||f.role==='base'?1:0;}
+function nearer(z,f,oldZ,old){
+ if(!old||z>oldZ+depthEpsilon)return true;
+ if(z<oldZ-depthEpsilon)return false;
+ return priority(f)>priority(old)||priority(f)===priority(old)&&f.index>old.index;
+}
 export function projectedScene(mesh,width,height,tilt=22){
  if(!mesh||width<=0||height<=0)return null;
  const f=frame(mesh.room,mesh.maxHeight,width,height,tilt);
@@ -119,7 +136,7 @@ export function projectedScene(mesh,width,height,tilt=22){
   const points=face.points.map(q=>project(q,f));
   if(points.some(q=>!q))continue;
   const depth=points.reduce((sum,q)=>sum+q[2],0)/points.length;
-  faces.push({index:i,shelfId:face.shelfId,role:face.role,side:face.side,points,depth});
+  const plane=depthPlane(points);if(plane)faces.push({index:i,shelfId:face.shelfId,role:face.role,side:face.side,points,depth,plane});
  }
  faces.sort((a,b)=>a.depth-b.depth||a.index-b.index);
  return {frame:f,floor,faces};
@@ -134,6 +151,62 @@ export function polygonContains(poly,x,y){
 }
 export function faceAt(scene,x,y){
  if(!scene||![x,y].every(Number.isFinite))return null;
- for(let i=scene.faces.length-1;i>=0;i--)if(polygonContains(scene.faces[i].points,x,y))return scene.faces[i];
- return null;
+ let winner=null,z=-Infinity;
+ for(const f of scene.faces){
+  if(!polygonContains(f.points,x,y))continue;
+  const p=f.plane||depthPlane(f.points);if(!p)continue;
+  const q=p.m*x+p.n*y+p.k;
+  if(nearer(q,f,z,winner)){winner=f;z=q;}
+ }
+ return winner;
 }
+// Bounded logical-pixel depth/identity buffer. Scanline even-odd spans retain
+// concave crest polygons without fan triangulation. Half-open pixel centers
+// agree with polygonContains; one deterministic face winner drives both
+// displayed color and native pointer picking. No frame loop.
+export function visibility(scene,width,height,budget=1200000){
+ if(!scene||![width,height,budget].every(Number.isFinite)||width<=0||height<=0||budget<1)return null;
+ const scale=Math.min(1,Math.sqrt(budget/(width*height)));
+ const w=Math.max(1,Math.floor(width*scale)),h=Math.max(1,Math.floor(height*scale)),sx=width/w,sy=height/h;
+ if(w*h>budget)return null;
+ const winners=new Int32Array(w*h);winners.fill(-1);
+ const depths=new Float64Array(w*h);depths.fill(-Infinity);
+ const floor=new Uint8Array(w*h),faces=scene.faces;
+ function spans(points,write){
+  let lo=Infinity,hi=-Infinity;
+  for(const p of points){lo=Math.min(lo,p[1]);hi=Math.max(hi,p[1]);}
+  const first=Math.max(0,Math.ceil(lo/sy-.5)),last=Math.min(h,Math.ceil(hi/sy-.5));
+  for(let row=first;row<last;row++){
+   const y=(row+.5)*sy,cross=[];
+   for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const a=points[i],b=points[j];
+    if((a[1]>y)!==(b[1]>y))cross.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));
+   }
+   cross.sort((a,b)=>a-b);
+   for(let k=0;k+1<cross.length;k+=2){
+    const left=Math.max(0,Math.ceil(cross[k]/sx-.5)),right=Math.min(w,Math.ceil(cross[k+1]/sx-.5));
+    if(right>left)write(row,y,left,right);
+   }
+  }
+ }
+ spans(scene.floor,(row,y,l,r)=>floor.fill(1,row*w+l,row*w+r));
+ for(let i=0;i<faces.length;i++){
+  const f=faces[i],p=f.plane||depthPlane(f.points);if(!p)continue;
+  spans(f.points,(row,y,l,r)=>{
+   const off=row*w,constant=p.n*y+p.k;
+   for(let x=l;x<r;x++){
+    const k=off+x,z=p.m*((x+.5)*sx)+constant,previous=winners[k];
+    if(nearer(z,f,depths[k],previous<0?null:faces[previous])){depths[k]=z;winners[k]=i;}
+   }
+  });
+ }
+ // Depth buffer is scratch; only compact identity and floor mask retained.
+ return {w,h,sx,sy,winners,floor,faces};
+}
+export function rasterFaceAt(r,x,y){
+ if(!r||![x,y].every(Number.isFinite)||x<0||y<0)return null;
+ const i=Math.floor(x/r.sx),j=Math.floor(y/r.sy);
+ if(i>=r.w||j>=r.h)return null;
+ const k=r.winners[j*r.w+i];return k<0?null:r.faces[k];
+}
+

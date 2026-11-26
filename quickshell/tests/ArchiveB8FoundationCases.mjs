@@ -787,5 +787,47 @@ export function run(){
  eq(Transition.layers(0),{room:1,detail:0,shell:0},'Room endpoint');
  eq(Transition.layers(1),{room:0,detail:1,shell:0},'Shelf endpoint');
  }
+ {
+ // C03: synthetic crossing planes, coplanar accents and concave polygon.
+ const flat=(index,shelfId,role,points)=>({index,shelfId,role,side:'front',points,plane:Projection.depthPlane(points)});
+ const square=z=>[[0,0,z(0)],[16,0,z(16)],[16,16,z(16)],[0,16,z(0)]];
+ const floor=[[0,0,0],[16,0,0],[16,16,0],[0,16,0]];
+ const faces=[flat(0,'a','left-post',square(x=>.001+x*.0001)),flat(1,'b','backing',square(x=>.002-x*.0001))];
+ const scene={faces,floor},r=Projection.visibility(scene,16,16);
+ eq(Projection.rasterFaceAt(r,2,2).shelfId,'b','crossing planes near left');
+ eq(Projection.rasterFaceAt(r,13,2).shelfId,'a','crossing planes near right');
+ for(let y=0;y<16;y++)for(let x=0;x<16;x++)eq(Projection.rasterFaceAt(r,x+.5,y+.5),Projection.faceAt(scene,x+.5,y+.5),'raster and analytic half-open coverage');
+ const accent=flat(2,'a','capital',square(x=>.001+x*.0001));
+ const tied={faces:[faces[0],accent],floor},tieRaster=Projection.visibility(tied,16,16);
+ eq(Projection.rasterFaceAt(tieRaster,7,7).role,'capital','coplanar accent wins');
+ const concave=flat(0,'a','crest',[[0,0,1],[16,0,1],[16,16,1],[8,8,1],[0,16,1]]);
+ const cr=Projection.visibility({faces:[concave],floor},16,16);
+ yes(!Projection.rasterFaceAt(cr,8,14),'concave notch not filled');
+ yes(Projection.rasterFaceAt(cr,3,4),'concave interior covered');
+ const tiny=Projection.visibility(scene,2000,1000,20000);
+ yes(tiny.w*tiny.h<=20000,'bounded raster pixel allocation');
+ const active=apply(sampleState,{kind:'spatialAdoptProfiles'}),roomId=active.snapshot.spatial.shelves.root.roomId;
+ const roomy=apply(active,{kind:'spatialRoomEdit',roomId,patch:{w:1800,h:2000}});
+ const other=Object.keys(roomy.snapshot.spatial.shelves).find(k=>k!=='root');
+ for(const [x,y,points] of [[600,850,[[647.5,102.5],[292.5,132.5],[297.5,152.5]]],[1000,250,[[708,252],[708,260]]]]){
+  const moved=apply(roomy,{kind:'spatialShelfEdit',containerId:other,patch:{roomId,x,y,depth:250,orientation:0}});
+  const styled=apply(moved,{kind:'spatialAppearance',containerId:other,patch:{profile:'pilaster'}});
+  const s=styled.snapshot,plan=View.roomPlan(s,roomId),sc=View.roomPerspective(s,plan,1000,700),r=Projection.visibility(sc,1000,700);
+  for(const q of points){
+   const nearest=Projection.faceAt(sc,q[0],q[1]);
+   eq(nearest.shelfId,x===600?'root':other,'reproduced C03 nearest shelf');
+   eq(nearest.role,x===600?'backing':'right-post','reproduced C03 nearest role');
+   // Native logical pixels use half-open center sampling; the continuous
+   // second wall sample is on a pixel whose center belongs to the wall.
+   const center=Projection.faceAt(sc,Math.floor(q[0])+.5,Math.floor(q[1])+.5);
+   eq(Projection.rasterFaceAt(r,q[0],q[1]),center,'C03 raster agrees with independently sampled center');
+  }
+  if(x===1000){
+   eq(Projection.rasterFaceAt(r,708,252).shelfId,other,'first reported wall mismatch fixed in displayed pixel');
+   eq(Projection.rasterFaceAt(r,707.5,260.5).shelfId,other,'second adjacent post pixel remains pickable');
+  }
+  eq(Core.validate(s),null,'depth correction preserves valid model');
+ }
+ }
  return checks;
 }

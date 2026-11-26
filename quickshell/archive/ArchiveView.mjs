@@ -233,11 +233,12 @@ export function roomPerspective(s,plan,width,height){
 export function roomPerspectiveHit(scene,x,y){
     const face=RoomProjection.faceAt(scene,x,y);return face?face.shelfId:'';
 }
+export function roomFloorColor(p){return mix(p.background,p.panel,.52);}
 export function roomPerspectiveColor(s,face,palettes,desktop,roomColors){
-    if(!face.shelfId)return face.side==='north'||face.side==='east'?mix(roomColors.background,roomColors.panel,.85):mix(roomColors.background,roomColors.panel,.65);
+    if(!face.shelfId)return face.side==='north'||face.side==='east'?mix(roomColors.panel,roomColors.metal,.13):mix(roomColors.background,roomColors.metal,.32);
     const p=spatialPalette(s,face.shelfId,palettes,desktop),c=s.cubbies[face.shelfId];
     const base=face.role==='backing'?backingColor(c,p,0):profilePartColor(face.role,frameColor(c,p,0),p);
-    return face.side==='front'?base:mix(p.background,base,face.side==='back'?.75:.85);
+    return face.side==='front'?base:mix(p.background,base,face.side==='back'?.68:.80);
 }
 // Room arrangement is view-local until release. The captured floor mapping
 // is reused for the whole gesture; snap relative deltas, never the old anchor.

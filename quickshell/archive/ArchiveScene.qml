@@ -754,10 +754,12 @@ Item {
             readonly property var inscription:scene.frontEnvelope.inscription||{x:0,y:0,w:0,h:0}
             x:inscription.x+4;y:inscription.y
             width:Math.max(0,inscription.w-8);height:inscription.h
-            text:scene.displayCubby.name||scene.displayCubby.id
+            text:(scene.displayCubby.name||scene.displayCubby.id).toUpperCase()
             color:scene.colors.text
-            font.pixelSize:Math.max(1,Math.min(16,inscription.h*.72))
-            font.bold:true;horizontalAlignment:Text.AlignHCenter;verticalAlignment:Text.AlignVCenter
+            // Constrained to the actual lintel; no extra occupied geometry.
+            font.family:"serif";font.pixelSize:Math.max(1,inscription.h*.78)
+            fontSizeMode:Text.HorizontalFit;minimumPixelSize:1
+            horizontalAlignment:Text.AlignHCenter;verticalAlignment:Text.AlignVCenter
             elide:Text.ElideRight;clip:true
         }
     }

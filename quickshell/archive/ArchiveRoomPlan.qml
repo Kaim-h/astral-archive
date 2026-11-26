@@ -27,6 +27,7 @@ Item {
     signal editDimensions(string shelfId)
     signal turnShelf(string shelfId)
     readonly property var perspectiveData:visible&&perspective?View.roomPerspective(snapshot,planData,width,height):null
+    readonly property var visibilityRaster:perspectiveData?Projection.visibility(perspectiveData,width,height):null
     signal inspectShelf(string shelfId)
     readonly property var planData:View.roomPlan(snapshot,roomId)
     readonly property real planScale:planData?Math.max(.001,Math.min(Math.max(1,width-64)/planData.room.w,Math.max(1,height-100)/planData.room.h)):1
@@ -39,7 +40,7 @@ Item {
         return perspective&&perspectiveData?Projection.floorInverse(x,y,perspectiveData.frame):{x:(x-planOrigin.x)/planScale,y:(y-planOrigin.y)/planScale}
     }
     function hit(x,y){
-        if(perspective)return View.roomPerspectiveHit(perspectiveData,x,y)
+        if(perspective){var f=Projection.rasterFaceAt(visibilityRaster,x,y);return f?f.shelfId:""}
         var p=floorAt(x,y);return p?View.roomPlanHit(planData,p.x,p.y):""
     }
     function mapping(){return perspective&&perspectiveData?{frame:perspectiveData.frame}:{x:planOrigin.x,y:planOrigin.y,scale:planScale}}
@@ -84,6 +85,13 @@ Item {
         color:plan.colors.text;font.pixelSize:16
         text:plan.planData?plan.planData.room.name+(plan.perspective?" · Perspective":" · Room plan"):"Room plan"
     }
+    ArchiveRoomVisibility {
+        id:solidRoom
+        objectName:"room-depth-art"
+        visible:plan.visible&&plan.perspective&&!!plan.visibilityRaster
+        raster:plan.visibilityRaster;snapshot:plan.snapshot;colors:plan.colors;palettes:plan.palettes;desktopPalette:plan.desktopPalette
+        transform:Scale {origin.x:0;origin.y:0;xScale:solidRoom.raster?solidRoom.raster.sx:1;yScale:solidRoom.raster?solidRoom.raster.sy:1}
+    }
     Canvas {
         id:art
         objectName:"room-plan-art"
@@ -126,8 +134,8 @@ Item {
             }
             if(plan.perspective){
                 var scene=plan.perspectiveData;if(!scene)return
-                polygon(scene.floor,plan.colors.panel)
-                for(var face of scene.faces)polygon(face.points,View.roomPerspectiveColor(plan.snapshot,face,plan.palettes,plan.desktopPalette,plan.colors))
+                // Solid surfaces and hit IDs are emitted by the same depth buffer.
+                // Only non-owning arrangement outlines are painted here.
                 var selected=data.shelves.find(v=>v.id===plan.selectedShelf)
                 if(selected)outline(selected.box,plan.colors.text)
                 if(plan.rotationPreview)outline(plan.rotationPreview,plan.colors.engraving)
