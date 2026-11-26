@@ -41,6 +41,7 @@ Item {
     signal deleteRoom(string id)
     signal toggleGrid()
     signal toggleSnap()
+    signal cycleSnapDistance()
     readonly property var selectedBox:dataModel&&selectedRoom?dataModel.rooms.find(r=>r.id===selectedRoom)||null:null
     readonly property var outline:gesture&&dragPatch?View.mapRoomOutline(snapshot,{kind:"spatialRoomEdit",roomId:gesture.data.id,patch:dragPatch}):View.mapRoomOutline(snapshot,proposalCommand)
     function cancelGesture(){gesture=null;dragPatch=null;press=null;moved=false}
@@ -105,8 +106,10 @@ Item {
             var m=map.dataModel,f=map.camera;if(!m||!f)return
             var k=f.scale
             ctx.save();ctx.translate(f.x,f.y);ctx.scale(k,k)
+            // Grid is drawn over Room fills, under labels and openings.
+            for(var room of m.rooms){ctx.fillStyle=map.colors.panel;ctx.fillRect(room.x,room.y,room.w,room.h)}
             if(map.showGrid){
-                var step=map.snapDistance
+                var step=Math.max(5,map.snapDistance)
                 while(step*k<12)step*=2
                 var left=-f.x/k,top=-f.y/k,right=left+width/k,bottom=top+height/k
                 ctx.beginPath();for(var gx=Math.ceil(left/step)*step;gx<=right;gx+=step){ctx.moveTo(gx,top);ctx.lineTo(gx,bottom)}
@@ -114,7 +117,6 @@ Item {
                 ctx.strokeStyle=map.colors.metal;ctx.lineWidth=.5/k;ctx.stroke()
             }
             for(var r of m.rooms){
-                ctx.fillStyle=map.colors.panel;ctx.fillRect(r.x,r.y,r.w,r.h)
                 ctx.strokeStyle=map.selectedRoom===r.id?map.colors.text:map.colors.metal
                 ctx.lineWidth=(map.selectedRoom===r.id?2:1.5)/k;ctx.strokeRect(r.x,r.y,r.w,r.h)
                 for(var s of r.shelves){
@@ -215,7 +217,8 @@ Item {
             objectName:"map-arrange-grid-actions"
             width:parent.width;height:26;y:30;visible:map.arranging;enabled:map.arranging
             ArchiveButton {objectName:"map-grid";colors:map.colors;label:"Grid";x:0;width:108;active:map.showGrid;onClicked:map.toggleGrid()}
-            ArchiveButton {objectName:"map-snap";colors:map.colors;label:"Snap";x:114;width:108;active:map.snapEnabled;onClicked:map.toggleSnap()}
+            ArchiveButton {objectName:"map-snap";colors:map.colors;label:"Snap";x:114;width:55;active:map.snapEnabled;onClicked:map.toggleSnap()}
+            ArchiveButton {objectName:"map-snap-interval";colors:map.colors;label:String(map.snapDistance);hint:"Cycle snap and grid interval";x:175;width:47;onClicked:map.cycleSnapDistance()}
             ArchiveButton {objectName:"map-magnetic";colors:map.colors;label:"Wall magnet";x:228;width:108;active:map.magnetic;onClicked:map.magnetic=!map.magnetic}
         }
         Item {

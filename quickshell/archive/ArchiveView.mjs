@@ -382,7 +382,7 @@ export function mapPlan(s){
 }
 export function mapFrame(data,w,h,zoom=1,center=null){
     if(!data||![w,h,zoom].every(Number.isFinite)||w<=0||h<=0)return null;
-    const b=data.bounds,k=Math.min(Math.max(1,w-64)/b.w,Math.max(1,h-100)/b.h)*Math.max(.25,Math.min(8,zoom));
+    const b=data.bounds,k=Math.min(Math.max(1,w-64)/b.w,Math.max(1,h-184)/b.h)*Math.max(.25,Math.min(8,zoom));
     const c=center&&[center.x,center.y].every(Number.isFinite)?center:{x:b.x+b.w/2,y:b.y+b.h/2};
     return {scale:k,x:w/2-c.x*k,y:h/2-c.y*k,cx:c.x,cy:c.y};
 }

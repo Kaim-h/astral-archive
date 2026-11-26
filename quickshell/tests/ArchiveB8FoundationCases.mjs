@@ -1067,6 +1067,11 @@ export function run(){
   eq(View.mapRoomGesturePatch(g,x,y,true,20,true),{},'no displacement does not magnetically move');
   eq(View.mapRoomGesturePatch(g,x+6*f.scale,y,false,20,true),{x:empty.x,y:empty.y},'near wall magnet');
   eq(View.mapRoomOutline(s,cmd),{x:empty.x+200,y:empty.y,w:empty.w,h:empty.h},'uncommitted outline');
+  refuse(state,{kind:'spatialRoomEdit',roomId:empty.id,patch:{x:100001}});
+  refuse(state,{kind:'spatialRoomEdit',roomId:empty.id,patch:{w:10001}});
+  refuse(state,{kind:'spatialRoomEdit',roomId:empty.id,patch:{x:filled.x,y:filled.y},removeDoors:[door]});
+  eq(View.mapRoomOutline(s,{kind:'spatialRoomEdit',roomId:empty.id,patch:{x:100001}}),null,'bounded outline');
+  eq(View.mapRoomOutline(s,{kind:'spatialRoomEdit',roomId:empty.id,patch:{w:0}}),null,'no negative outline');
  }
  return checks;
 }

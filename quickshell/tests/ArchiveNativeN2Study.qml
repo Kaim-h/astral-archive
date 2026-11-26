@@ -880,6 +880,7 @@ Rectangle {
         proposalValid:!!archive.structuralProposal&&archive.structuralProposal.ok
         onToggleGrid:sceneView.showGrid=!sceneView.showGrid
         onToggleSnap:sceneView.snapEnabled=!sceneView.snapEnabled
+        onCycleSnapDistance:{var intervals=[5,10,20,25,50,100];sceneView.snapDistance=intervals[(intervals.indexOf(sceneView.snapDistance)+1)%intervals.length]}
         onAddRoom:study.startMapRoomEdit("spatialRoomCreate","",{})
         onEditRoom:function(id,patch){study.startMapRoomEdit("spatialRoomEdit",id,patch)}
         onDeleteRoom:function(id){study.startMapRoomEdit("spatialRoomDelete",id,{})}
