@@ -67,6 +67,14 @@ function holderRect(entry){
     const envelope=L.holderEnvelope(entry.scale,entry.w);
     return rect(entry.x,-envelope.height,envelope.width,envelope.height);
 }
+// Reserve the current Book.qml's 42-unit spine and maximum 160-unit
+// height; actual title-based height/ribbon appearance is resolved in N2.
+// This envelope is deliberately independent of any mutable display title.
+export function bookRect(entry){
+    need(plain(entry)&&Object.keys(entry).every(k=>["kind","appId","x"].includes(k))&&
+        entry.kind==="app"&&id(entry.appId)&&finite(entry.x,0,1800),"Invalid application book placement");
+    return rect(entry.x-21,-160,42,160);
+}
 // Board surfaces remain inherently eligible. A rack or nested Cubby face
 // has a top datum only when explicitly opted in by spatial-state policy.
 export function supportsTop(module){
@@ -84,7 +92,7 @@ export function validateShelf(module){
     const boxes=[];
     for(const entry of entries){
         need(plain(entry),"Invalid shelf entry");
-        const b=entry.kind==="object"?objectRect(entry):entry.kind==="holder"?holderRect(entry):null;
+        const b=entry.kind==="object"?objectRect(entry):entry.kind==="holder"?holderRect(entry):entry.kind==="app"?bookRect(entry):null;
         need(b&&b.x>=-.001&&b.x+b.w<=module.w+.001,"Object or holder exceeds shelf width");
         need(!boxes.some(q=>overlap(q,b)),"Shelf objects overlap");
         boxes.push(b);
@@ -173,7 +181,7 @@ export function suggestShelfItems(module){
     if(!Array.isArray(module.items)||module.items.length>64)return null;
     try{
         const items=copy(module.items),fixed=[],displaced=[];
-        const bounds=e=>e.kind==="holder"?holderRect(e):objectRect(e);
+        const bounds=e=>e.kind==="holder"?holderRect(e):e.kind==="app"?bookRect(e):objectRect(e);
         for(let i=0;i<items.length;i++){
             const b=bounds(items[i]);if(b.w>module.w+.001)return null;
             const q={i,b};if(b.x>=-.001&&b.x+b.w<=module.w+.001)fixed.push(q);else displaced.push(q);

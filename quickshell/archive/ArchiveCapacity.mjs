@@ -36,6 +36,7 @@ export function preflight(s,formatVersion=2){
      if(!plain(e))fail('Invalid shelf entry');
      if(++fixtures>limits.fixtures)fail('Fixture budget exceeded');
      if(e.kind==='object')addRecord(e.record,false);
+     else if(e.kind==='app'){if(!spatial||!id(e.appId))fail('Application placement requires spatial v3');}
      else if(e.kind==='holder'){
       if(!id(e.id)||!Array.isArray(e.slots)||!e.slots.length||e.slots.length>48)fail('Invalid holder');
       for(const r of e.slots)if(r!==null)addRecord(r,false);

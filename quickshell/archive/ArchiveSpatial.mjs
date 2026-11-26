@@ -1,12 +1,14 @@
 // B8-N1a: opt-in spatial hierarchy on the existing physical-container registry.
 // No renderer, file I/O, automatic migration, or second ownership inventory.
+import * as Doors from "./ArchiveDoors.mjs";
+import * as Mixed from "./representation/B7Ownership.mjs";
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const plain=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const id=v=>typeof v==='string'&&v.length>0&&v.length<=128&&!['__proto__','constructor','prototype'].includes(v);
 const integer=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
 const need=(v,msg)=>{if(!v)throw Error(msg);};
 const name=v=>typeof v==='string'&&v.trim().length>0&&v.length<=80;
-export const spatialLimits=Object.freeze({rooms:64,roomSize:10000,mapCoordinate:100000,shelfDepth:1800});
+export const spatialLimits=Object.freeze({rooms:64,roomSize:10000,mapCoordinate:100000,shelfDepth:1800,applications:512});
 export function enabled(s){return !!s&&own(s,'spatial');}
 export function roots(s){return enabled(s)?Object.keys(s.spatial.shelves):['root'];}
 export function kind(s,containerId){return !own(s.cubbies,containerId)?null:enabled(s)&&own(s.spatial.shelves,containerId)?'shelf':'cubby';}
@@ -31,7 +33,7 @@ export function validate(s){
  if(!enabled(s))return null;
  try{
   const a=s.spatial;
-  need(keysOnly(a,['rooms','shelves','appearance'])&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
+  need(keysOnly(a,['rooms','shelves','appearance','apps','doors'])&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
   const rooms=Object.keys(a.rooms),shelves=Object.keys(a.shelves),roomBoxes=[],shelfBoxes=new Map();
   need(rooms.length>0&&rooms.length<=spatialLimits.rooms&&shelves.length>0&&shelves.length<=128,'Spatial room/shelf budget');
   for(const k of rooms){
@@ -47,13 +49,21 @@ export function validate(s){
    const b=footprint(s,k),r=a.rooms[p.roomId],boxes=shelfBoxes.get(p.roomId);
    need(inside(b,r.w,r.h)&&!boxes.some(q=>overlap(q,b)),'Shelf overlaps or exceeds Room');boxes.push(b);
   }
-  const parents=new Map(),structuralIds=new Set(rooms.concat(Object.keys(s.cubbies)));
+  const parents=new Map(),structuralIds=new Set(rooms.concat(Object.keys(s.cubbies))),placedApps=new Set();
+  const apps=a.apps===undefined?{}:a.apps;
+  need(plain(apps)&&Object.keys(apps).length<=spatialLimits.applications,'Application catalogue budget');
+  for(const [k,v] of Object.entries(apps))need(id(k)&&keysOnly(v,['appId','title'])&&v.appId===k&&name(v.title),'Invalid application identity');
   for(const c of Object.values(s.cubbies)){
    need((c.name===undefined||name(c.name))&&appearance(c.appearance),'Invalid container name or appearance reference');
    for(const m of c.mods){
     need(!structuralIds.has(m.id),'Duplicate spatial structural identity');structuralIds.add(m.id);
     for(const meta of Object.values(m.cellMeta||{})){need(!structuralIds.has(meta.id),'Duplicate spatial structural identity');structuralIds.add(meta.id);}
-    for(const entry of m.items||[])if(entry.kind==='holder'){need(!structuralIds.has(entry.id),'Duplicate spatial structural identity');structuralIds.add(entry.id);}
+    for(const entry of m.items||[]){
+     if(entry.kind==='holder'){need(!structuralIds.has(entry.id),'Duplicate spatial structural identity');structuralIds.add(entry.id);}
+     if(entry.kind==='app'){
+      need(own(apps,entry.appId)&&!placedApps.has(entry.appId),'Missing or multiply placed application');placedApps.add(entry.appId);
+     }
+    }
     if(m.type==='cubby'){
      need(!own(a.shelves,m.childId)&&!parents.has(m.childId),'Architectural Shelf cannot be nested; Cubby has one parent');
      parents.set(m.childId,c.id);
@@ -65,6 +75,7 @@ export function validate(s){
    while(parents.has(cursor)){need(!seen.has(cursor),'Cyclic spatial hierarchy');seen.add(cursor);cursor=parents.get(cursor);}
    need(own(a.shelves,cursor),'Container is not attached to an architectural Shelf');
   }
+  Doors.validate(s,footprint,structuralIds);
   return null;
  }catch(e){return String(e.message||e);}
 }
@@ -82,6 +93,17 @@ export function resolveAppearance(s,containerId,globalPalette){
  const chosen=chain.find(a=>a&&a.family!==undefined&&a.family!==null);
  const local=s.cubbies[containerId].appearance;
  return {family:chosen?chosen.family:'Architectural',palette:local&&local.palette!==undefined&&local.palette!==null?local.palette:globalPalette};
+}
+// Application catalogue and placements are separate from file owners/Case.
+export function appPlacements(s){
+ const out=[];
+ if(enabled(s))for(const c of Object.values(s.cubbies))for(const m of c.mods)
+  for(const item of m.items||[])if(item.kind==='app')out.push({appId:item.appId,containerId:c.id,moduleId:m.id,x:item.x});
+ return out;
+}
+export function doorGeometry(s,doorId){
+ need(enabled(s)&&s.spatial.doors&&own(s.spatial.doors,doorId),'Door no longer exists');
+ return Doors.geometry(s,s.spatial.doors[doorId],footprint);
 }
 function patch(target,p,allowed){
  need(keysOnly(p,allowed),'Unknown spatial property');
@@ -109,10 +131,12 @@ export function edit(s,cmd,allocate){
  }else if(cmd.kind==='spatialRoomEdit'){
   need(own(a.rooms,cmd.roomId),'Room no longer exists');
   patch(a.rooms[cmd.roomId],p,['name','x','y','w','h','appearance']);
+  Doors.resolveLost(s,cmd.removeDoors,footprint);
  }else if(cmd.kind==='spatialRoomDelete'){
   need(own(a.rooms,cmd.roomId)&&Object.keys(a.rooms).length>1,'Keep at least one Room');
   need(!Object.values(a.shelves).some(v=>v.roomId===cmd.roomId),'Remove or relocate Shelves first');
   need(!Object.keys(p).length,'Unexpected delete properties');delete a.rooms[cmd.roomId];
+  Doors.resolveLost(s,cmd.removeDoors,footprint);
  }else if(cmd.kind==='spatialShelfCreate'){
   const k=allocate('architectural-shelf-'),c={id:k,name:'New Shelf',w:700,h:500,b:11,mods:[]},v={roomId:cmd.roomId,x:0,y:0,depth:160,orientation:0};
   need(keysOnly(p,['name','w','h','b','appearance','x','y','depth','orientation']),'Unknown Shelf property');
@@ -134,6 +158,26 @@ export function edit(s,cmd,allocate){
   delete a.shelves[k];delete s.cubbies[k];
   for(const record of s.caseItems)if(record.originCubbyId===k)record.originStale=true;
   if(s.path[0]===k)s.path=[Object.keys(a.shelves)[0]];
+ }else if(cmd.kind==='spatialAppRegister'){
+  need(keysOnly(p,['appId','title'])&&id(p.appId)&&name(p.title),'Invalid synthetic application metadata');
+  const apps=a.apps||(a.apps={});
+  need(!own(apps,p.appId),'Application already registered');apps[p.appId]={appId:p.appId,title:p.title};
+ }else if(cmd.kind==='spatialAppPlace'||cmd.kind==='spatialAppUnplace'){
+  need(a.apps&&own(a.apps,cmd.appId),'Unknown application identity');
+  const previous=appPlacements(s).find(v=>v.appId===cmd.appId);
+  if(cmd.kind==='spatialAppUnplace')need(previous&&keysOnly(p,[]),'Application is not placed');
+  else need(keysOnly(p,['x'])&&Number.isFinite(p.x)&&own(s.cubbies,cmd.containerId),'Invalid book placement');
+  if(previous){
+   const old=s.cubbies[previous.containerId].mods.find(m=>m.id===previous.moduleId);
+   old.items=old.items.filter(v=>v.kind!=='app'||v.appId!==cmd.appId);
+  }
+  if(cmd.kind==='spatialAppPlace'){
+   const m=s.cubbies[cmd.containerId].mods.find(v=>v.id===cmd.moduleId);
+   need(Mixed.supportsTop(m),'Choose an eligible book support');
+   if(!m.items)m.items=[];m.items.push({kind:'app',appId:cmd.appId,x:p.x});
+  }
+ }else if(typeof cmd.kind==='string'&&cmd.kind.indexOf('spatialDoor')===0){
+  Doors.edit(s,cmd,p,allocate,footprint);
  }else if(cmd.kind==='spatialSupport'){
   need(own(s.cubbies,cmd.containerId),'Container no longer exists');
   const m=s.cubbies[cmd.containerId].mods.find(v=>v.id===cmd.moduleId);

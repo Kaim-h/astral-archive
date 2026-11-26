@@ -707,7 +707,7 @@ export function paintCell(s,cubbyId,rackId,key,color,depth){
 function structuralError(s,message){return updateSession(s,{error:message});}
 function editorId(next,prefix){
  const used=new Set(Object.keys(next.cubbies));
- if(Spatial.enabled(next))for(const k of Object.keys(next.spatial.rooms))used.add(k);
+ if(Spatial.enabled(next))for(const k of Object.keys(next.spatial.rooms).concat(Object.keys(next.spatial.doors||{})))used.add(k);
  for(const c of Object.values(next.cubbies))for(const m of c.mods){
   used.add(m.id);for(const meta of Object.values(m.cellMeta||{}))used.add(meta.id);
   for(const entry of m.items||[])if(entry.kind==='holder')used.add(entry.id);
@@ -964,7 +964,12 @@ export function editStructure(s,command){
 }
 export function previewStructure(s,command){
  const candidate=editStructure(s,command);
- return {revision:s.revision,command:clone(command),ok:!candidate.error&&candidate.snapshot!==s.snapshot,error:candidate.error||'',snapshot:candidate.error?null:candidate.snapshot,caseTransferCount:candidate.error?0:Math.max(0,candidate.snapshot.caseItems.length-s.snapshot.caseItems.length)};
+ const result={revision:s.revision,command:clone(command),ok:!candidate.error&&candidate.snapshot!==s.snapshot,error:candidate.error||'',snapshot:candidate.error?null:candidate.snapshot,caseTransferCount:candidate.error?0:Math.max(0,candidate.snapshot.caseItems.length-s.snapshot.caseItems.length)};
+ if(Spatial.enabled(s.snapshot)){
+  result.appUnplacementCount=candidate.error?0:Math.max(0,Spatial.appPlacements(s.snapshot).length-Spatial.appPlacements(candidate.snapshot).length);
+  result.removedDoorIds=candidate.error?[]:Object.keys(s.snapshot.spatial.doors||{}).filter(k=>!Object.prototype.hasOwnProperty.call(candidate.snapshot.spatial.doors||{},k));
+ }
+ return result;
 }
 export function applyStructure(s,proposal){
  if(!proposal||!proposal.ok||proposal.revision!==s.revision||s.draft)return structuralError(s,'No valid latest structural proposal');
