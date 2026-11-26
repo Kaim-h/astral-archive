@@ -16,6 +16,7 @@ export function fixture(){
  edit({kind:"spatialSupport",containerId:"root",moduleId:"cubby-child",patch:{enabled:true}});
  edit({kind:"spatialAppRegister",patch:{appId:"org.example.Reader",title:"Reader"}});
  edit({kind:"spatialAppRegister",patch:{appId:"org.example.Notes",title:"Notes"}});
+ edit({kind:"spatialAppRegister",patch:{appId:"org.example.Atlas",title:"Atlas"}});
  edit({kind:"spatialAppPlace",appId:"org.example.Reader",containerId:"root",moduleId:"rack-1",patch:{x:100}});
  edit({kind:"spatialAppPlace",appId:"org.example.Notes",containerId:"root",moduleId:"cubby-child",patch:{x:110}});
  state=Core.transfer(state,["mixed-parcel"],{kind:"shelf",cubbyId:"root",moduleId:"rack-1",x:300,scale:.86,support:"tray"});if(state.error)throw Error(state.error);

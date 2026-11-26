@@ -10,6 +10,37 @@ Item {
     TestCase {
         name:"ArchiveB8Shelf"
         when:windowShown
+        function init(){study.scene.abortGesture();study.closeContext();study.closeMaterials();study.controller.reset(Sample.fixture());study.scene.mode="browse";study.scene.zoom=1;study.scene.pan=Qt.point(0,0);study.scene.clearSelection()}
+        function clickNamed(name){var item=findChild(study,name);verify(!!item,name);tryVerify(function(){return item.visible&&item.enabled&&item.width>0&&item.height>0});mouseClick(item,item.width/2,item.height/2)}
+        function test_picker_and_support_controls(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)
+            study.switchMode("arrange")
+            var top=findChild(scene,"mixed-top-rack-1"),book=findChild(top,"archive-book-org.example.Reader")
+            verify(!!book);mouseClick(book,book.width/2,book.height/2)
+            tryCompare(scene,"selectedAppId","org.example.Reader")
+            clickNamed("arrange-menu");clickNamed("place-book");clickNamed("pick-book-org.example.Atlas")
+            tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok},3000)
+            compare(JSON.stringify(ctl.snapshot),before)
+            tryVerify(function(){return !!findChild(scene,"archive-book-org.example.Atlas")})
+            clickNamed("structure-cancel")
+            tryVerify(function(){return !findChild(scene,"archive-book-org.example.Atlas")})
+            compare(JSON.stringify(ctl.snapshot),before)
+            // Re-select the book and place Atlas through the same visible controls.
+            top=findChild(scene,"mixed-top-rack-1");book=findChild(top,"archive-book-org.example.Reader")
+            mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("place-book");clickNamed("pick-book-org.example.Atlas")
+            clickNamed("structure-apply")
+            tryVerify(function(){return Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Atlas")})
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            top=findChild(scene,"mixed-top-rack-1");book=findChild(top,"archive-book-org.example.Reader")
+            mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("toggle-flat-top")
+            tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
+            verify(ctl.structuralProposal.error.indexOf("Resolve supported")>=0)
+            clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
+            top=findChild(scene,"mixed-top-rack-1");book=findChild(top,"archive-book-org.example.Reader")
+            mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("unplace-selected-book");clickNamed("structure-apply")
+            tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")})
+            verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+        }
         function test_shelf_input_and_support(){
             var scene=study.scene,ctl=study.controller
             var before=JSON.stringify(ctl.snapshot)

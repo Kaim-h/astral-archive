@@ -29,6 +29,10 @@ Item {
     readonly property var appearanceCubby:appearanceSnapshot&&appearanceSnapshot.cubbies[cubbyId]||cubby
     function materialModule(m){
         var proposal=controller.structuralProposal
+        if(proposal&&proposal.ok&&["spatialAppPlace","spatialAppUnplace","spatialSupport"].includes(proposal.command.kind)){
+            var updated=proposal.snapshot.cubbies[cubbyId].mods.find(q=>q.id===m.id)
+            if(updated)return updated
+        }
         if(proposal&&proposal.ok&&proposal.command.moduleId===m.id&&
            (proposal.command.kind==="shelf"&&proposal.command.rearrange===true||["holderCreate","holderEdit","artwork"].includes(proposal.command.kind))){
             var candidate=proposal.snapshot.cubbies[cubbyId].mods.find(q=>q.id===m.id)
@@ -44,6 +48,7 @@ Item {
     }
     property string selectedModuleId: ""
     property string selectedHolderId:""
+    property string selectedAppId:""
     property string selectedCell: ""
     property string selectedScrollId: ""
     property var selectedIds: []
@@ -138,6 +143,18 @@ Item {
             if(e){selectedScrollId=recordId;selectedIds=[recordId];message=e.scroll.name}
         }
     }
+    function selectApp(moduleId,appId){
+        if(!mixedInteractive)return
+        selectMixed(moduleId,"");selectedAppId=appId
+        var app=controller.snapshot.spatial.apps[appId]
+        message="Application book · "+app.title+" (synthetic)"
+    }
+    function topModule(m){
+        var v=materialModule(m)
+        // The solver's ready proposal has passed occupied rack bounds.
+        // Invalid/unsettled proposals retain committed dependent positions.
+        return m.type==="rack"&&controller.phase==="ready"?View.displayRack(controller,cubbyId,v):v
+    }
     function moveHolder(moduleId,holderId,from,to,recordId){
         if(!mixedInteractive||mode!=="browse")return
         var command={kind:"holderMove",cubbyId:cubbyId,moduleId:moduleId,holderId:holderId,from:from,to:to,recordId:recordId}
@@ -153,7 +170,7 @@ Item {
         return null
     }
     function clearSelection() {
-        selectedModuleId="";selectedHolderId="";selectedCell="";selectedScrollId=""
+        selectedModuleId="";selectedHolderId="";selectedAppId="";selectedCell="";selectedScrollId=""
         pinnedRecord=null;hoveredRecord=null;selectedIds=[];anchor=null;cancelInsertion()
     }
     function saveCamera() {
@@ -379,6 +396,7 @@ Item {
                 scene.viewPath=path;scene.restoreCamera();scene.clearSelection()
             }
             if(scene.selectedModuleId&&!scene.cubby.mods.some(function(m){return m.id===scene.selectedModuleId}))scene.clearSelection()
+            if(scene.selectedAppId&&!scene.cubby.mods.some(m=>(m.items||[]).some(e=>e.kind==="app"&&e.appId===scene.selectedAppId)))scene.selectedAppId=""
             scene.pinnedRecord=null;scene.hoveredRecord=null
         }
         function onDraftChanged(){if(scene.controller.draft){scene.pinnedRecord=null;scene.hoveredRecord=null}}
@@ -507,7 +525,7 @@ Item {
                             selected:scene.selectedModuleId===module.id
                             selectedRecordId:scene.selectedScrollId
                             hiddenIds:live.mixedVisuals.hidden
-                            onAppActivated:function(appId){scene.selectMixed(module.id,"");scene.message="Application book · "+apps[appId].title+" (synthetic)"}
+                            onAppActivated:function(appId){scene.selectApp(module.id,appId)}
                             onActivated:function(recordId){scene.selectMixed(module.id,recordId)}
                             onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
                         }
@@ -544,10 +562,10 @@ Item {
             // Render eligible module tops with the same supported-object/holder
             // delegates as boards, not an extra physical board or a second owner.
             Repeater {
-                model:scene.cubby.mods.filter(m=>m.type!=="shelf"&&Mixed.supportsTop(m)&&(m.items||[]).length)
+                model:scene.cubby.mods.filter(m=>{var v=scene.materialModule(m);return v.type!=="shelf"&&Mixed.supportsTop(v)&&(v.items||[]).length})
                 B7.B7MixedShelf {
                     required property var modelData
-                    module:scene.materialModule(modelData)
+                    module:scene.topModule(modelData)
                     showBoard:false
                     apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
                     colors:scene.colors;plaqueHost:interior;gestureHost:scene
@@ -555,7 +573,7 @@ Item {
                     selected:scene.selectedModuleId===module.id
                     selectedRecordId:scene.selectedScrollId;hiddenIds:live.mixedVisuals.hidden
                     onActivated:function(recordId){scene.selectMixed(module.id,recordId)}
-                    onAppActivated:function(appId){scene.selectMixed(module.id,"");scene.message="Application book · "+apps[appId].title+" (synthetic)"}
+                    onAppActivated:function(appId){scene.selectApp(module.id,appId)}
                     onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
                 }
             }

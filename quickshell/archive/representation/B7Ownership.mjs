@@ -258,6 +258,29 @@ export function holderAt(module,p){
     }
     return null;
 }
+// Deterministic bounded book placement hint, not an arrangement mutation.
+// Use actual occupied envelopes and candidate contact boundaries rather than
+// repeatedly cloning/validating the whole archive for every possible x.
+export function suggestBookX(c,module,appId){
+    if(!supportsTop(module)||module.y<160||module.w<42)return null;
+    const items=(module.items||[]).filter(e=>e.kind!=="app"||e.appId!==appId);
+    const local=Object.assign({},module,{items});
+    const ownBoxes=validateShelf(local),otherBoxes=[];
+    for(const m of c.mods)if(m.id!==module.id)for(const b of fixtureRects(m))otherBoxes.push(b);
+    const candidates=new Set([21,Math.floor(module.w-21)]);
+    for(const b of ownBoxes)candidates.add(Math.ceil(b.x+b.w+21));
+    for(const b of otherBoxes)candidates.add(Math.ceil(b.x+b.w-module.x+21));
+    for(const x of Array.from(candidates).sort((a,b)=>a-b)){
+        if(x<21||x+21>module.w)continue;
+        const box=bookRect({kind:"app",appId,x});
+        if(ownBoxes.some(b=>overlap(b,box)))continue;
+        const placed=rect(module.x+box.x,module.y+box.y,box.w,box.h);
+        if(placed.x<0||placed.y<0||placed.x+placed.w>c.w+.001||placed.y+placed.h>c.h+.001||
+           otherBoxes.some(b=>overlap(b,placed)))continue;
+        return x;
+    }
+    return null;
+}
 // Search only bounded horizontal positions; candidate still must pass full
 // cubby validation. Empty holder includes its reserved presentation cradle.
 export function newHolderPatch(c,module,step){

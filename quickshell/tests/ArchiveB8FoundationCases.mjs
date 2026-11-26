@@ -433,5 +433,15 @@ export function run(){
  delete noRoot.spatial.shelves.root;delete noRoot.cubbies.root;delete noRoot.cubbies.child;
  eq(View.reachablePath(noRoot,['root','child']),[otherRoot],'removed root fallback');
  eq(View.reachablePath(legacy.snapshot,['not-root']),['root'],'legacy path unchanged');
+ const sampleRack=sample.cubbies.root.mods.find(m=>m.id==='rack-1');
+ const suggested=Mixed.suggestBookX(sample.cubbies.root,sampleRack,'org.example.Atlas');
+ yes(suggested!==null,'book hint exists');
+ const sampleState=Core.session(sample);
+ const bookCommand={kind:'spatialAppPlace',appId:'org.example.Atlas',containerId:'root',moduleId:sampleRack.id,patch:{x:suggested}};
+ const withBook=apply(sampleState,bookCommand);
+ eq(Core.owners(withBook.snapshot),Core.owners(sample),'picker preserves file owners');
+ eq(Spatial.appPlacements(withBook.snapshot).filter(v=>v.appId==='org.example.Atlas').length,1,'exactly one placement');
+ eq(Core.undo(withBook).snapshot,sample,'picker placement Undo');
+ eq(Mixed.suggestBookX(sample.cubbies.root,Object.assign({},sampleRack,{y:0}),'org.example.Atlas'),null,'insufficient ceiling refuses hint');
  return checks;
 }
