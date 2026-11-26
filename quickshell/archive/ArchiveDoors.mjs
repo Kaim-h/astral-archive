@@ -8,7 +8,7 @@ const sides=['north','east','south','west'];
 const opposite={north:'south',south:'north',east:'west',west:'east'};
 export const doorLimit=256;
 export function edge(s,ref){
- need(keys(ref,['roomId','side'])&&own(s.spatial.rooms,ref.roomId)&&sides.includes(ref.side),'Unknown Room boundary');
+ need(keys(ref,['roomId','side'])&&typeof ref.roomId==='string'&&own(s.spatial.rooms,ref.roomId)&&sides.includes(ref.side),'Unknown Room boundary');
  const r=s.spatial.rooms[ref.roomId],vertical=ref.side==='east'||ref.side==='west';
  return {roomId:ref.roomId,side:ref.side,vertical,
   line:vertical?r.x+(ref.side==='east'?r.w:0):r.y+(ref.side==='south'?r.h:0),
@@ -46,7 +46,7 @@ export function validate(s,footprint,structuralIds){
  need(plain(doors)&&Object.keys(doors).length<=doorLimit,'Door budget or metadata');
  const placed=[];
  for(const k of Object.keys(doors)){
-  const d=doors[k];need(k===d.id&&!['__proto__','constructor','prototype'].includes(k)&&!structuralIds.has(k),'Duplicate or invalid door identity');structuralIds.add(k);
+  const d=doors[k];need(plain(d)&&k===d.id&&!['__proto__','constructor','prototype'].includes(k)&&!structuralIds.has(k),'Duplicate or invalid door identity');structuralIds.add(k);
   const g=geometry(s,d,footprint);
   need(!placed.some(q=>q.vertical===g.vertical&&q.line===g.line&&overlap(q.start,q.end,g.start,g.end)),'Door openings overlap');
   placed.push(g);

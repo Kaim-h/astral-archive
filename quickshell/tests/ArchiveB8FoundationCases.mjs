@@ -210,6 +210,19 @@ export function run(){
  const duplicateBook=Core.clone(books.snapshot);duplicateBook.cubbies.root.mods.find(m=>m.id===topRack.id).items.push({kind:'app',appId:'org.example.Reader',x:450});invalid(duplicateBook,'duplicate app placement');
  const unknownBook=Core.clone(books.snapshot);delete unknownBook.spatial.apps['org.example.Reader'];invalid(unknownBook,'dangling app ref');
  eq(Checkpoint.decode(Checkpoint.encode(books,{path:['root'],theme:1,cameras:{}})).snapshot,books.snapshot,'app v3 checkpoint');
+ const bookShift=Core.stage(books,'root',topRack.id,{x:130,y:375});
+ const bookShifted=Core.apply(Core.accept(bookShift,Core.solve(Core.request(bookShift))));
+ eq(bookShifted.error,'','book support movement commits');
+ eq(Spatial.appPlacements(bookShifted.snapshot),Spatial.appPlacements(books.snapshot),'book placement remains support local');
+ eq(Core.undo(bookShifted).snapshot,books.snapshot,'book support movement Undo');
+ let placedElsewhere=apply(books,{kind:'create',type:'shelf',cubbyId:'root',patch:{x:50,y:950,w:400,h:15}});
+ const secondBoard=placedElsewhere.snapshot.cubbies.root.mods.find(m=>m.type==='shelf');
+ // The board above would collide with the rack? Its y=950 is clear;
+ // its book reservation extends upward only to 790, below the rack.
+ placedElsewhere=apply(placedElsewhere,{kind:'spatialAppPlace',appId:'org.example.Reader',containerId:'root',moduleId:secondBoard.id,patch:{x:100}});
+ eq(Spatial.appPlacements(placedElsewhere.snapshot),[{appId:'org.example.Reader',containerId:'root',moduleId:secondBoard.id,x:100}],'reposition exactly one book');
+ eq(Core.owners(placedElsewhere.snapshot).map(e=>e.id).sort(),fileIds,'reposition preserves file owners');
+ const malformedApp=Core.clone(books.snapshot);malformedApp.cubbies.root.mods[0].items.find(e=>e.kind==='app').scale=.5;invalid(malformedApp,'checkpoint cannot resize book');
  // Door intervals are anchored on an actual stable Room edge.
  let halls=apply(Core.session(Core.fixture()),{kind:'spatialPromote'});
  const hall=Object.keys(halls.snapshot.spatial.rooms)[0],right=halls.snapshot.spatial.rooms[hall].w;
@@ -234,6 +247,8 @@ export function run(){
  const moveDoor=apply(shorter,{kind:'spatialDoorEdit',doorId:d1,patch:{start:60,end:120}});
  eq(Spatial.doorGeometry(moveDoor.snapshot,d1).start,60,'door center movement');
  refuse(moveDoor,{kind:'spatialRoomEdit',roomId:east,patch:{x:right+1}});
+ refuse(moveDoor,{kind:'spatialRoomEdit',roomId:east,patch:{x:right+1},removeDoors:[d1,'unknown']});
+ refuse(moveDoor,{kind:'spatialRoomEdit',roomId:east,patch:{y:30},removeDoors:[d1]});
  const separation=Core.previewStructure(moveDoor,{kind:'spatialRoomEdit',roomId:east,patch:{x:right+1},removeDoors:[d1]});
  yes(separation.ok,separation.error);eq(separation.removedDoorIds,[d1],'explicit separation preview');
  const separated=Core.applyStructure(moveDoor,separation);eq(separated.error,'','separation accepted');
@@ -247,6 +262,13 @@ export function run(){
  eq(blockedShelf.ok,false,'Shelf cannot obstruct opening');
  const doorSaved=Checkpoint.encode(preserved,{path:['root'],theme:1,cameras:{}});
  eq(Checkpoint.decode(doorSaved).snapshot,preserved.snapshot,'doors v3 roundtrip');
+ const badEdge=Core.clone(preserved.snapshot);badEdge.spatial.doors[d1].a.roomId=[hall];invalid(badEdge,'edge identity not coercible');
+ const badInterval=Core.clone(preserved.snapshot);badInterval.spatial.doors[d1].end=badInterval.spatial.doors[d1].start;invalid(badInterval,'zero-width door');
+ const duplicateDoor=Core.clone(preserved.snapshot);duplicateDoor.spatial.doors[hall]=Object.assign({},duplicateDoor.spatial.doors[d1],{id:hall});invalid(duplicateDoor,'door identity collides with Room');
+ const removeRoom=Core.previewStructure(preserved,{kind:'spatialRoomDelete',roomId:east,removeDoors:[d1]});
+ yes(removeRoom.ok,removeRoom.error);eq(removeRoom.removedDoorIds,[d1],'room removal reports door loss');
+ const roomGone=Core.applyStructure(preserved,removeRoom);eq(roomGone.error,'','empty Room removal after door resolution');
+ eq(Core.undo(roomGone).snapshot,preserved.snapshot,'room/door removal exact Undo');
  // Horizontal shared edge with touching corner and third-room pair.
  let south=apply(Core.session(Core.fixture()),{kind:'spatialPromote'});
  const northId=Object.keys(south.snapshot.spatial.rooms)[0],rh=south.snapshot.spatial.rooms[northId].h;
