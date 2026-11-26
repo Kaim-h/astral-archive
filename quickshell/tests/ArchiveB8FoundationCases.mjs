@@ -580,5 +580,21 @@ export function run(){
  const tightBefore=JSON.stringify(tight),blocked=Architecture.inspectProfileLayout(tight);
  yes(!blocked.ok&&blocked.conflicts.some(x=>x.kind==='wall'&&x.shelfId==='root'),'physical expansion detects wall collision');
  eq(JSON.stringify(tight),tightBefore,'invalid candidate never migrates');
+ const adjacent=Core.clone(sample),nextShelf=Object.keys(adjacent.spatial.shelves).find(k=>k!=='root'),adjacentRoom=adjacent.spatial.shelves.root.roomId;
+ adjacent.spatial.rooms[adjacent.spatial.shelves[nextShelf].roomId].x=4000;
+ adjacent.spatial.rooms[adjacentRoom].w=3000;
+ Object.assign(adjacent.spatial.shelves[nextShelf],{roomId:adjacentRoom,x:Math.ceil(oldBox.x+oldBox.w)+1,y:oldBox.y});
+ eq(Core.validate(adjacent),null,'old envelopes fit side by side');
+ const adjacentBefore=JSON.stringify(adjacent),overlapReport=Architecture.inspectProfileLayout(adjacent);
+ yes(!overlapReport.ok&&overlapReport.conflicts.some(x=>x.kind==='shelf'&&x.shelfId===nextShelf&&x.otherId==='root'),'additive width detects neighboring Shelf overlap');
+ eq(JSON.stringify(adjacent),adjacentBefore,'neighbor collision does not move Shelf');
+ const doorway=Core.clone(preserved.snapshot),attachment=doorway.spatial.shelves.root;
+ doorway.cubbies.root.b=16;
+ const doorProfile=Architecture.shelfGeometry(doorway.cubbies.root,'cornice',attachment.depth);
+ attachment.x=doorway.spatial.rooms[attachment.roomId].w-doorProfile.w;
+ eq(Core.validate(doorway),null,'old envelope clears opening');
+ const doorwayBefore=JSON.stringify(doorway),doorReport=Architecture.inspectProfileLayout(doorway);
+ yes(!doorReport.ok&&doorReport.conflicts.some(x=>x.kind==='door'&&x.doorId===d1),'new envelope touches shared doorway');
+ eq(JSON.stringify(doorway),doorwayBefore,'obstructed opening retained');
  return checks;
 }

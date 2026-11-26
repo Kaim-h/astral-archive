@@ -11,7 +11,7 @@ Resumed on owner instruction after overnight standby. Verified N2 functional che
 
 ## First executable increment
 
-`ArchiveArchitecture.mjs` pure candidate geometry, profile footprint, oriented plan glyph, front-to-Room transform, uniform fitting and nonmutating whole-layout inspection including Room walls, Shelf overlap and shared-door obstruction. Tests in existing common Node/Qt suite cover narrow, wide, fractional and furnished dimensions, all profiles and rotations, front width/contact, glyph containment, independent depth and no mutation, plus snug prior-envelope rejection. No live renderer or persistence change, no speculative cache, no new CI job. The currently verified N2 model and appearance remain intact. An inspection report is not an Apply command.
+`ArchiveArchitecture.mjs` pure candidate geometry, profile footprint, oriented plan glyph, front-to-Room transform, uniform fitting and nonmutating whole-layout inspection including Room walls, Shelf overlap and shared-door obstruction. Tests in existing common Node/Qt suite cover narrow, wide, fractional and furnished dimensions, all profiles and rotations, front width/contact, glyph containment, independent depth and no mutation, plus snug prior-envelope rejection, neighboring Shelf overlap and shared-door obstruction. No live renderer or persistence change, no speculative cache, no new CI job. The currently verified N2 model and appearance remain intact. An inspection report is not an Apply command.
 
 ## Next integration checkpoint
 
