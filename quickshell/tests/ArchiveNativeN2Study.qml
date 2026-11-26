@@ -85,7 +85,7 @@ Rectangle {
     readonly property var materialSnapshot:materialProposal&&materialProposal.snapshot?materialProposal.snapshot:archive.snapshot
     readonly property var appearanceColors: View.appearancePalette(colors,materialSnapshot.materials)
     function paletteFor(id){
-        return spatialEnabled&&Spatial.enabled(materialSnapshot)?View.spatialPalette(materialSnapshot,id,Themes.Theme.palettes,Themes.Theme.index):appearanceColors
+        return spatialEnabled&&Spatial.enabled(materialSnapshot)&&Object.prototype.hasOwnProperty.call(materialSnapshot.cubbies,id)?View.spatialPalette(materialSnapshot,id,Themes.Theme.palettes,Themes.Theme.index):appearanceColors
     }
     readonly property var sceneColors:paletteFor(sceneView.cubbyId)
     readonly property var localMaterialColors:materialCubby?paletteFor(materialCubby.id):sceneColors

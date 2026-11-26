@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Shapes
 import "ArchiveView.mjs" as View
 // Empty general-purpose support board. Future B7 delegates use supportY,
 // not arbitrary per-object offsets. Not the desktop application shelf.
@@ -32,20 +31,37 @@ Item {
         readonly property color fillColor:View.shelfColor(board.module,board.colors)
         readonly property real cornerTop:Math.min(2,height/3,width/4)
         readonly property real cornerBottom:Math.min(5,height/3,width/4)
-        Shape {
+        Loader {
+            anchors.fill:parent;active:board.spatialStyle
+            sourceComponent:Component {
+        Canvas {
+            id:lip
             anchors.fill:parent
-            ShapePath {
-                strokeColor:board.selected?board.colors.engraving:board.colors.metal
-                strokeWidth:1;fillColor:flatFace.fillColor
-                startX:flatFace.cornerTop+.5;startY:.5
-                PathLine {x:flatFace.width-flatFace.cornerTop-.5;y:.5}
-                PathQuad {x:flatFace.width-.5;y:flatFace.cornerTop+.5;controlX:flatFace.width-.5;controlY:.5}
-                PathLine {x:flatFace.width-.5;y:flatFace.height-flatFace.cornerBottom-.5}
-                PathQuad {x:flatFace.width-flatFace.cornerBottom-.5;y:flatFace.height-.5;controlX:flatFace.width-.5;controlY:flatFace.height-.5}
-                PathLine {x:flatFace.cornerBottom+.5;y:flatFace.height-.5}
-                PathQuad {x:.5;y:flatFace.height-flatFace.cornerBottom-.5;controlX:.5;controlY:flatFace.height-.5}
-                PathLine {x:.5;y:flatFace.cornerTop+.5}
-                PathQuad {x:flatFace.cornerTop+.5;y:.5;controlX:.5;controlY:.5}
+            readonly property color strokeColor:board.selected?board.colors.engraving:board.colors.metal
+            // Software-compatible, event-driven paint. No animation, timer or
+            // recurring work while idle. Legacy invisible faces do not paint.
+            onWidthChanged:if(flatFace.visible)requestPaint()
+            onHeightChanged:if(flatFace.visible)requestPaint()
+            onStrokeColorChanged:if(flatFace.visible)requestPaint()
+            onAvailableChanged:if(available&&flatFace.visible)requestPaint()
+            Connections {
+                target:flatFace
+                function onFillColorChanged(){if(flatFace.visible)lip.requestPaint()}
+                function onVisibleChanged(){if(flatFace.visible)lip.requestPaint()}
+            }
+            onPaint:{
+                if(!flatFace.visible||width<2||height<2)return
+                var ctx=getContext("2d"),w=width,h=height,t=flatFace.cornerTop,b=flatFace.cornerBottom
+                ctx.clearRect(0,0,w,h)
+                ctx.beginPath();ctx.moveTo(t+.5,.5)
+                ctx.lineTo(w-t-.5,.5);ctx.quadraticCurveTo(w-.5,.5,w-.5,t+.5)
+                ctx.lineTo(w-.5,h-b-.5);ctx.quadraticCurveTo(w-.5,h-.5,w-b-.5,h-.5)
+                ctx.lineTo(b+.5,h-.5);ctx.quadraticCurveTo(.5,h-.5,.5,h-b-.5)
+                ctx.lineTo(.5,t+.5);ctx.quadraticCurveTo(.5,.5,t+.5,.5)
+                ctx.closePath();ctx.fillStyle=flatFace.fillColor;ctx.fill()
+                ctx.strokeStyle=strokeColor;ctx.lineWidth=1;ctx.stroke()
+            }
+        }
             }
         }
         readonly property real emblemHalf:Math.min(26,width*.25)

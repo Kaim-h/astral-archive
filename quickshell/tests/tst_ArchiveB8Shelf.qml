@@ -171,14 +171,22 @@ Item {
                     compare(board.supportY,0)
                     // Read composed pixels in the actual board face, not just
                     // its QML colour property. Count a broad flat-fill region.
-                    tryVerify(function(){
-                        var shot=grabImage(face),matched=0,c=face.fillColor
-                        for(var y=1;y<shot.height-1;y++)for(var x=1;x<shot.width-1;x++){
+                    function matching(shot,item,c,inset){
+                        var a=item.mapToItem(study,inset,inset),b=item.mapToItem(study,item.width-inset,item.height-inset)
+                        var left=Math.max(0,Math.ceil(a.x*shot.width/study.width)),right=Math.min(shot.width-1,Math.floor(b.x*shot.width/study.width))
+                        var top=Math.max(0,Math.ceil(a.y*shot.height/study.height)),bottom=Math.min(shot.height-1,Math.floor(b.y*shot.height/study.height))
+                        var matched=0
+                        for(var y=top;y<bottom;y++)for(var x=left;x<right;x++){
                             if(Math.abs(shot.red(x,y)-Math.round(c.r*255))<8&&Math.abs(shot.green(x,y)-Math.round(c.g*255))<8&&Math.abs(shot.blue(x,y)-Math.round(c.b*255))<8)matched++
                         }
-                        return matched>20
-                    },3000,"Flat board uses resolved material colour")
-                    var frame=grabImage(study);verify(frame.width>0&&frame.height>0)
+                        return matched
+                    }
+                    var frame=null
+                    tryVerify(function(){
+                        frame=grabImage(study)
+                        return matching(frame,face,face.fillColor,2)>20&&matching(frame,book,book.coverColor,8)>20
+                    },3000,"Resolved board and book colours visible in composed frame")
+                    verify(frame.width>0&&frame.height>0)
                     frame.save("archive-b8-native-shelf-"+Themes.Theme.palettes[i].name.toLowerCase()+".png")
                     compare(JSON.stringify(ctl.snapshot),before)
                 }

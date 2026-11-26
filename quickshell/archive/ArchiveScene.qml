@@ -17,7 +17,8 @@ Item {
     readonly property bool spatialStyle:Spatial.enabled(controller.snapshot)
     readonly property bool architectural:spatialStyle&&Spatial.kind(controller.snapshot,cubbyId)==="shelf"
     function childColors(id){
-        return spatialStyle&&paletteOptions.length===3?View.spatialPalette(appearanceSnapshot||controller.snapshot,id,paletteOptions,desktopPaletteIndex):colors
+        var s=appearanceSnapshot||controller.snapshot
+        return spatialStyle&&paletteOptions.length===3&&Object.prototype.hasOwnProperty.call(s.cubbies,id)?View.spatialPalette(s,id,paletteOptions,desktopPaletteIndex):colors
     }
     property string mode: "browse"
     property var viewPath: ["root"]
