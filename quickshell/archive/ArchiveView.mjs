@@ -65,6 +65,33 @@ export function shelfTrim(c,profile){
     }
     return out;
 }
+// Archived default primary emblem for each family. Keep unknown stored names
+// intact; the visual fallback is Architectural, not an identity migration.
+export const ornamentFamilies=Object.freeze([
+    {key:null,label:"Inherit"},{key:"None",label:"None"},
+    {key:"Architectural",label:"Architectural"},
+    {key:"Astral",label:"Astral"},
+    {key:"Botanical",label:"Botanical"},
+    {key:"Bestiary",label:"Bestiary"},
+    {key:"Elemental · Water",label:"Water"},
+    {key:"Elemental · Air",label:"Air"},
+    {key:"Elemental · Earth",label:"Earth"},
+    {key:"Elemental · Fire",label:"Fire"},
+    {key:"Horological",label:"Horological"}
+]);
+export function ornamentKey(family){
+    if(family==="None")return "";
+    const keys={"Architectural":"plain","Astral":"astral","Botanical":"botanical","Bestiary":"bestiary","Elemental · Water":"water","Elemental · Air":"air","Elemental · Earth":"earth","Elemental · Fire":"fire","Horological":"horological"};
+    return Object.prototype.hasOwnProperty.call(keys,family)?keys[family]:"plain";
+}
+export function ornamentAsset(family,paletteName){
+    const key=ornamentKey(family);
+    const theme=["Evening","Twilight","Midnight"].includes(paletteName)?paletteName.toLowerCase():"twilight";
+    return key?"ornaments/"+key+"-"+theme+".svg":"";
+}
+export function familyMarkSize(w,h,exterior){
+    return Math.max(0,Math.min(exterior?40:112,w*.32,h*.32));
+}
 // Provisional three-theme book treatment: preserve the stable binding hue
 // supplied by AppMatching, coordinate its cover with the current panel.
 // The production launcher and native ribbon mechanics are unchanged.

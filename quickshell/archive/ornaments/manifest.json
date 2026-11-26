@@ -1,0 +1,97 @@
+{
+  "source": "docs/research/prototypes/2026-11-24/b8/Astral_Archive_Shelf_Study_B8s11r1.html",
+  "sourceBlob": "59e8278ad6247eda2c08bd013271e55c7abfd411",
+  "description": "Default primary emblem core and fine linework, from S11r1. Palette-specific engraving colour from Theme.qml. Not a new or complete catalogue.",
+  "families": [
+    {
+      "key": "plain",
+      "label": "Architectural",
+      "emblem": "stepped-seal",
+      "files": [
+        "quickshell/archive/ornaments/plain-evening.svg",
+        "quickshell/archive/ornaments/plain-twilight.svg",
+        "quickshell/archive/ornaments/plain-midnight.svg"
+      ]
+    },
+    {
+      "key": "astral",
+      "label": "Astral",
+      "emblem": "stellar-seal",
+      "files": [
+        "quickshell/archive/ornaments/astral-evening.svg",
+        "quickshell/archive/ornaments/astral-twilight.svg",
+        "quickshell/archive/ornaments/astral-midnight.svg"
+      ]
+    },
+    {
+      "key": "botanical",
+      "label": "Botanical",
+      "emblem": "vine-seal",
+      "files": [
+        "quickshell/archive/ornaments/botanical-evening.svg",
+        "quickshell/archive/ornaments/botanical-twilight.svg",
+        "quickshell/archive/ornaments/botanical-midnight.svg"
+      ]
+    },
+    {
+      "key": "bestiary",
+      "label": "Bestiary",
+      "emblem": "paw",
+      "files": [
+        "quickshell/archive/ornaments/bestiary-evening.svg",
+        "quickshell/archive/ornaments/bestiary-twilight.svg",
+        "quickshell/archive/ornaments/bestiary-midnight.svg"
+      ]
+    },
+    {
+      "key": "water",
+      "label": "Elemental · Water",
+      "emblem": "crest-wave",
+      "files": [
+        "quickshell/archive/ornaments/water-evening.svg",
+        "quickshell/archive/ornaments/water-twilight.svg",
+        "quickshell/archive/ornaments/water-midnight.svg"
+      ]
+    },
+    {
+      "key": "air",
+      "label": "Elemental · Air",
+      "emblem": "wind",
+      "files": [
+        "quickshell/archive/ornaments/air-evening.svg",
+        "quickshell/archive/ornaments/air-twilight.svg",
+        "quickshell/archive/ornaments/air-midnight.svg"
+      ]
+    },
+    {
+      "key": "earth",
+      "label": "Elemental · Earth",
+      "emblem": "ridge",
+      "files": [
+        "quickshell/archive/ornaments/earth-evening.svg",
+        "quickshell/archive/ornaments/earth-twilight.svg",
+        "quickshell/archive/ornaments/earth-midnight.svg"
+      ]
+    },
+    {
+      "key": "fire",
+      "label": "Elemental · Fire",
+      "emblem": "flame",
+      "files": [
+        "quickshell/archive/ornaments/fire-evening.svg",
+        "quickshell/archive/ornaments/fire-twilight.svg",
+        "quickshell/archive/ornaments/fire-midnight.svg"
+      ]
+    },
+    {
+      "key": "horological",
+      "label": "Horological",
+      "emblem": "hourglass",
+      "files": [
+        "quickshell/archive/ornaments/horological-evening.svg",
+        "quickshell/archive/ornaments/horological-twilight.svg",
+        "quickshell/archive/ornaments/horological-midnight.svg"
+      ]
+    }
+  ]
+}

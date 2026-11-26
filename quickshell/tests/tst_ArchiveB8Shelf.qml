@@ -177,6 +177,43 @@ Item {
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
             tryCompare(trim,"profile","cornice")
         }
+        function test_ornament_family_preview(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot),oldTheme=Themes.Theme.index
+            try{
+                Themes.Theme.index=1
+                study.switchMode("arrange");scene.clearSelection()
+                clickNamed("arrange-menu");clickNamed("shelf-appearance")
+                clickNamed("shelf-family-astral")
+                var mark=findChild(scene,"archive-backing-ornament")
+                tryCompare(mark,"family","Astral")
+                tryCompare(mark,"status",Image.Ready)
+                var child=findChild(scene,"cubby-cubby-child"),childMark=findChild(child,"cubby-face-ornament")
+                tryCompare(childMark,"family","Astral")
+                compare(JSON.stringify(ctl.snapshot),before)
+                clickNamed("shelf-family-none")
+                tryCompare(mark,"family","None");verify(!mark.visible)
+                clickNamed("shelf-family-inherit")
+                tryCompare(mark,"family","Architectural")
+                clickNamed("shelf-family-botanical")
+                clickNamed("structure-apply")
+                tryVerify(function(){return !ctl.structuralProposal&&Spatial.resolveAppearance(ctl.snapshot,"root",1).family==="Botanical"})
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                // Exercise all archived default images in the actual native
+                // delegate. The second Shelf has an unobstructed upper backing.
+                study.switchMode("browse")
+                var other=Object.keys(ctl.snapshot.spatial.shelves).find(k=>k!=="root")
+                verify(scene.openShelf(other))
+                mark=findChild(scene,"archive-backing-ornament")
+                var families=["Architectural","Astral","Botanical","Bestiary","Elemental · Water","Elemental · Air","Elemental · Earth","Elemental · Fire","Horological"]
+                for(var i=0;i<families.length;i++){
+                    verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:other,patch:{family:families[i]}}))
+                    verify(ctl.applyStructure())
+                    tryCompare(mark,"family",families[i]);tryCompare(mark,"status",Image.Ready)
+                    verify(ctl.undo())
+                }
+                compare(JSON.stringify(ctl.snapshot),before)
+            }finally{Themes.Theme.index=oldTheme}
+        }
         function test_spatial_theme_comparison(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot),oldTheme=Themes.Theme.index
             var covers=[]

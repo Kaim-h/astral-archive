@@ -913,7 +913,7 @@ Rectangle {
         availableWidth:study.width-16
         availableHeight:sceneView.height-16
         preferredWidth:265
-        preferredHeight:shelfAppearance?340:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
+        preferredHeight:shelfAppearance?450:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
         property var proposal:study.materialProposal?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
@@ -966,7 +966,7 @@ Rectangle {
                     text:!structurePanel.proposal?"":structurePanel.removing?
                         (structurePanel.cmd.kind==="spatialShelfDelete"?"Remove this architectural Shelf and its contents? ":"Remove this fixture and its contents? ")+structurePanel.proposal.caseTransferCount+" file(s) will move to the Scroll Case."+
                         (study.spatialEnabled&&structurePanel.proposal.appUnplacementCount?" "+structurePanel.proposal.appUnplacementCount+" application book(s) will be unplaced; application identities retained.":"")+" No disk files are deleted.":
-                        structurePanel.shelfAppearance?"Choose a local frame treatment and palette. Geometry and contents stay unchanged.":structurePanel.bookEdit?"Place "+structurePanel.cmd.appId+" · choose support-local position. The book retains its size and identity.":structurePanel.bookRemove?"Unplace "+structurePanel.cmd.appId+"? Its application identity is retained.":structurePanel.supportEdit?"Change explicit top support eligibility. Occupied supports cannot be disabled.":structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
+                        structurePanel.shelfAppearance?"Choose a local frame, palette and ornament family. Geometry and contents stay unchanged.":structurePanel.bookEdit?"Place "+structurePanel.cmd.appId+" · choose support-local position. The book retains its size and identity.":structurePanel.bookRemove?"Unplace "+structurePanel.cmd.appId+"? Its application identity is retained.":structurePanel.supportEdit?"Change explicit top support eligibility. Occupied supports cannot be disabled.":structurePanel.holderEdit?"Position along the shelf, holder width and slot capacity. The presentation cradle remains reserved. Apply when valid.":
                         structurePanel.cubbyEdit?"Grow the interior without changing furniture or its outer footprint. Apply when ready.":"Drag the preview to move; drag its lower-right handle to resize. Apply when valid."
                 }
                 Column {
@@ -980,6 +980,23 @@ Rectangle {
                             colors:study.colors;width:contentStructure.width;label:modelData.label
                             active:structurePanel.shelfAppearance&&structurePanel.cmd.patch.profile===modelData.key
                             onClicked:study.setShelfAppearance("profile",modelData.key)
+                        }
+                    }
+                    Text {text:"Ornament family";color:study.colors.engraving;font.pixelSize:11}
+                    Grid {
+                        columns:3;spacing:3;width:contentStructure.width
+                        Repeater {
+                            model:View.ornamentFamilies
+                            Archive.ArchiveButton {
+                                required property var modelData
+                                objectName:"shelf-family-"+(modelData.key===null?"inherit":View.ornamentKey(modelData.key)||"none")
+                                colors:study.colors;width:(contentStructure.width-6)/3;label:modelData.label
+                                active:structurePanel.shelfAppearance&&(
+                                    structurePanel.cmd.patch.family!==undefined?structurePanel.cmd.patch.family:
+                                    (archive.snapshot.cubbies[sceneView.cubbyId].appearance||{}).family===undefined?null:
+                                    archive.snapshot.cubbies[sceneView.cubbyId].appearance.family)===modelData.key
+                                onClicked:study.setShelfAppearance("family",modelData.key)
+                            }
                         }
                     }
                     Text {text:"Local palette";color:study.colors.engraving;font.pixelSize:11}

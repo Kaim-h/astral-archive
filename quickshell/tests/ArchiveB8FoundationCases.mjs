@@ -504,5 +504,24 @@ export function run(){
    yes(r.x+r.w<=c.b+.001||r.x>=e.w-c.b-.001||r.y+r.h<=c.b+.001||r.y>=e.h-c.b-.001,'trim outside aperture');
   }
  }
+ eq(View.ornamentFamilies.length,11,'nine families plus inherit and None');
+ const familyAssets=View.ornamentFamilies.filter(f=>f.key!==null&&f.key!=='None').map(f=>View.ornamentAsset(f.key,'Evening'));
+ eq(new Set(familyAssets).size,9,'distinct family art');
+ eq(View.ornamentAsset('None','Midnight'),'','explicit None has no asset');
+ eq(View.ornamentAsset('unrecognized legacy name','Twilight'),'ornaments/plain-twilight.svg','unknown name visual fallback only');
+ for(const family of View.ornamentFamilies.filter(f=>f.key!==null&&f.key!=='None')){
+  const variants=palettes.map(p=>View.ornamentAsset(family.key,p.name));
+  eq(new Set(variants).size,3,'three theme assets');
+ }
+ const familyState=apply(sampleState,{kind:'spatialAppearance',containerId:'root',patch:{family:'Astral',palette:0}});
+ eq(Spatial.resolveAppearance(familyState.snapshot,'child',1),{family:'Astral',palette:1},'child inherits family not palette');
+ const noFamily=apply(familyState,{kind:'spatialAppearance',containerId:'child',patch:{family:'None'}});
+ eq(View.ornamentAsset(Spatial.resolveAppearance(noFamily.snapshot,'child',1).family,'Twilight'),'','child None overrides family');
+ const inherited=apply(noFamily,{kind:'spatialAppearance',containerId:'child',patch:{family:null}});
+ eq(Spatial.resolveAppearance(inherited.snapshot,'child',1).family,'Astral','child reset restores inheritance');
+ eq(Core.owners(inherited.snapshot),Core.owners(sample),'family changes preserve owners');
+ eq(Core.undo(familyState).snapshot,sample,'family exact Undo');
+ eq(Checkpoint.decode(Checkpoint.encode(familyState,{path:['root'],theme:1,cameras:{}})).snapshot,familyState.snapshot,'family checkpoint exact');
+ yes(View.familyMarkSize(100,80,true)<=40&&View.familyMarkSize(1000,1000,false)<=112,'bounded display size');
  return checks;
 }

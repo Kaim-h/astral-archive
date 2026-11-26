@@ -9,6 +9,7 @@ Item {
     required property var module
     required property var child
     required property var colors
+    property string ornamentFamily:"None"
     property int depth: 1
     property bool selected: false
     property bool browse: true
@@ -65,6 +66,11 @@ Item {
             visible:face.previewMode==="veiled"
             color: View.backingColor(face.child,face.colors,face.depth)
             opacity: .38
+        }
+        ArchiveFamilyMark {
+            objectName:"cubby-face-ornament"
+            family:face.previewMode==="inventory"?"None":face.ornamentFamily
+            colors:face.colors;exterior:true
         }
         Column {
             objectName:"cubby-preview-inventory"

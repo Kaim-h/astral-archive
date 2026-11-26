@@ -16,6 +16,10 @@ Item {
     property int desktopPaletteIndex:1
     readonly property bool spatialStyle:Spatial.enabled(controller.snapshot)
     readonly property bool architectural:spatialStyle&&Spatial.kind(controller.snapshot,cubbyId)==="shelf"
+    function ornamentFamily(id){
+        var s=appearanceSnapshot||controller.snapshot
+        return spatialStyle&&Object.prototype.hasOwnProperty.call(s.cubbies,id)?Spatial.resolveAppearance(s,id,desktopPaletteIndex).family:"None"
+    }
     function childColors(id){
         var s=appearanceSnapshot||controller.snapshot
         return spatialStyle&&paletteOptions.length===3&&Object.prototype.hasOwnProperty.call(s.cubbies,id)?View.spatialPalette(s,id,paletteOptions,desktopPaletteIndex):colors
@@ -489,6 +493,11 @@ Item {
                 color:View.backingColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
                 border.color:View.mix(scene.colors.metal,scene.colors.panel,.32)
             }
+            ArchiveFamilyMark {
+                objectName:"archive-backing-ornament"
+                family:scene.ornamentFamily(scene.cubbyId)
+                colors:scene.colors
+            }
             Item {
                 objectName:"cubby-guide-grid"
                 anchors.fill:parent;visible:scene.mode==="arrange"&&scene.showGrid
@@ -609,6 +618,7 @@ Item {
                             module:scene.materialModule(moduleLoader.modelData)
                             child:(scene.appearanceSnapshot||scene.interiorPreviewSnapshot||scene.controller.snapshot).cubbies[module.childId]
                             colors:scene.childColors(module.childId)
+                            ornamentFamily:scene.ornamentFamily(module.childId)
                             depth:scene.viewPath.length
                             previewMode:scene.cubbyPreviewMode
                             selected:scene.selectedModuleId===module.id
