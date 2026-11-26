@@ -315,6 +315,60 @@ export function run(){
  Motion.lift(validMotion);Motion.insert(validMotion,'case',{});Motion.release(validMotion,false);
  const actual=Core.commitMotion(books,validMotion);eq(actual.error,'','legitimate file-only motion commits');
  eq(Spatial.appPlacements(actual.snapshot),Spatial.appPlacements(books.snapshot),'legitimate motion preserves app placements');
+ // Independent review: finite legacy dimensions must not round physical data.
+ for(const dims of [{w:700.5},{b:11.25},{h:500.5},{w:700.5,b:11.25,h:500.5},{}]){
+  const fractional=Core.fixture();Object.assign(fractional.cubbies.root,dims);
+  const source=Core.session(fractional),v2=Checkpoint.encode(source,view);
+  eq(JSON.parse(v2).version,2,'fractional legacy writer v2');
+  eq(Checkpoint.decode(v2).snapshot,fractional,'fractional v2 exact');
+  const promotedFractional=apply(source,{kind:'spatialPromote'});
+  eq(promotedFractional.snapshot.cubbies,fractional.cubbies,'physical dimensions unchanged');
+  eq(Core.owners(promotedFractional.snapshot),Core.owners(fractional),'fractional owners unchanged');
+  const room=Object.values(promotedFractional.snapshot.spatial.rooms)[0],fp=Spatial.footprint(promotedFractional.snapshot,'root');
+  eq(room.w,Math.ceil(Spatial.exterior(fractional.cubbies.root).w+100),'only enclosure rounds upward');
+  yes(fp.x+fp.w<=room.w&&fp.y+fp.h<=room.h,'footprint enclosed');
+  const v3=Checkpoint.encode(promotedFractional,view);
+  eq(JSON.parse(v3).version,3,'fractional promoted writer v3');
+  eq(Checkpoint.decode(v3).snapshot,promotedFractional.snapshot,'fractional v3 exact');
+  eq(Core.undo(promotedFractional).snapshot,fractional,'fractional promotion exact Undo');
+ }
+ // Valid mixed-file movement is the positive control for each foreign edit.
+ const makeMotion=()=>{const q=Motion.begin(books,['top-parcel'],true);Motion.lift(q);Motion.insert(q,'case',{});Motion.release(q,false);return q;};
+ const pristine=JSON.stringify(books.snapshot);
+ for(const mutate of [
+  v=>{v.cubbies.root.appearance={family:'Observatory',palette:2};},
+  v=>{v.cubbies.root.h+=10;},
+  v=>{v.cubbies.root.mods[0].x+=1;},
+  v=>{v.cubbies.root.mods[0].color='#123456';},
+  v=>{v.cubbies.root.mods[0].cellMeta[Object.keys(v.cubbies.root.mods[0].cellMeta)[0]].color='#123456';},
+  v=>{v.cubbies.root.mods.find(m=>m.id===childModule.id).items[0].x+=1;},
+  v=>{v.cubbies.root.mods.find(m=>m.id===childModule.id).items[0].slots.push(null);},
+  v=>{v.cubbies.root.mods[0].items.find(e=>e.kind==='app').x+=1;},
+  v=>{v.materials={scheme:'quiet',roleEdits:{}};},
+  v=>{v.next+=1;}
+ ]){
+  const q=makeMotion();mutate(q.draft);
+  const rejected=Core.commitMotion(books,q);
+  yes(rejected.error.indexOf('non-file structural')>=0,'foreign structural edit rejected by isolation guard');
+  eq(rejected.snapshot,books.snapshot,'foreign motion rollback');
+  eq(rejected.revision,books.revision,'foreign motion revision unchanged');
+  eq(rejected.history,books.history,'foreign motion history unchanged');
+ }
+ eq(JSON.stringify(books.snapshot),pristine,'no source mutation');
+ const control=Core.commitMotion(books,makeMotion());eq(control.error,'','file cut remains valid');
+ // Holder slots may change occupancy, but not capacity or holder geometry.
+ const holderMotion=Motion.begin(books,['top-audio'],true);
+ Motion.lift(holderMotion);Motion.insert(holderMotion,'case',{});Motion.release(holderMotion,false);
+ const holderCut=Core.commitMotion(books,holderMotion);eq(holderCut.error,'','holder slot cut allowed');
+ const holderReturn=Motion.begin(holderCut,['top-audio'],true);
+ Motion.lift(holderReturn);Motion.insert(holderReturn,{kind:'holder',cubbyId:'root',moduleId:childModule.id,holderId:h.id,slot:0},{});Motion.release(holderReturn,false);
+ const restoredHolder=Core.commitMotion(holderCut,holderReturn);eq(restoredHolder.error,'','holder slot return allowed');
+ // First placement creates an items array on a previously empty eligible top.
+ const empty=apply(Core.session(supportBase),{kind:'spatialPromote'});
+ const emptyTop=apply(empty,{kind:'spatialSupport',containerId:'root',moduleId:topRack.id,patch:{enabled:true}});
+ const first=Motion.begin(emptyTop,['top-parcel'],true);
+ Motion.lift(first);Motion.insert(first,dest,{});Motion.release(first,false);
+ const firstPlaced=Core.commitMotion(emptyTop,first);eq(firstPlaced.error,'','absent-to-present support items allowed');
  const alloc=Core.clone(initial);alloc.next=100000;
  const oldRoom=Object.keys(alloc.spatial.rooms)[0],collision='hc100000';
  alloc.spatial.rooms[collision]=Object.assign({},alloc.spatial.rooms[oldRoom],{id:collision});

@@ -685,17 +685,48 @@ export function fixture(){
 
 // Publish only a completed, revision-matched motion draft. The motion module
 // owns the provisional records; this remains the sole commit boundary.
+// File motion may change only file-bearing locations. Retain all other
+// snapshot fields, fixture geometry/identity, cell metadata, holder geometry
+// and slot count, app entries and their relative ordering. Normalize absent
+// versus empty eligible support items, since first placement creates the array.
+// Shallow projections avoid copying the contents of every file record.
+function motionStructure(snapshot){
+ const state=Object.assign({},snapshot),containers={};
+ delete state.caseItems;
+ for(const [id,c] of Object.entries(snapshot.cubbies)){
+  const modules=c.mods.map(m=>{
+   const v=Object.assign({},m);
+   if(m.type==='rack')delete v.scrollCells;
+   if(m.type==='artwork')delete v.record;
+   if(Mixed.supportsTop(m)){
+    const items=m.items===undefined?[]:m.items;
+    if(!Array.isArray(items))throw Error('Invalid support contents');
+    delete v.items;
+    v.items=items.filter(e=>e.kind!=='object').map(e=>{
+     if(e.kind!=='holder')return e;
+     if(!Array.isArray(e.slots))throw Error('Invalid holder slots');
+     const h=Object.assign({},e);
+     h.slots=e.slots.map(()=>null);
+     return h;
+    });
+   }
+   return v;
+  });
+  containers[id]=Object.assign({},c,{mods:modules});
+ }
+ state.cubbies=containers;
+ return state;
+}
 export function commitMotion(s,q){
  if(!q||s.draft||q.baseRevision!==s.revision||!q.released||q.cells.size||q.carried.length||q.error)
   return updateSession(s,{error:'Motion is incomplete or stale'});
- // File motion is not an application, Room, doorway or appearance edit.
- // In spatial state do not accept a draft that also changes those domains.
+ // File motion cannot also edit architecture, appearance or applications.
+ // This is a consistency guard, not an in-process security boundary.
  if(Spatial.enabled(s.snapshot)||Spatial.enabled(q.draft)){
   try{
    if(!Spatial.enabled(s.snapshot)||!Spatial.enabled(q.draft)||
-      JSON.stringify(s.snapshot.spatial)!==JSON.stringify(q.draft.spatial)||
-      JSON.stringify(Spatial.appPlacements(s.snapshot))!==JSON.stringify(Spatial.appPlacements(q.draft)))
-    return updateSession(s,{error:'File motion changed spatial or application state'});
+      JSON.stringify(motionStructure(s.snapshot))!==JSON.stringify(motionStructure(q.draft)))
+    return updateSession(s,{error:'File motion changed non-file structural or appearance state'});
   }catch(e){return updateSession(s,{error:'Invalid spatial motion draft'});}
  }
  if(JSON.stringify(s.snapshot)===JSON.stringify(q.draft))return updateSession(s,{error:''});

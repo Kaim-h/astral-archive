@@ -121,7 +121,7 @@ export function edit(s,cmd,allocate){
   need(keysOnly(p,['depth','roomName']),'Unknown promotion property');
   const roomId=allocate('room-'),c=s.cubbies.root,e=exterior(c),depth=p.depth===undefined?160:p.depth;
   s.spatial={rooms:{},shelves:{}};
-  s.spatial.rooms[roomId]={id:roomId,name:p.roomName===undefined?'Main Hall':p.roomName,x:0,y:0,w:Math.max(130,e.w+100),h:Math.max(100,depth+100)};
+  s.spatial.rooms[roomId]={id:roomId,name:p.roomName===undefined?'Main Hall':p.roomName,x:0,y:0,w:Math.max(130,Math.ceil(e.w+100)),h:Math.max(100,depth+100)};
   s.spatial.shelves.root={roomId,x:50,y:50,depth,orientation:0};
   return;
  }
