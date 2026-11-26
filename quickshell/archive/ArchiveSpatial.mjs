@@ -9,7 +9,7 @@ const name=v=>typeof v==='string'&&v.trim().length>0&&v.length<=80;
 export const spatialLimits=Object.freeze({rooms:64,roomSize:10000,mapCoordinate:100000,shelfDepth:1800});
 export function enabled(s){return !!s&&own(s,'spatial');}
 export function roots(s){return enabled(s)?Object.keys(s.spatial.shelves):['root'];}
-export function kind(s,containerId){return enabled(s)&&own(s.spatial.shelves,containerId)?'shelf':'cubby';}
+export function kind(s,containerId){return !own(s.cubbies,containerId)?null:enabled(s)&&own(s.spatial.shelves,containerId)?'shelf':'cubby';}
 export function exterior(c){
  const b=c.b===undefined?11:c.b;
  return {w:c.w+2*b,h:c.h+2*b};
@@ -49,7 +49,7 @@ export function validate(s){
   }
   const parents=new Map(),structuralIds=new Set(rooms.concat(Object.keys(s.cubbies)));
   for(const c of Object.values(s.cubbies)){
-   need(appearance(c.appearance),'Invalid container appearance reference');
+   need((c.name===undefined||name(c.name))&&appearance(c.appearance),'Invalid container name or appearance reference');
    for(const m of c.mods){
     need(!structuralIds.has(m.id),'Duplicate spatial structural identity');structuralIds.add(m.id);
     for(const meta of Object.values(m.cellMeta||{})){need(!structuralIds.has(meta.id),'Duplicate spatial structural identity');structuralIds.add(meta.id);}
@@ -125,7 +125,7 @@ export function edit(s,cmd,allocate){
   const c=s.cubbies[k],v=a.shelves[k];
   for(const key of ['name','w','h','b','appearance'])if(own(p,key))c[key]=p[key];
   for(const key of ['roomId','x','y','depth','orientation'])if(own(p,key))v[key]=p[key];
-  need(name(c.name||'Shelf'),'Invalid Shelf name');
+  need(c.name===undefined||name(c.name),'Invalid Shelf name');
  }else if(cmd.kind==='spatialShelfDelete'){
   const k=cmd.containerId;
   need(own(a.shelves,k)&&Object.keys(a.shelves).length>1,'Keep at least one architectural Shelf');
