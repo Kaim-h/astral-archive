@@ -128,8 +128,13 @@ Item {
                 var empty=Object.keys(s.spatial.rooms).find(function(id){return !Object.values(s.spatial.shelves).some(function(p){return p.roomId===id})})
                 verify(!!empty)
                 var map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
+                var mapButton=findChild(study,"open-map-room"),perspectiveButton=findChild(study,"toggle-room-perspective")
+                var roomButton=findChild(study,"toggle-room-plan"),rootButton=findChild(study,"open-shelf-root")
+                verify(!!mapButton&&!!perspectiveButton&&!!roomButton&&!!rootButton)
+                function buttonCenter(button){return button.mapToItem(study,button.width/2,button.height/2)}
                 clickNamed("open-map-room")
                 tryVerify(function(){return map.visible&&!plan.visible&&!scene.visible})
+                verify(!mapButton.visible&&!mapButton.enabled&&!roomButton.visible&&!roomButton.enabled&&!perspectiveButton.visible&&!perspectiveButton.enabled&&!rootButton.enabled)
                 grabImage(study).save("archive-b8-native-shelf-map-overview.png")
                 clickNamed("map-zoom-in")
                 verify(map.zoom>1)
@@ -160,16 +165,32 @@ Item {
                 mouseDoubleClickSequence(plan,pt.x,pt.y,Qt.LeftButton)
                 tryVerify(function(){return scene.visible&&!plan.visible&&!map.visible})
                 compare(scene.cubbyId,"root")
+                var shelfMapCenter=buttonCenter(mapButton),shelfPlanCenter=buttonCenter(roomButton)
+                verify(!perspectiveButton.visible&&!perspectiveButton.enabled)
                 clickNamed("toggle-room-plan");tryVerify(function(){return plan.visible})
                 compare(plan.roomId,rootRoom);compare(plan.selectedShelf,"root")
+                // Check immediately after the real layer change, before any
+                // extra event-loop wait: navigation controls must not reflow.
+                compare(buttonCenter(mapButton),shelfMapCenter)
+                compare(buttonCenter(roomButton),shelfPlanCenter)
+                var projectionCenter=buttonCenter(perspectiveButton)
+                verify(Math.abs(projectionCenter.x-shelfMapCenter.x)>=(mapButton.width+perspectiveButton.width)/2||
+                    Math.abs(projectionCenter.y-shelfMapCenter.y)>=(mapButton.height+perspectiveButton.height)/2)
+                verify(!rootButton.enabled)
                 try{
                     clickNamed("open-map-room");tryVerify(function(){return map.visible})
+                    verify(!study.roomPerspective)
                 }finally{
                     study.traceMapNavigation("final populated Room return")
                     if(!map.visible)grabImage(study).save("archive-b8-native-shelf-map-return-failure.png")
                 }
                 study.parent.width=740;tryVerify(function(){return map.width===740})
                 grabImage(study).save("archive-b8-native-shelf-map-narrow.png")
+                clickNamed("map-enter-room");tryVerify(function(){return plan.visible&&!map.visible})
+                compare(plan.roomId,rootRoom)
+                verify(!rootButton.enabled&&!study.roomPerspective)
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&!plan.visible})
+                verify(!study.roomPerspective)
                 compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
                 ctl.reset(Sample.fixture())
                 tryVerify(function(){return !map.visible&&!plan.visible&&scene.visible})

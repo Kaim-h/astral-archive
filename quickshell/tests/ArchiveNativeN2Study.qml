@@ -32,6 +32,7 @@ Rectangle {
         var buttons=[]
         for(var i=0;i<primaryTools.children.length;i++){
             var item=primaryTools.children[i]
+            if(item&&item.objectName==="archive-layer-tool-slot")item=item.children[0]
             if(!item||!item.visible)continue
             var p=item.mapToItem(study,item.width/2,item.height/2)
             buttons.push({name:item.objectName,label:item.label,x:p.x,y:p.y,w:item.width,h:item.height,enabled:item.enabled})
@@ -654,16 +655,54 @@ Rectangle {
             height:Spatial.physicalProfiles(archive.snapshot)?study.reservedToolbarHeight(primaryTools):primaryTools.implicitHeight
             Flow {
             id:primaryTools
+            // In the opt-in atlas, keep layer-dependent slots in the Flow.
+            // A hidden button must not leave its old hit rectangle available
+            // to a newly visible neighbor before the next positioner polish.
             objectName:"archive-primary-tools"
             width:parent.width; spacing:5
             height:primarySlot.height
             Archive.ArchiveButton { colors:study.colors; label:"Browse"; active:sceneView.mode==="browse"; onClicked:study.switchMode("browse") }
             Archive.ArchiveButton { colors:study.colors; label:"Arrange"; active:sceneView.mode==="arrange"; onClicked:study.switchMode("arrange") }
-            Archive.ArchiveButton { colors:study.colors; label:"Back"; visible:!study.upperView; enabled:!archive.draft&&(sceneView.viewPath.length>1||Spatial.physicalProfiles(archive.snapshot)&&study.viewSwitchReady); onClicked:if(sceneView.viewPath.length>1)sceneView.back();else study.toggleRoom() }
-            Archive.ArchiveButton { colors:study.colors; label:"Enter"; visible:!study.upperView; enabled:!archive.draft&&sceneView.cubby.mods.some(function(m){return m.id===sceneView.selectedModuleId&&m.type==="cubby"}); onClicked:sceneView.enterSelected() }
-            Archive.ArchiveButton { colors:study.colors; label:"−"; hint:"Zoom out"; visible:!study.upperView; onClicked:sceneView.setZoom(sceneView.zoom/1.15) }
-            Archive.ArchiveButton { colors:study.colors; label:Math.round(sceneView.zoom*100)+"%"; width:58; visible:!study.upperView; hint:"Reset camera"; onClicked:{sceneView.setZoom(1);sceneView.pan=Qt.point(0,0)} }
-            Archive.ArchiveButton { colors:study.colors; label:"+"; hint:"Zoom in"; visible:!study.upperView; onClicked:sceneView.setZoom(sceneView.zoom*1.15) }
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:!study.upperView
+                width:backTool.width;height:backTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:backTool; colors:study.colors; label:"Back"; visible:parent.layerShown; enabled:!archive.draft&&(sceneView.viewPath.length>1||Spatial.physicalProfiles(archive.snapshot)&&study.viewSwitchReady); onClicked:if(sceneView.viewPath.length>1)sceneView.back();else study.toggleRoom() }
+            }
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:!study.upperView
+                width:enterTool.width;height:enterTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:enterTool; colors:study.colors; label:"Enter"; visible:parent.layerShown; enabled:!archive.draft&&sceneView.cubby.mods.some(function(m){return m.id===sceneView.selectedModuleId&&m.type==="cubby"}); onClicked:sceneView.enterSelected() }
+            }
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:!study.upperView
+                width:zoomOutTool.width;height:zoomOutTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:zoomOutTool; colors:study.colors; label:"−"; hint:"Zoom out"; visible:parent.layerShown; onClicked:sceneView.setZoom(sceneView.zoom/1.15) }
+            }
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:!study.upperView
+                width:zoomResetTool.width;height:zoomResetTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:zoomResetTool; colors:study.colors; label:Math.round(sceneView.zoom*100)+"%"; width:58; visible:parent.layerShown; hint:"Reset camera"; onClicked:{sceneView.setZoom(1);sceneView.pan=Qt.point(0,0)} }
+            }
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:!study.upperView
+                width:zoomInTool.width;height:zoomInTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:zoomInTool; colors:study.colors; label:"+"; hint:"Zoom in"; visible:parent.layerShown; onClicked:sceneView.setZoom(sceneView.zoom*1.15) }
+            }
             Archive.ArchiveButton { colors:study.colors; label:study.colors.name; onClicked:Themes.Theme.index=(Themes.Theme.index+1)%3 }
             Archive.ArchiveButton { colors:study.colors; label:"Undo"; enabled:!sceneView.busy&&!archive.draft&&!archive.structuralProposal&&archive.archiveState.history.length>0; onClicked:archive.undo() }
             Archive.ArchiveButton {
@@ -672,11 +711,39 @@ Rectangle {
                 visible:study.physicalProfilesEnabled&&!Spatial.independentProfiles(archive.snapshot);enabled:study.viewSwitchReady
                 onClicked:archive.proposeStructure({kind:Spatial.physicalProfiles(archive.snapshot)?"spatialAdoptIndependentProfiles":"spatialAdoptProfiles"})
             }
-            Archive.ArchiveButton {objectName:"toggle-room-plan";colors:study.colors;label:study.showRoomPlan?"Return to Shelf":"Room plan";width:112;visible:Spatial.physicalProfiles(archive.snapshot)&&!study.showMap;enabled:study.viewSwitchReady&&(!study.mapEnabled||!study.showRoomPlan||!!roomPlan.selectedShelf||study.inspectedRoomId===study.currentRoomId);onClicked:study.toggleRoom()}
-            Archive.ArchiveButton {objectName:"open-map-room";colors:study.colors;label:"Map Room";width:study.mapEnabled?96:0;visible:study.mapEnabled&&Spatial.physicalProfiles(archive.snapshot)&&!study.showMap;enabled:study.viewSwitchReady;onClicked:study.openMap()}
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:Spatial.physicalProfiles(archive.snapshot)&&!study.showMap
+                width:roomPlanTool.width;height:roomPlanTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:roomPlanTool;objectName:"toggle-room-plan";colors:study.colors;label:study.showRoomPlan?"Return to Shelf":"Room plan";width:112;visible:parent.layerShown;enabled:study.viewSwitchReady&&(!study.mapEnabled||!study.showRoomPlan||!!roomPlan.selectedShelf||study.inspectedRoomId===study.currentRoomId);onClicked:study.toggleRoom()}
+            }
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:study.mapEnabled&&Spatial.physicalProfiles(archive.snapshot)&&!study.showMap
+                width:mapRoomTool.width;height:mapRoomTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:mapRoomTool;objectName:"open-map-room";colors:study.colors;label:"Map Room";width:study.mapEnabled?96:0;visible:parent.layerShown;enabled:study.viewSwitchReady;onClicked:study.openMap()}
+            }
             Archive.ArchiveButton {objectName:"room-reduced-motion";colors:study.colors;label:study.reducedRoomMotion?"Motion reduced":"Room motion";width:112;active:study.reducedRoomMotion;visible:Spatial.physicalProfiles(archive.snapshot);onClicked:study.reducedRoomMotion=!study.reducedRoomMotion}
-            Archive.ArchiveButton {objectName:"toggle-room-perspective";colors:study.colors;label:study.roomPerspective?"Plan":"Perspective";width:90;visible:study.showRoomPlan;enabled:study.viewSwitchReady;onClicked:study.setRoomPerspective(!study.roomPerspective)}
-            Archive.ArchiveButton {objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:sceneView.mode==="arrange"&&!study.upperView;enabled:study.structureReady;onClicked:study.openContext(12,12)}
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:study.showRoomPlan
+                width:perspectiveTool.width;height:perspectiveTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:perspectiveTool;objectName:"toggle-room-perspective";colors:study.colors;label:study.roomPerspective?"Plan":"Perspective";width:90;visible:parent.layerShown;enabled:study.viewSwitchReady;onClicked:study.setRoomPerspective(!study.roomPerspective)}
+            }
+            Item {
+                objectName:"archive-layer-tool-slot"
+                readonly property bool layerShown:sceneView.mode==="arrange"&&!study.upperView
+                width:arrangeTool.width;height:arrangeTool.height
+                visible:study.mapEnabled||layerShown
+                enabled:layerShown
+                Archive.ArchiveButton {id:arrangeTool;objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:parent.layerShown;enabled:study.structureReady;onClicked:study.openContext(12,12)}
+            }
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
             }
