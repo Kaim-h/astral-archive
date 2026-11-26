@@ -8,6 +8,12 @@ The aim is to create an immersive desktop without sacrificing the practicality o
 
 Built with Quickshell, Qt Quick/QML and JavaScript, Astral Archive integrates with Hyprland and existing Linux services rather than replacing the compositor.
 
+## Development approach
+
+Astral Archive is a non-commercial personal project developed extensively using generative AI. Much of its implementation, artwork, documentation and testing is produced by AI agents under my direction.
+
+I establish the creative vision, design requirements and development priorities, coordinate the agents, review their work and make the final decisions on what gets integrated.
+
 ## Current development status
 
 **Active development — pre-release. Not ready for general installation or daily use.**
@@ -17,12 +23,6 @@ The public main branch contains the desktop shell and isolated native Archive st
 The B8 Shelf, Room and Map Room design is integrated as a specification. Its native implementation is in progress in [PR #19](https://github.com/Kaim-h/astral-archive/pull/19); experimental branch features are not released features. The integrated baseline has passed JavaScript, Chromium and offscreen Qt Quick checks; actual target Linux desktop validation remains outstanding.
 
 [Current implementation](docs/development/CURRENT_STATE.md) · [Active development](docs/development/ACTIVE_WORK.md) · [Roadmap](docs/archive-roadmap.md) · [Documentation](docs/README.md)
-
-## Development approach
-
-Astral Archive is a non-commercial personal project developed extensively using generative AI. Much of its implementation, artwork, documentation and testing is produced by AI agents under my direction.
-
-I establish the creative vision, design requirements and development priorities, coordinate the agents, review their work and make the final decisions on what gets integrated.
 
 ## Features
 
@@ -49,6 +49,20 @@ Its intended features include:
 - An Index for quickly searching, opening and locating files without navigating the physical Archive.
 
 The spatial interface is intended to complement efficient, keyboard-accessible file management rather than replace it.
+
+## Development timeline
+
+| Milestone | Status |
+|---|---|
+| Desktop foundations — launcher, Capsule, utilities, Veranda and Gallery | Integrated source |
+| Archive foundations — scroll physics, file representations and recursive cubbies (B6–B7) | Integrated synthetic study |
+| Spatial Archive — Shelves, Rooms, Map Room and appearance (B8) | In development |
+| Archive refinement — expanded customization, architectural flexibility and interaction polish | Planned |
+| Functional file management — Index, filesystem reconciliation and safe file operations | Planned |
+| Desktop quality of life — notifications, system tray, clipboard and screenshot integration, and session controls | Planned |
+| Desktop integration and distribution — target validation, accessibility, performance and installation | Planned |
+
+This is a broad milestone overview, not a release schedule or fixed implementation order. Target desktop validation is required before production enablement. See the [roadmap](docs/archive-roadmap.md) for dependencies and [active development](docs/development/ACTIVE_WORK.md) for current work.
 
 ## Project documentation
 

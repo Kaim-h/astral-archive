@@ -13,7 +13,8 @@ This is a milestone dependency sequence, not a release schedule or authorization
 | B8 documentation reconciliation and refinement | Consolidate final accepted implementation, compatibility and verification; separately authorized customization/refinement work. |
 | Target desktop validation | Actual Fedora/Hyprland/Quickshell bring-up gate (distinct from B8-N4 Map Room); mandatory before production enablement. Retain KDE/TTY recovery and manual launch. |
 | Later file Archive work | Index and explicit-root indexing/reconciliation, safe real file operations, production layout persistence and shell wiring under separately authorized scope. No backend or destructive-operation policy assumed. |
-| Further desktop work | Accessibility, performance, reproducible setup, optional integrations and distribution according to demonstrated need. |
+| Desktop quality of life | Planned: notifications, system tray, clipboard and screenshot integration, session/lock controls and everyday desktop interaction improvements. Exact scope and sequencing require separate authorization. |
+| Desktop integration and distribution | Accessibility, performance, multi-monitor validation, reproducible setup and distribution according to demonstrated need; production enablement remains gated by actual target validation. |
 
 Visual arrangement must remain distinct from filesystem mutation. Browser and offscreen Qt checks are not actual target desktop evidence. Preserve identity, support/contact geometry, reversible transactions and user data.
 
