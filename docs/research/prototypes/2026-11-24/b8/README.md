@@ -508,3 +508,7 @@ Arrange now retains file/slot metadata in its nonactivating hit markup, adds boo
 ### S18r3 owner review and independent audit
 
 [Review findings and proposed menu consolidation](S18R3_REVIEW.md). The owner rejects the current spine/bookmark fidelity and explicitly defers further bookmark-motion design. The recovered Lighting Lab support board remains the historical reference; current Book.qml governs application book appearance. The audit confirms numeric-edit loss on selection change and overlapping default backing fields, identifies menu/scope problems, and records additional browser evidence. Review only: S18r3 exact HTML is unchanged; proposed corrections are not yet implemented or accepted.
+
+## B8s18r4 — consolidated Shelf controls and post-implementation review (candidate)
+
+[Standalone S18r4](Astral_Archive_Shelf_Study_B8s18r4.html) and [post-implementation review](S18R4_REVIEW.md) address the S18r3 audit under owner authorization. Preserve r3 and its review. The recovered support board and established asset definitions remain unchanged; current native application catalogue informs the revised sample spines, and bookmark motion remains deliberately deferred. Five-action shared Menu, direct Appearance, one-level hover flyouts, grouped/filtered selectors, preserved numeric edits on selection change, non-overlapping backing fields and distinct local/global appearance scope. Focused offline regression passed; see review for exact hashes, per-item evidence and limitations. No native implementation or final owner acceptance.
