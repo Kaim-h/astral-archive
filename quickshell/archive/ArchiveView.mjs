@@ -98,6 +98,16 @@ export function emblemSource(family,key,p){
     const svg=Appearance.emblemSvg(family,key,p.engraving);
     return svg?'data:image/svg+xml,'+encodeURIComponent(svg):ornamentAsset(family,p.name);
 }
+// A centered square strictly within the sampled crest silhouette; the
+// narrow-case width cap keeps the upper corners below its curved edge.
+export function crestMarkBounds(g){
+    const crest=g&&g.parts&&g.parts.find(p=>p.role==='crest');
+    if(!crest)return null;
+    const xs=crest.points.map(p=>p[0]),ys=crest.points.map(p=>p[1]);
+    const left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
+    const rise=bottom-top,size=Math.min(rise*.68,(right-left)*.18);
+    return size>0?{x:(left+right-size)/2,y:top+rise*.58-size/2,w:size,h:size}:null;
+}
 export function familyMarkSize(w,h,exterior){
     return Math.max(0,Math.min(exterior?40:112,w*.32,h*.32));
 }

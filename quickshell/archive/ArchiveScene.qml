@@ -551,6 +551,8 @@ Item {
             anchors.fill:parent
             visible:scene.physicalFront
             profileGeometry:scene.physicalFront?scene.frontEnvelope:null
+            family:scene.ornamentFamily(scene.cubbyId)
+            emblemKey:(scene.appearanceCubby.appearance||{}).emblem||""
             colors:scene.colors
             frameColor:View.frameColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
         }

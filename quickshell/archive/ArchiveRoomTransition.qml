@@ -42,6 +42,28 @@ Item {
             paintCount++;lastPaintMs=Date.now()-start
         }
     }
+    // Introduce the same bounded crest art as the shell nears its flat
+    // orientation, then share identical source, bounds and ink with the
+    // flat carrier and live frame. No separate arrangement geometry.
+    Item {
+        id:turningMark
+        readonly property var n:bridge.navigation
+        readonly property var g:n?n.geometry.g:null
+        readonly property var bounds:View.crestMarkBounds(g)
+        function point(x,y){return Transition.point(n.geometry,[x,g.depth,g.h-y],bridge.progress)}
+        readonly property var a:bounds&&visible?point(bounds.x,bounds.y):[0,0]
+        readonly property var b:bounds&&visible?point(bounds.x+bounds.w,bounds.y):[0,0]
+        readonly property var c:bounds&&visible?point(bounds.x,bounds.y+bounds.h):[0,0]
+        visible:bridge.visible&&!!bounds&&!!n&&bridge.progress>=.48&&bridge.progress<.60
+        x:a[0];y:a[1];width:Math.hypot(b[0]-a[0],b[1]-a[1]);height:Math.hypot(c[0]-a[0],c[1]-a[1])
+        transformOrigin:Item.TopLeft;rotation:Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI
+        opacity:Transition.smooth((bridge.progress-.48)/.12)
+        ArchiveFamilyMark {
+            family:turningMark.n?turningMark.n.family:"None";emblemKey:turningMark.n?turningMark.n.emblemKey:""
+            colors:turningMark.n?turningMark.n.palette:({});exterior:true
+            width:parent.width;height:parent.height;opacity:.68
+        }
+    }
     readonly property alias projectedPaintCount:projected.paintCount
     readonly property alias projectedPaintMs:projected.lastPaintMs
     Item {
@@ -59,6 +81,8 @@ Item {
             anchors.fill:parent
             visible:flatFront.visible
             profileGeometry:flatFront.g
+            family:flatFront.n?flatFront.n.family:"None"
+            emblemKey:flatFront.n?flatFront.n.emblemKey:""
             colors:flatFront.n?flatFront.n.palette:({})
             frameColor:flatFront.n?flatFront.n.frameColor:"transparent"
         }

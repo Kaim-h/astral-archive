@@ -49,7 +49,15 @@ Item {
             var roomId=ctl.snapshot.spatial.shelves.root.roomId
             verify(ctl.proposeStructure({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}}));verify(ctl.applyStructure())
             verify(ctl.proposeStructure({kind:"spatialShelfEdit",containerId:"root",patch:{w:1450,h:1100,depth:185,orientation:90}}));verify(ctl.applyStructure())
-            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest"}}));verify(ctl.applyStructure())
+            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest",family:"Astral",emblem:"armillary"}}));verify(ctl.applyStructure())
+            var crest=findChild(scene,"physical-crest-mark"),frame=findChild(scene,"physical-shelf-frame")
+            tryVerify(function(){return crest&&crest.visible&&crest.status===Image.Ready})
+            compare(crest.family,"Astral");compare(crest.emblemKey,"armillary")
+            var bounds=View.crestMarkBounds(scene.frontEnvelope)
+            compare(crest.width,bounds.w)
+            verify(bounds.x>=0&&bounds.x+bounds.w<=scene.frontEnvelope.w&&bounds.y>=0&&bounds.y+bounds.h<=scene.frontEnvelope.inscription.y)
+            var crestSource=crest.asset
+            grabImage(study).save("archive-b8-native-shelf-n5-crest.png")
             var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
             scene.zoom=1.15;scene.pan=Qt.point(12,-9)
             clickNamed("toggle-room-plan")
@@ -67,6 +75,8 @@ Item {
                 verify(!scene.enabled&&!plan.enabled)
                 verify(!study.viewSwitchReady&&!study.checkpointReady)
                 verify(!study.navigateRoom("root",true))
+                var flat=findChild(study,"room-navigation-flat-carrier"),flatMark=findChild(flat,"physical-crest-mark")
+                compare(flatMark.asset,crestSource);compare(flatMark.width,crest.width);compare(flatMark.family,crest.family)
                 tryVerify(function(){return study.roomProgress>=.25&&study.roomProgress<.60})
                 grabImage(study).save("archive-b8-native-shelf-navigation-"+perspective+".png")
                 if(perspective)keyClick(Qt.Key_Escape)
@@ -94,6 +104,13 @@ Item {
             verify(!study.roomNavigating);tryVerify(function(){return scene.visible&&!plan.visible})
             compare(scene.zoom,1.15);compare(scene.pan,Qt.point(12,-9))
             compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+            // None removes the physical mark without altering the profile.
+            var geometry=JSON.stringify(scene.frontEnvelope)
+            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{family:"None"}}));verify(ctl.applyStructure())
+            tryVerify(function(){return !crest.visible&&!crest.source.toString()})
+            compare(JSON.stringify(scene.frontEnvelope),geometry)
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            tryVerify(function(){return crest.visible&&crest.asset===crestSource})
         }
         function test_room_toolbar_reservation(){
             var ctl=study.controller,scene=study.scene,tools=findChild(study,"archive-primary-tools")

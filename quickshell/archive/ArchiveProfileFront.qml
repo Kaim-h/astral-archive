@@ -8,7 +8,20 @@ Canvas {
     required property var profileGeometry
     required property var colors
     required property color frameColor
+    property string family:"None"
+    property string emblemKey:""
+    readonly property var crestBounds:View.crestMarkBounds(profileGeometry)
     clip:true
+    Item {
+        x:front.crestBounds?front.crestBounds.x:0;y:front.crestBounds?front.crestBounds.y:0
+        width:front.crestBounds?front.crestBounds.w:0;height:width
+        visible:!!front.crestBounds
+        ArchiveFamilyMark {
+            objectName:"physical-crest-mark"
+            family:front.family;emblemKey:front.emblemKey;colors:front.colors
+            exterior:true;width:parent.width;height:width;opacity:.68
+        }
+    }
     onProfileGeometryChanged:if(visible)requestPaint()
     onColorsChanged:if(visible)requestPaint()
     onFrameColorChanged:if(visible)requestPaint()

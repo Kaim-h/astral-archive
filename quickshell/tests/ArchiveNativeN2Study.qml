@@ -165,7 +165,8 @@ Rectangle {
         sceneView.clearSelection()
         roomProgress=entering?0:1
         roomNavigation={id:id,name:c.name||id,entering:entering,geometry:geometry,palette:palette,
-            frameColor:View.frameColor(c,palette,0),backing:View.backingColor(c,palette,0)}
+            frameColor:View.frameColor(c,palette,0),backing:View.backingColor(c,palette,0),
+            family:Spatial.resolveAppearance(s,id,Themes.Theme.index).family,emblemKey:(c.appearance||{}).emblem||""}
         if(reducedRoomMotion){finishRoomNavigation();return true}
         navigationOverlay.forceActiveFocus()
         roomAnimation.from=roomProgress;roomAnimation.to=entering?1:0;roomAnimation.start()
