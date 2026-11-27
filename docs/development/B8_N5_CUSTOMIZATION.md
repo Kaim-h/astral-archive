@@ -1,0 +1,26 @@
+# B8-N5 — customization and contextual interaction
+
+## Baseline and scope
+
+Owner authorized N5 on continuing draft [PR #19](https://github.com/Kaim-h/astral-archive/pull/19). N4 pin `9aabb06e0cb8dd65fa75242be4ca700d1aa25fb1`, [CI 45874096569](https://github.com/Kaim-h/astral-archive/actions/runs/45874096569): 14,546 Node assertions, native foundation 6 and Shelf 34 passes including setup/cleanup, eight Map cases, zero failures/skips. [Bugfinder correction disposition](https://github.com/Kaim-h/astral-archive/pull/19#issuecomment-7224508847) and [Secretary closeout](https://github.com/Kaim-h/astral-archive/pull/19#issuecomment-7224537119) accepted. Earlier [Librarian](https://github.com/Kaim-h/astral-archive/pull/19#issuecomment-7199979998) and [Designer](https://github.com/Kaim-h/astral-archive/pull/19#issuecomment-7200003599) approvals retain their pinned scope. No production or target acceptance. Follow [S20](../product/B8_SPATIAL_ARCHIVE.md), [reference matrix](../research/prototypes/2026-11-24/b8/S20_REFERENCE_MATRIX.md), [N4 reconciliation](B8_N4_MAP_ROOM.md) and [implementation handoff](B8_IMPLEMENTATION_HANDOFF.md); new authorization supersedes the earlier N5-start limitation, not the requirements.
+
+| Checkpoint | Scope |
+|---|---|
+| N5a | Appearance transaction, inheritance, Undo, compatibility |
+| N5b | Context menus, numeric flush, valid Browse resolution, modal/keyboard/focus |
+| N5c | Shelf/Cubby casework, backing, engraving, emblems and glazing |
+| N5d | Room floors/walls and actual Shelf projection |
+| N5e | Map appearance, defaults/overrides, inscriptions, chart and heading |
+| N5f | Mandatory S19 interaction reconciliation, direct gestures, door preservation and hit priority |
+| N5g | Cross-layer navigation, tooltips and theme consistency |
+| N5h | Integrated N5 native regression and scoped independent disposition |
+
+## N5a.1 — first appearance session
+
+Reuse Core's revision-bound structural proposal and 30-entry chronological snapshot Undo. Stage existing container family/palette/profile references only; no added snapshot keys or format version. An empty patch does not create metadata. Returning to original local policy removes pending changes, including absent/null inherit and implicit cornice; explicit None distinct. Existing inheritance/local palette semantics retained. Profile changes use full physical validation, not cosmetic exemption. Unpublished preview; finish recomputes through validated Apply, including checked no-op. Escape/Cancel discards proposal; invalid/stale cannot commit. The same controller slot blocks competing proposals, rack staging, Undo, checkpoint import/export and mixed edits. Explicit reset discards and increments revision. Existing materialBatch remains unchanged.
+
+Shelf panel starts empty; existing Arrange access and provisional Browse action share one toolbar slot. Valid outside dismissal/close/Done commits once; Escape/Cancel restores focus and discards. Host mode-switch function resolves the session before changing mode; actual single-action contextual Browse transition and general numeric/structural proposals remain N5b. No general menu redesign. Chart appearance still session-local; future persistence schema needs reviewed compatibility policy. Expanded board catalogue and Book colour mapping need Designer direction.
+
+Shared checks cover preview isolation, inheritance/local policies, no-op, invalid/stale/tampered proposal, exact chronological Undo, owners/footprints, existing-format roundtrip, optional v4 mapView and malformed valid-JSON decode. Native input regression covers Browse/Arrange, no-op close, Escape, real outside dismissal, guard refusal and mode-switch function. Map/empty Room failed-load regression extended to valid-JSON malformed metadata. Opt-out host re-save remains outstanding. Exact-candidate shared and native verification and focused independent review required; no workflow change.
+
+N5f retains actual overlapping handle/door regression without blank-space workaround, both-wall obstruction/no-jump and atomic separation. N6 target verification required before production. No hex/import, irregular Rooms, new B9/B10 furniture, real filesystem or production wiring.

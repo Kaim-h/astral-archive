@@ -1043,6 +1043,42 @@ export function applyStructure(s,proposal){
  return candidate;
 }
 
+// A revision-bound appearance session occupies the existing proposal slot.
+// Only existing appearance references are staged; never publish samples.
+export function beginAppearance(s,containerId){
+ if(s.draft||!Spatial.enabled(s.snapshot)||typeof containerId!=='string'||
+    !Object.prototype.hasOwnProperty.call(s.snapshot.cubbies,containerId))return null;
+ return Object.assign(previewStructure(s,{kind:'spatialAppearance',containerId,patch:{}}),{appearanceSession:true});
+}
+function appearanceCurrent(s,p){
+ return !!p&&p.appearanceSession===true&&p.revision===s.revision&&!s.draft&&
+  p.command&&p.command.kind==='spatialAppearance'&&typeof p.command.containerId==='string'&&
+  p.command.patch&&typeof p.command.patch==='object'&&!Array.isArray(p.command.patch)&&
+  Spatial.enabled(s.snapshot)&&Object.prototype.hasOwnProperty.call(s.snapshot.cubbies,p.command.containerId);
+}
+export function updateAppearance(s,proposal,key,value){
+ if(!appearanceCurrent(s,proposal)||!['family','palette','profile'].includes(key)||
+    !(value===null||typeof value==='string'||Number.isFinite(value)))return null;
+ const command=clone(proposal.command),a=s.snapshot.cubbies[command.containerId].appearance||{},base=a[key];
+ // Returning to the original local policy is a no-op. Explicit None
+ // remains distinct from inheritance; the default profile is cornice.
+ if(value===base||value===null&&(base===undefined||base===null)||
+    key==='profile'&&value==='cornice'&&(base===undefined||base===null))delete command.patch[key];
+ else command.patch[key]=value;
+ return Object.assign(previewStructure(s,command),{appearanceSession:true});
+}
+export function finishAppearance(s,proposal){
+ if(!appearanceCurrent(s,proposal))return structuralError(s,'No current appearance session');
+ if(proposal.error)return structuralError(s,proposal.error);
+ if(proposal.ok)return applyStructure(s,proposal);
+ // Recompute unchanged sessions too; a false no-op flag must not
+ // silently discard a real edit.
+ const fresh=previewStructure(s,proposal.command);
+ if(fresh.ok||fresh.error||!equalPreview(fresh.snapshot,proposal.snapshot))
+  return structuralError(s,'Appearance preview changed; review a fresh proposal');
+ return updateSession(s,{error:''});
+}
+
  // Shared grid contract. Coordinates are cubby-local, not screen pixels.
 export function snapCoordinate(value,interval,enabled){
  if(!Number.isFinite(value)||!Number.isInteger(interval)||interval<5||interval>100)throw Error('Invalid grid coordinate or interval');

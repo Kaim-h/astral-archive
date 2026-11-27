@@ -449,6 +449,7 @@ Rectangle {
     property point contextPoint:Qt.point(0,0)
     function closeContext(){contextOpen=false;bookPicker=false;bookTarget=null;sceneView.forceActiveFocus()}
     function openContext(x,y){
+        if(archive.appearanceSessionOpen)return
         closeMaterials();rackInspector=false;bookPicker=false;bookPage=0
         contextPoint=sceneView.mapToItem(study,x,y)
         contextOpen=true
@@ -512,8 +513,10 @@ Rectangle {
     }
     function switchMode(value) {
         if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning||mapView.appearanceOpen)return
+        if(archive.appearanceSessionOpen&&!finishShelfAppearance())return false
         if(archive.draft||archive.structuralProposal)archive.cancel()
         closeContext();closeMaterials();rackInspector=false;pickId="";sceneView.mode=value
+        return true
     }
 
     readonly property var selectedFixture: sceneView.cubby.mods.find(function(m){return m.id===sceneView.selectedModuleId})||null
@@ -572,6 +575,7 @@ Rectangle {
     function confirmStructure(){
         structureApplyAttempts++
         structureApplyError=""
+        if(archive.appearanceSessionOpen)return finishShelfAppearance()
         var oldRooms=structurePanel.mapRoomCommand?Object.keys(archive.snapshot.spatial.rooms):[]
         var created=structurePanel.mapRoomCommand&&structurePanel.cmd.kind==="spatialRoomCreate"
         var doorCreated=structurePanel.mapDoorCommand&&structurePanel.cmd.kind==="spatialDoorCreate"
@@ -591,18 +595,34 @@ Rectangle {
         archive.proposeStructure({kind:"spatialSupport",containerId:sceneView.cubbyId,moduleId:m.id,patch:{enabled:m.flatTop!==true}})
         structurePanel.forceActiveFocus()
     }
+    readonly property bool appearanceReady:spatialEnabled&&!upperView&&!roomNavigating&&!mapNavigating&&!checkpointLoadPending&&
+        !sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&
+        !archive.draft&&!archive.structuralProposal&&!bookPicker&&materialPanel===""&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"
     function startShelfAppearance(){
-        if(!structureReady||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf")return
+        if(!appearanceReady)return false
         var id=sceneView.cubbyId
         closeContext()
-        archive.proposeStructure({kind:"spatialAppearance",containerId:id,patch:{profile:Spatial.shelfProfile(archive.snapshot,id)}})
+        if(!archive.beginAppearance(id))return false
         structurePanel.forceActiveFocus()
+        return true
     }
     function setShelfAppearance(key,value){
-        var q=archive.structuralProposal
-        if(!q||q.command.kind!=="spatialAppearance")return
-        var cmd=Core.clone(q.command);cmd.patch[key]=value
-        archive.proposeStructure(cmd)
+        return archive.updateAppearance(key,value)
+    }
+    function finishShelfAppearance(){
+        if(!archive.appearanceSessionOpen)return false
+        if(!archive.applyStructure()){
+            structureApplyError=archive.errorText||"Unable to keep appearance"
+            return false
+        }
+        sceneView.message="Appearance session closed"
+        focusActiveLayer()
+        return true
+    }
+    function cancelStructurePanel(){
+        var appearance=archive.appearanceSessionOpen
+        archive.cancelStructure()
+        if(appearance)focusActiveLayer()
     }
     function startShelfRemoval(){
         if(!structureReady||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf")return
@@ -831,11 +851,14 @@ Rectangle {
             }
             Item {
                 objectName:"archive-layer-tool-slot"
-                readonly property bool layerShown:sceneView.mode==="arrange"&&!study.upperView
+                readonly property bool arrangeShown:sceneView.mode==="arrange"&&!study.upperView
+                readonly property bool browseShown:sceneView.mode==="browse"&&!study.upperView&&study.spatialEnabled&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"
+                readonly property bool layerShown:arrangeShown||browseShown
                 width:arrangeTool.width;height:arrangeTool.height
                 visible:study.mapEnabled||layerShown
                 enabled:layerShown
-                Archive.ArchiveButton {id:arrangeTool;objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:parent.layerShown;enabled:study.structureReady;onClicked:study.openContext(12,12)}
+                Archive.ArchiveButton {id:arrangeTool;objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:parent.arrangeShown;enabled:parent.arrangeShown&&study.structureReady;onClicked:study.openContext(12,12)}
+                Archive.ArchiveButton {objectName:"browse-appearance";anchors.fill:parent;colors:study.colors;label:"Appearance";visible:parent.browseShown;enabled:parent.browseShown&&study.appearanceReady;onClicked:study.startShelfAppearance()}
             }
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
@@ -1380,6 +1403,10 @@ Rectangle {
         visible:structurePanel.spatialConfirmation
         acceptedButtons:Qt.AllButtons
         onWheel:function(wheel){wheel.accepted=true}
+        onClicked:function(mouse){
+            if(archive.appearanceSessionOpen&&(mouse.x<structurePanel.x||mouse.x>=structurePanel.x+structurePanel.width||
+               mouse.y<structurePanel.y||mouse.y>=structurePanel.y+structurePanel.height))study.finishShelfAppearance()
+        }
     }
     Archive.ArchiveInspectorFrame {
         id:structurePanel
@@ -1421,7 +1448,7 @@ Rectangle {
         z:35
         anchors.top:sceneView.top;anchors.right:sceneView.right;anchors.margins:8
         onVisibleChanged:if(visible&&structureScroll)structureScroll.resetPosition()
-        Keys.onEscapePressed:archive.cancelStructure()
+        Keys.onEscapePressed:study.cancelStructurePanel()
         Row {
             id:structureHeader
             anchors.top:parent.top;anchors.left:parent.left;anchors.right:parent.right;anchors.margins:8
@@ -1432,7 +1459,7 @@ Rectangle {
                 text:structurePanel.mapDoorCommand?(structurePanel.cmd.kind==="spatialDoorMerge"?"Merge touching openings":structurePanel.cmd.kind==="spatialDoorCreate"?"Add shared opening":"Opening dimensions"):structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove empty Room":structurePanel.cmd.kind==="spatialRoomCreate"?"Add Room":"Room dimensions"):structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
-            Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:"Cancel fixture adjustment";onClicked:archive.cancelStructure()}
+            Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:archive.appearanceSessionOpen?"Keep valid appearance":"Cancel fixture adjustment";onClicked:if(archive.appearanceSessionOpen)study.finishShelfAppearance();else study.cancelStructurePanel()}
         }
         Archive.ArchiveInspectorScroll {
             id:structureScroll
@@ -1492,7 +1519,7 @@ Rectangle {
                             required property var modelData
                             objectName:"shelf-profile-"+modelData.key
                             colors:study.colors;width:contentStructure.width;label:modelData.label
-                            active:structurePanel.shelfAppearance&&structurePanel.cmd.patch.profile===modelData.key
+                            active:structurePanel.shelfAppearance&&(structurePanel.cmd.patch.profile!==undefined?structurePanel.cmd.patch.profile:Spatial.shelfProfile(archive.snapshot,structurePanel.cmd.containerId))===modelData.key
                             onClicked:study.setShelfAppearance("profile",modelData.key)
                         }
                     }
@@ -1743,11 +1770,11 @@ Rectangle {
             }
             Row {
                 spacing:5
-                Archive.ArchiveButton {objectName:"structure-cancel";colors:study.colors;label:"Cancel";onClicked:archive.cancelStructure()}
+                Archive.ArchiveButton {objectName:"structure-cancel";colors:study.colors;label:"Cancel";onClicked:study.cancelStructurePanel()}
                 Archive.ArchiveButton {
                     objectName:"structure-apply";colors:study.colors
-                    label:structurePanel.bookRemove?"Unplace":structurePanel.removing?(study.spatialEnabled?"Confirm removal":"Remove → Case"):"Apply"
-                    enabled:!!structurePanel.proposal&&structurePanel.proposal.ok
+                    label:archive.appearanceSessionOpen?"Done":structurePanel.bookRemove?"Unplace":structurePanel.removing?(study.spatialEnabled?"Confirm removal":"Remove → Case"):"Apply"
+                    enabled:!!structurePanel.proposal&&(structurePanel.proposal.ok||archive.appearanceSessionOpen&&!structurePanel.proposal.error)
                     onClicked:study.confirmStructure()
                 }
             }

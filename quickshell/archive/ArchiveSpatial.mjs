@@ -259,6 +259,7 @@ export function edit(s,cmd,allocate){
   need(appearance(p,isShelf),'Invalid appearance reference');
   const target=cmd.containerId===undefined?s.spatial:s.cubbies[cmd.containerId];
   need(cmd.containerId===undefined||own(s.cubbies,cmd.containerId),'Container no longer exists');
-  target.appearance=Object.assign({},target.appearance||{},p);
+  // An untouched appearance editor must not create metadata.
+  if(Object.keys(p).length)target.appearance=Object.assign({},target.appearance||{},p);
  }else throw Error('Unknown spatial command');
 }

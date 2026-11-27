@@ -1202,5 +1202,50 @@ export function run(){
   eq(View.mapRoomGesturePatch(magnet,x,y+6*f.scale,false,20,true),{x:r.x,y:r.y},'opposing wall magnet');
   eq(Core.validate(s),null,'multi-Room fixture valid');
  }
+ {
+  // N5a: same proposal/history; no publication of intermediate choices.
+  const state=Core.session(ShelfSample.fixture()),s=state.snapshot,before=Core.clone(state),id='root';
+  const opened=Core.beginAppearance(state,id);
+  yes(opened.appearanceSession,'session marker');eq(opened.ok,false,'empty session no change');
+  eq(opened.error,'','empty session valid');eq(opened.snapshot,s,'no seeded metadata');
+  eq(Core.finishAppearance(state,opened),state,'unchanged dismissal exact');
+  eq(Core.beginAppearance(state,'missing'),null,'missing target refused');
+  let q=Core.updateAppearance(state,opened,'family','Astral');
+  yes(q.ok,'live family preview');eq(q.revision,state.revision,'frozen revision');
+  q=Core.updateAppearance(state,q,'palette',2);
+  eq(Spatial.resolveAppearance(q.snapshot,id,1),{family:'Astral',palette:2},'combined preview');
+  eq(Spatial.resolveAppearance(q.snapshot,'child',1),{family:'Astral',palette:1},'inherited family local palette');
+  eq(Core.owners(q.snapshot),Core.owners(s),'owners unchanged');eq(q.snapshot.cubbies[id].mods,s.cubbies[id].mods,'fixtures unchanged');
+  eq(Spatial.footprint(q.snapshot,id),Spatial.footprint(s,id),'decorative footprint unchanged');
+  eq(state,before,'complete committed state unchanged by preview');
+  const bad=Core.updateAppearance(state,q,'palette',9),rejected=Core.finishAppearance(state,bad);
+  yes(bad.error,'invalid reference');eq(bad.command.patch.palette,9,'invalid choice retained');
+  yes(rejected.error,'invalid commit refused');eq(rejected.snapshot,s,'invalid snapshot exact');eq(rejected.history,state.history,'invalid history exact');eq(rejected.revision,state.revision,'invalid revision exact');
+  eq(Core.updateAppearance(state,q,'w',900),null,'unrelated field refused');
+  const committed=Core.finishAppearance(state,q);
+  eq(committed.error,'','session commit');eq(committed.history.length,1,'one Undo entry');eq(committed.revision,1,'one revision');eq(committed.snapshot,q.snapshot,'exact preview committed');
+  const changed=apply(committed,{kind:'spatialRoomCreate',patch:{name:'Session specimen',x:10000,y:0,w:800,h:600}});
+  eq(Core.undo(changed).snapshot,committed.snapshot,'structural Undo first');
+  eq(Core.undo(Core.undo(changed)).snapshot,s,'appearance Undo second');
+  eq(Core.updateAppearance(changed,q,'palette',1),null,'stale edit refused');
+  const stale=Core.finishAppearance(changed,q);yes(stale.error,'stale finish refused');eq(stale.snapshot,changed.snapshot,'stale unchanged');
+  const tampered=Core.clone(q);tampered.ok=false;yes(Core.finishAppearance(state,tampered).error,'changed preview cannot masquerade as no-op');
+  let cleared=Core.updateAppearance(state,q,'family',(s.cubbies[id].appearance||{}).family||null);
+  const basePalette=(s.cubbies[id].appearance||{}).palette;
+  cleared=Core.updateAppearance(state,cleared,'palette',basePalette===undefined?null:basePalette);
+  eq(cleared.ok,false,'return to original policies no-op');eq(Core.finishAppearance(state,cleared),state,'returned session no history');
+  const none=Core.updateAppearance(state,opened,'family','None');
+  eq(Spatial.resolveAppearance(none.snapshot,'child',1).family,'None','explicit None not inherit');
+  eq(Checkpoint.decode(Checkpoint.encode(committed,{path:s.path,theme:1,cameras:{}})).snapshot,committed.snapshot,'existing format roundtrip');
+  const physical=Core.session(ShelfSample.roomFixture()),room=physical.snapshot.spatial.shelves.root.roomId;
+  const v={path:physical.snapshot.path,theme:1,cameras:{},mapView:{layer:'room',roomId:room,roomShelf:'',camera:{zoom:1,center:null},selectedRoom:room,selectedDoor:'',focus:null}};
+  const encoded=Checkpoint.encode(physical,v);
+  eq(JSON.parse(encoded).version,4,'optional map view v4 writer');eq(Checkpoint.decode(encoded).view,v,'v4 map view exact');
+  for(const mutate of [m=>m.camera.zoom=99,m=>m.roomId='missing',m=>m.layer='invalid',m=>m.extra=true]){
+   const envelope=JSON.parse(encoded);mutate(envelope.view.mapView);let refused=false;
+   try{Checkpoint.decode(JSON.stringify(envelope))}catch(e){refused=true}
+   yes(refused,'malformed valid-JSON map view decode refused');
+  }
+ }
  return checks;
 }

@@ -504,6 +504,11 @@ Item {
                 payload="{bad";verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
                 compare(JSON.stringify(map.savedView()),retained);verify(map.visible&&map.activeFocus)
                 compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
+                var malformed=JSON.parse(savedMap),fullHistory=JSON.stringify(ctl.archiveState.history),revision=ctl.archiveState.revision
+                malformed.view.mapView.camera.zoom=99;payload=JSON.stringify(malformed)
+                verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
+                compare(JSON.stringify(map.savedView()),retained);verify(map.visible&&map.activeFocus)
+                compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),fullHistory);compare(ctl.archiveState.revision,revision)
                 study.reducedRoomMotion=false
                 clickNamed("map-enter-room");verify(study.mapNavigating)
                 verify(!map.enabled&&!study.viewSwitchReady&&!study.checkpointReady)
@@ -514,6 +519,10 @@ Item {
                 verify(study.saveCheckpoint());var savedRoom=payload
                 payload="{bad";verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
                 verify(plan.visible&&plan.activeFocus);compare(plan.roomId,empty);compare(JSON.stringify(map.savedView()),retained)
+                malformed=JSON.parse(savedRoom);malformed.view.mapView.roomId="missing";payload=JSON.stringify(malformed)
+                verify(study.requestCheckpointLoad());verify(!study.loadCheckpoint())
+                verify(plan.visible&&plan.activeFocus);compare(plan.roomId,empty);compare(JSON.stringify(map.savedView()),retained)
+                compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),fullHistory);compare(ctl.archiveState.revision,revision)
                 payload=savedMap;verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
                 tryVerify(function(){return map.visible&&map.activeFocus});compare(JSON.stringify(map.savedView()),retained)
                 payload=savedRoom;verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
@@ -1453,6 +1462,34 @@ Item {
             mouseClick(book,book.width/2,book.height/2);clickNamed("arrange-menu");clickNamed("unplace-selected-book");clickNamed("structure-apply")
             tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")},3000,study.structureApplyError+" / "+ctl.errorText)
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+        }
+        function test_n5_appearance_session(){
+            var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
+            study.switchMode("browse")
+            clickNamed("browse-appearance")
+            verify(ctl.appearanceSessionOpen);verify(!ctl.structuralProposal.ok);compare(ctl.structuralProposal.error,"")
+            clickNamed("structure-close")
+            verify(!ctl.structuralProposal);compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
+            clickNamed("browse-appearance");clickNamed("shelf-family-astral");clickNamed("shelf-palette-2")
+            tryVerify(function(){return scene.colors.name==="Midnight"})
+            compare(JSON.stringify(ctl.snapshot),before)
+            verify(!ctl.undo());verify(!ctl.proposeStructure({kind:"spatialShelfEdit",containerId:"root",patch:{h:1300}}))
+            verify(ctl.appearanceSessionOpen);verify(!study.checkpointReady)
+            keyClick(Qt.Key_Escape)
+            tryVerify(function(){return !ctl.structuralProposal&&scene.activeFocus})
+            compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
+            clickNamed("browse-appearance");clickNamed("shelf-family-botanical");clickNamed("shelf-palette-2")
+            mouseClick(study,8,8)
+            tryVerify(function(){return !ctl.structuralProposal&&scene.activeFocus})
+            compare(Spatial.resolveAppearance(ctl.snapshot,"root",1).family,"Botanical")
+            compare(Spatial.resolveAppearance(ctl.snapshot,"root",1).palette,2)
+            compare(ctl.archiveState.history.length,1);compare(ctl.archiveState.revision,rev+1)
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            study.switchMode("arrange");scene.clearSelection();clickNamed("arrange-menu");clickNamed("shelf-appearance")
+            clickNamed("shelf-family-astral")
+            verify(study.switchMode("browse"));compare(scene.mode,"browse");verify(!ctl.structuralProposal)
+            compare(Spatial.resolveAppearance(ctl.snapshot,"root",1).family,"Astral")
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
         function test_shelf_local_appearance(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot)

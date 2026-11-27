@@ -27,16 +27,31 @@ Item {
     // Structural proposals are independent of the rack planner. Callers must
     // refuse live pointer/solver activity before entering a structural edit.
     property var structuralProposal: null
+    readonly property bool appearanceSessionOpen:!!structuralProposal&&structuralProposal.appearanceSession===true
     property string checkpointError: ""
     // Synchronous publication markers for view-only lifecycle consumers.
     property bool resetting:false
     property bool restoringUndo:false
     function proposeStructure(command) {
-        if(draft||(!spatialEnabled&&command&&String(command.kind).indexOf("spatial")===0))return false
+        if(appearanceSessionOpen||draft||(!spatialEnabled&&command&&String(command.kind).indexOf("spatial")===0))return false
         if(command&&command.kind==="spatialAdoptProfiles"&&!physicalProfilesEnabled)return false
         if(command&&command.kind==="spatialAdoptIndependentProfiles"&&(!physicalProfilesEnabled||!independentProfilesEnabled))return false
         structuralProposal=Core.previewStructure(archiveState,command)
         return structuralProposal.ok
+    }
+    function beginAppearance(containerId) {
+        if(!spatialEnabled||structuralProposal||draft||queued||runningRevision!==-1)return false
+        var p=Core.beginAppearance(archiveState,containerId)
+        if(!p)return false
+        structuralProposal=p
+        return true
+    }
+    function updateAppearance(key,value) {
+        if(!appearanceSessionOpen)return false
+        var next=Core.updateAppearance(archiveState,structuralProposal,key,value)
+        if(!next)return false
+        structuralProposal=next
+        return !next.error
     }
     function cancelStructure() { structuralProposal=null }
     function editMixed(command) {
@@ -48,7 +63,7 @@ Item {
         if(!structuralProposal||(!spatialEnabled&&String(structuralProposal.command.kind).indexOf("spatial")===0))return false
         if(!physicalProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptProfiles"||Spatial.physicalProfiles(structuralProposal.snapshot)))return false
         if(!independentProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptIndependentProfiles"||Spatial.independentProfiles(structuralProposal.snapshot)))return false
-        archiveState=Core.applyStructure(archiveState,structuralProposal)
+        archiveState=appearanceSessionOpen?Core.finishAppearance(archiveState,structuralProposal):Core.applyStructure(archiveState,structuralProposal)
         if(!archiveState.error)structuralProposal=null
         return !archiveState.error
     }
@@ -97,7 +112,7 @@ Item {
         stage(draft.cubbyId, draft.rackId, {}, choices)
     }
     function approveRadius(approved) { archiveState = Core.approveRadius(archiveState, approved) }
-    function apply() { archiveState = Core.apply(archiveState); return !archiveState.error }
+    function apply() { if(appearanceSessionOpen)return false;archiveState = Core.apply(archiveState); return !archiveState.error }
     function cancel() {
         structuralProposal=null
         queued = null
