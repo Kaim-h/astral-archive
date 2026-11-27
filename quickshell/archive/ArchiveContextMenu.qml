@@ -23,7 +23,7 @@ FocusScope {
     }
     function focusRow(repeater,start,step){
         for(var i=0;i<repeater.count;i++){
-            var at=(start+i*step+repeater.count)%repeater.count,item=repeater.itemAt(at)
+            var at=((start+i*step)%repeater.count+repeater.count)%repeater.count,item=repeater.itemAt(at)
             if(item&&item.enabled){item.forceActiveFocus();return true}
         }
         return false
@@ -55,9 +55,13 @@ FocusScope {
     Keys.onPressed:function(event){menu.handleKey(event)}
     onVisibleChanged:{
         childIndex=-1
-        if(visible)Qt.callLater(function(){if(menu.visible&&!menu.childBoxFocused())menu.focusRow(rootRepeater,0,1)})
+        if(visible){
+            // Own the very first keyboard event, even before the repeater
+            // or positioner has completed its deferred layout.
+            forceActiveFocus()
+            if(!focusRow(rootRepeater,0,1))Qt.callLater(function(){if(menu.visible&&menu.activeFocus&&!childBox.activeFocus)menu.focusRow(rootRepeater,0,1)})
+        }
     }
-    function childBoxFocused(){return childBox.activeFocus}
     MouseArea {
         anchors.fill:parent
         acceptedButtons:Qt.AllButtons

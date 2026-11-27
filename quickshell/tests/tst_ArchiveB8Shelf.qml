@@ -1486,6 +1486,62 @@ Item {
             tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")},3000,study.structureApplyError+" / "+ctl.errorText)
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
+        function test_n5_numeric_map_target_switch(){
+            var ctl=study.controller,scene=study.scene
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture())
+                var map=findChild(study,"archive-map-room"),hall=ctl.snapshot.spatial.shelves.root.roomId
+                var other=Object.keys(ctl.snapshot.spatial.rooms).find(id=>!Object.values(ctl.snapshot.spatial.shelves).some(s=>s.roomId===id))
+                var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                study.switchMode("arrange")
+                function center(id){var r=ctl.snapshot.spatial.rooms[id];return map.pointFor(r.x+r.w/2,r.y+r.h/2)}
+                var pt=center(hall);mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,hall)
+                clickNamed("map-edit-room")
+                var widthInput=findChild(study,"map-room-input-w")
+                widthInput.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);keyClick("1");keyClick("0")
+                tryVerify(function(){return ctl.structuralProposal&&!ctl.structuralProposal.ok&&!!ctl.structuralProposal.error})
+                pt=center(other);verify(map.editTargetAt(pt.x,pt.y).id===other)
+                var screenPoint=map.mapToItem(study,pt.x,pt.y),panel=findChild(study,"structure-panel")
+                verify(screenPoint.x<panel.x||screenPoint.x>=panel.x+panel.width||screenPoint.y<panel.y||screenPoint.y>=panel.y+panel.height)
+                mouseClick(map,pt.x,pt.y)
+                compare(map.selectedRoom,hall);compare(ctl.structuralProposal.command.roomId,hall);compare(widthInput.text,"10")
+                compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
+                widthInput.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
+                for(var digit of String(ctl.snapshot.spatial.rooms[hall].w))keyClick(digit)
+                var input=findChild(study,"map-room-input-name"),name=ctl.snapshot.spatial.rooms[hall].name
+                input.forceActiveFocus();keyClick(Qt.Key_End);keyClick("1")
+                tryVerify(function(){return ctl.structuralProposal.ok})
+                var expected=JSON.stringify(ctl.structuralProposal.snapshot)
+                mouseClick(map,pt.x,pt.y)
+                tryVerify(function(){return ctl.structuralProposal&&ctl.structuralProposal.command.roomId===other})
+                compare(map.selectedRoom,other);compare(ctl.snapshot.spatial.rooms[hall].name,name+"1")
+                compare(JSON.stringify(ctl.snapshot),expected);compare(ctl.archiveState.revision,rev+1)
+                compare(ctl.structuralProposal.error,"");verify(!ctl.structuralProposal.ok)
+                compare(findChild(study,"map-room-input-w").text,String(ctl.snapshot.spatial.rooms[other].w))
+                clickNamed("proposal-browse");compare(scene.message,"No changes");verify(ctl.undo())
+                compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+            }finally{ctl.cancel();study.mapEnabled=false;study.switchMode("browse")}
+        }
+        function test_n5_blocked_profile_session(){
+            var ctl=study.controller,scene=study.scene
+            ctl.reset(Sample.roomFixture())
+            clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+            var id="root",room=ctl.snapshot.spatial.rooms[ctl.snapshot.spatial.shelves[id].roomId]
+            var edge=room.w-Spatial.footprint(ctl.snapshot,id).w
+            verify(ctl.proposeStructure({kind:"spatialShelfEdit",containerId:id,patch:{x:edge}}));verify(ctl.applyStructure())
+            var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
+            clickNamed("browse-menu");clickNamed("shelf-appearance");clickNamed("shelf-profile-pilaster")
+            verify(ctl.appearanceSessionOpen&&!ctl.structuralProposal.ok&&!!ctl.structuralProposal.error)
+            verify(!findChild(study,"structure-apply").enabled)
+            mouseClick(study,8,8)
+            verify(ctl.appearanceSessionOpen);compare(ctl.structuralProposal.command.patch.profile,"pilaster")
+            compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
+            clickNamed("shelf-profile-crest");verify(!ctl.structuralProposal.ok);compare(ctl.structuralProposal.error,"")
+            clickNamed("structure-close");verify(!ctl.structuralProposal)
+            compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
+        }
         function test_n5_root_contexts(){
             var ctl=study.controller,scene=study.scene,before=JSON.stringify(ctl.snapshot),revision=ctl.archiveState.revision
             var menu=findChild(study,"archive-root-context"),panel=findChild(menu,"root-context-panel"),fly=findChild(menu,"root-context-flyout")
@@ -1501,19 +1557,27 @@ Item {
             compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,revision)
             study.switchMode("arrange");scene.clearSelection();clickNamed("arrange-menu")
             compare(menu.rootIds,["root-shelf-dimensions","root-add-furniture","root-grid","shelf-appearance","root-undo"])
-            keyClick(Qt.Key_Escape)
+            // The current pointer may hover an action when the menu opens.
+            // Move onto the direct dimensions row, then require real focus
+            // and a single Escape to dismiss the root, not a retry.
+            var dimensions=findChild(menu,"root-shelf-dimensions")
+            mouseMove(dimensions,dimensions.width/2,dimensions.height/2)
+            tryVerify(function(){return menu.activeFocus&&!fly.visible})
+            keyClick(Qt.Key_Escape);tryVerify(function(){return !menu.visible&&scene.activeFocus})
             verify(study.openRootContext("shelf",study.width-10,40))
             tryVerify(function(){return menu.visible&&panel.x+panel.width<=study.width})
             add=findChild(menu,"root-add-furniture");mouseMove(add,add.width/2,add.height/2)
             tryVerify(function(){return fly.visible&&menu.childSide==="left"})
             verify(fly.x>=0&&fly.x+fly.width<=panel.x)
-            keyClick(Qt.Key_Escape);keyClick(Qt.Key_Escape)
+            keyClick(Qt.Key_Escape);tryVerify(function(){return menu.visible&&!fly.visible})
+            keyClick(Qt.Key_Escape);tryVerify(function(){return !menu.visible&&scene.activeFocus})
             compare(JSON.stringify(ctl.snapshot),before)
             study.switchMode("browse")
             clickNamed("browse-menu");clickNamed("root-shelf-dimensions")
             verify(ctl.structuralProposal&&ctl.structuralProposal.command.kind==="spatialShelfEdit")
             compare(scene.mode,"arrange")
             clickNamed("proposal-browse");compare(scene.mode,"browse");compare(JSON.stringify(ctl.snapshot),before)
+            compare(scene.message,"No changes")
             study.mapEnabled=true
             try{
                 ctl.reset(Sample.roomFixture());var map=findChild(study,"archive-map-room"),mapBefore=JSON.stringify(ctl.snapshot)

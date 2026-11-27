@@ -453,6 +453,7 @@ Rectangle {
     function openRootContext(kind,x,y){
         if(!rootMenuReady||kind==="map"&&!showMap||kind==="shelf"&&(upperView||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf"))return false
         rootContext=kind;contextPoint=Qt.point(x,y);contextOpen=true
+        rootMenu.forceActiveFocus()
         return true
     }
     readonly property var rootActions:{
@@ -623,6 +624,7 @@ Rectangle {
         structureApplyAttempts++
         structureApplyError=""
         if(archive.appearanceSessionOpen)return finishShelfAppearance()
+        var revisionBefore=archive.archiveState.revision
         var oldRooms=structurePanel.mapRoomCommand?Object.keys(archive.snapshot.spatial.rooms):[]
         var created=structurePanel.mapRoomCommand&&structurePanel.cmd.kind==="spatialRoomCreate"
         var doorCreated=structurePanel.mapDoorCommand&&structurePanel.cmd.kind==="spatialDoorCreate"
@@ -630,10 +632,41 @@ Rectangle {
         if(archive.applyStructure(implicitBrowse===true)){
             if(doorCreated){var doorId=Object.keys(archive.snapshot.spatial.doors||{}).find(id=>!oldDoors.includes(id));if(doorId)mapView.selectDoor(doorId)}
             if(created)mapView.selectedRoom=Object.keys(archive.snapshot.spatial.rooms).find(id=>!oldRooms.includes(id))||""
-            sceneView.message="Arrangement updated · Undo available";sceneView.clearSelection()
+            sceneView.message=archive.archiveState.revision===revisionBefore?"No changes":"Arrangement updated · Undo available";sceneView.clearSelection()
             return true
         }
         structureApplyError=archive.errorText||"Unable to apply this preview"
+        return false
+    }
+    // Click-release only: transfer to another committed target after the
+    // old numeric proposal resolves through the same narrow Browse policy.
+    // Invalid text, explicit loss/removal and stale previews keep the old
+    // target; never replay the click as a drag on the underlying layer.
+    function switchNumericTarget(x,y){
+        var q=archive.structuralProposal
+        if(!q||sceneView.mode!=="arrange"||archive.draft||checkpointLoadPending||roomNavigating||mapNavigating)return false
+        var cmd=q.command,target=null
+        if(showMap&&["spatialRoomEdit","spatialDoorEdit"].includes(cmd.kind)){
+            var at=mapView.mapFromItem(study,x,y)
+            target=mapView.editTargetAt(at.x,at.y)
+            if(!target||(target.kind==="room"&&target.id===cmd.roomId)||(target.kind==="door"&&target.id===cmd.doorId))return false
+            if(!confirmStructure(true))return false
+            if(target.kind==="room"&&archive.snapshot.spatial.rooms[target.id]){
+                mapView.selectedDoor="";mapView.selectedRoom=target.id
+                startMapRoomEdit("spatialRoomEdit",target.id,{})
+            }else if(target.kind==="door"&&mapView.selectDoor(target.id))startMapDoorEdit("spatialDoorEdit",target.id,{})
+            return !!archive.structuralProposal
+        }
+        if(showRoomPlan&&cmd.kind==="spatialShelfEdit"){
+            var local=roomPlan.mapFromItem(study,x,y)
+            if(local.x<0||local.x>=roomPlan.width||local.y<0||local.y>=roomPlan.height-42)return false
+            var id=roomPlan.hit(local.x,local.y)
+            if(!id||id===cmd.containerId)return false
+            if(!confirmStructure(true))return false
+            if(!archive.snapshot.spatial.shelves[id])return false
+            roomPlan.selectedShelf=id;startRoomShelfEdit(id,{})
+            return !!archive.structuralProposal
+        }
         return false
     }
     function toggleTop(){
@@ -1461,10 +1494,15 @@ Rectangle {
         anchors.fill:parent;z:34
         visible:structurePanel.spatialConfirmation
         acceptedButtons:Qt.AllButtons
+        property point pressAt:Qt.point(0,0)
+        onPressed:function(mouse){pressAt=Qt.point(mouse.x,mouse.y)}
         onWheel:function(wheel){wheel.accepted=true}
         onClicked:function(mouse){
-            if(archive.appearanceSessionOpen&&(mouse.x<structurePanel.x||mouse.x>=structurePanel.x+structurePanel.width||
-               mouse.y<structurePanel.y||mouse.y>=structurePanel.y+structurePanel.height))study.finishShelfAppearance()
+            if(mouse.button!==Qt.LeftButton||Math.abs(mouse.x-pressAt.x)>6||Math.abs(mouse.y-pressAt.y)>6)return
+            if(mouse.x>=structurePanel.x&&mouse.x<structurePanel.x+structurePanel.width&&
+               mouse.y>=structurePanel.y&&mouse.y<structurePanel.y+structurePanel.height)return
+            if(archive.appearanceSessionOpen)study.finishShelfAppearance()
+            else study.switchNumericTarget(mouse.x,mouse.y)
         }
     }
     Archive.ArchiveInspectorFrame {

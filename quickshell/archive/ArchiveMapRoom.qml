@@ -117,6 +117,16 @@ Item {
     }
     function pointFor(x,y){return camera?Qt.point(camera.x+x*camera.scale,camera.y+y*camera.scale):Qt.point(-1,-1)}
     function hit(x,y){var p=View.mapAt(camera,x,y);return p?View.mapRoomHit(dataModel,p.x,p.y):""}
+    // Used only by the host's numeric-editor selection handoff. Header
+    // and controls are not atlas targets, and doorway hit precedes Room.
+    function editTargetAt(x,y){
+        if(!visible||appearanceOpen||!camera||x<0||x>=width||y<64||y>=height)return null
+        if(x>=mapControls.x&&x<mapControls.x+mapControls.width&&y>=mapControls.y)return null
+        var door=View.mapDoorHit(dataModel,camera,x,y)
+        if(door)return {kind:"door",id:door}
+        var room=hit(x,y)
+        return room?{kind:"room",id:room}:null
+    }
     function cameraState(){return {zoom:zoom,center:center?{x:center.x,y:center.y}:null}}
     function setCameraState(c){zoom=c.zoom;center=c.center?{x:c.center.x,y:c.center.y}:null}
     function focusSelection(){

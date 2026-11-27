@@ -1275,5 +1275,20 @@ export function run(){
   const material=Core.previewStructure(state,{kind:'materialBatch',edits:[]});
   eq(Core.finishBrowseStructure(state,material),state,'unchanged material session');
  }
+ {
+  // Review specimen: an adopted independent crest exactly touches the
+  // right wall. A wider profile cannot be kept by an implicit dismissal.
+  let state=Core.session(ShelfSample.roomFixture());
+  state=apply(state,{kind:'spatialAdoptIndependentProfiles'});
+  const id='root',room=state.snapshot.spatial.rooms[state.snapshot.spatial.shelves[id].roomId];
+  const edge=room.w-Spatial.footprint(state.snapshot,id).w;
+  state=apply(state,{kind:'spatialShelfEdit',containerId:id,patch:{x:edge}});
+  eq(Spatial.footprint(state.snapshot,id).x+Spatial.footprint(state.snapshot,id).w,room.w,'tight wall contact');
+  const before=Core.clone(state),opened=Core.beginAppearance(state,id),bad=Core.updateAppearance(state,opened,'profile','pilaster');
+  yes(bad.error,'blocked profile rejected');eq(bad.command.patch.profile,'pilaster','blocked choice retained');
+  const refused=Core.finishAppearance(state,bad);yes(refused.error,'blocked profile cannot finish');
+  eq(refused.snapshot,before.snapshot,'blocked profile snapshot exact');eq(refused.history,before.history,'blocked profile history exact');eq(refused.revision,before.revision,'blocked profile revision exact');
+  const corrected=Core.updateAppearance(state,bad,'profile','crest');eq(Core.finishAppearance(state,corrected),state,'original profile closes unchanged');
+ }
  return checks;
 }
