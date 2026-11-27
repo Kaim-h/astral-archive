@@ -75,4 +75,7 @@ Recover distinct S18r4 local Cubby glazing and Shelf default (local override win
 S14r5 nine stone floor and eight wall choices, bounded local policy, v6 only for extended metadata, one revision-bound session and exact undo. Existing plain surfaces are not silently migrated. Name edits affect the canonical Room identity label, not a competing display copy. Independent controller guard now includes command kind. Renderer and controls follow separately.
 N5c.1 corrective run 46051451147: all three jobs passed; native Shelf 40/40. N5c.2 published at 6e2986d4128163897024e580c3749ff8ac119f38; native run 46051970925 pending at preparation time.
 
+### N5d.2 — native Room surface controls (candidate)
+S14r5 stone geometry adapted to periodic bounded palette sampling in plan and perspective, preserving visible-face ownership and actual Shelf profile geometry. Local Room palette and material-aware Shelf glyphs; name, floor, wall, border, angle, detail, variation, grout, scale and marks via deliberate controls. Wall linework is a provisional raster approximation, family marks and exact visual fidelity remain review/refinement work. Native transaction and capture regression added. No continuous repaint or new Room furniture.
+
 N5c.2 native run 46051970925: offline and browser passed; Shelf 40 passed, 1 failed. The choice delegate was destroyed during its click handler before emitting selection. Route selection through the stable root function; keep the native regression unchanged.

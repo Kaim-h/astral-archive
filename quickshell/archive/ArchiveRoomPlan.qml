@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Window
 import "ArchiveView.mjs" as View
 import "ArchiveRoomProjection.mjs" as Projection
+import "ArchiveAppearance.mjs" as Appearance
 
 // Isolated native plan and perspective: one Room, shared geometry/openings.
 // No separate arrangement model or continuous paint loop.
@@ -32,6 +33,8 @@ Item {
     readonly property var perspectiveData:visible&&perspective?View.roomPerspective(snapshot,planData,width,height,researchProjection):null
     readonly property var visibilityRaster:perspectiveData?Projection.visibility(perspectiveData,width,height):null
     signal inspectShelf(string shelfId)
+    signal customizeRoom()
+    readonly property var surfacePolicy:Appearance.roomPolicy(planData&&planData.room.appearance)
     readonly property var planData:View.roomPlan(snapshot,roomId)
     readonly property real planScale:planData?Math.max(.001,Math.min(Math.max(1,width-64)/planData.room.w,Math.max(1,height-100)/planData.room.h)):1
     readonly property point planOrigin:planData?Qt.point((width-planData.room.w*planScale)/2,(height-planData.room.h*planScale)/2):Qt.point(0,0)
@@ -99,6 +102,7 @@ Item {
         objectName:"room-depth-art"
         visible:plan.visible&&plan.perspective&&!!plan.visibilityRaster
         raster:plan.visibilityRaster;snapshot:plan.snapshot;colors:plan.colors;palettes:plan.palettes;desktopPalette:plan.desktopPalette
+        roomId:plan.roomId;projectionFrame:plan.perspectiveData?plan.perspectiveData.frame:null
         transform:Scale {origin.x:0;origin.y:0;xScale:solidRoom.raster?solidRoom.raster.sx:1;yScale:solidRoom.raster?solidRoom.raster.sy:1}
     }
     Canvas {
@@ -156,6 +160,14 @@ Item {
             ctx.save();ctx.translate(o.x,o.y);ctx.scale(k,k)
             var wall=3/k
             ctx.fillStyle=plan.colors.panel;ctx.fillRect(0,0,r.w,r.h)
+            var policy=plan.surfacePolicy
+            if(policy.floor!=="plain"||policy.floorBorder){
+                var table=View.roomSurfaceTable(policy,plan.colors),step=Math.max(2/k,Math.sqrt(r.w*r.h/90000))
+                for(var yy=0;yy<r.h;yy+=step)for(var xx=0;xx<r.w;xx+=step){
+                    ctx.fillStyle=View.roomFloorSample(table,policy,xx+step/2,yy+step/2,r.w,r.h)
+                    ctx.fillRect(xx,yy,Math.min(step,r.w-xx),Math.min(step,r.h-yy))
+                }
+            }
             ctx.strokeStyle=plan.colors.metal;ctx.lineWidth=wall
             ctx.strokeRect(0,0,r.w,r.h)
             for(var opening of data.openings){
@@ -174,7 +186,7 @@ Item {
                 var palette=View.spatialPalette(plan.snapshot,shelf.id,plan.palettes,plan.desktopPalette)
                 var box=shelf.box
                 for(var layer of shelf.glyph.layers){
-                    var fill=layer.role==="frame"?palette.metal:layer.role==="recess"?palette.background:palette.panel
+                    var fill=View.planGlyphColor(plan.snapshot,shelf.id,layer.role,palette)
                     polygon(layer.points,fill)
                 }
                 var lip=shelf.glyph.front
@@ -207,14 +219,16 @@ Item {
     }
     MouseArea {
         anchors.fill:parent
+        acceptedButtons:Qt.LeftButton|Qt.RightButton
         onPressed:function(mouse){
+            if(mouse.button!==Qt.LeftButton)return
             var id=plan.hit(mouse.x,mouse.y)
             if(plan.arranging){plan.selectedShelf=id;if(id)plan.startGesture(id,"move",mouse.x,mouse.y)}
         }
         onPositionChanged:function(mouse){if(pressed)plan.updateGesture(mouse.x,mouse.y)}
         onReleased:function(mouse){plan.finishGesture(mouse.x,mouse.y)}
         onCanceled:plan.cancelGesture()
-        onClicked:function(mouse){if(!plan.arranging)plan.selectedShelf=plan.hit(mouse.x,mouse.y)}
+        onClicked:function(mouse){if(mouse.button===Qt.RightButton){plan.customizeRoom();return}if(!plan.arranging)plan.selectedShelf=plan.hit(mouse.x,mouse.y)}
         onDoubleClicked:function(mouse){var id=plan.hit(mouse.x,mouse.y);if(id&&!plan.arranging&&!plan.researchProjection)plan.inspectShelf(id)}
     }
     Rectangle {
@@ -237,6 +251,7 @@ Item {
     Row {
         anchors.horizontalCenter:parent.horizontalCenter;anchors.bottom:parent.bottom;anchors.bottomMargin:8
         spacing:6
+        ArchiveButton {objectName:"room-appearance";colors:plan.colors;label:"Appearance…";enabled:!plan.dragging&&!plan.researchProjection;onClicked:plan.customizeRoom()}
         ArchiveButton {
             colors:plan.colors
             objectName:"plan-inspect-shelf"

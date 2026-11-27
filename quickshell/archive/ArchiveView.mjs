@@ -595,3 +595,67 @@ export function mapTransitionFrame(from,to,t){
     t=Math.max(0,Math.min(1,t));if(t===0)return Object.assign({},from);if(t===1)return Object.assign({},to);const mix=(a,b)=>a+(b-a)*t;
     return {scale:mix(from.scale,to.scale),x:mix(from.x,to.x),y:mix(from.y,to.y),cx:mix(from.cx,to.cx),cy:mix(from.cy,to.cy)};
 }
+
+export function roomPalette(s,id,palettes,desktop){const a=s.spatial&&s.spatial.rooms[id]&&s.spatial.rooms[id].appearance;return palettes[a&&a.palette!==null&&a.palette!==undefined?a.palette:desktop];}
+export function planGlyphColor(s,id,role,p){const c=s.cubbies[id],a=c.appearance||{};return role==='frame'?a.frame||c.color?mix(frameColor(c,p,0),p.metal,.55):p.metal:role==='recess'?a.backing||c.innerColor?backingColor(c,p,0):p.background:frameColor(c,p,0);}
+// Periodic S14r5 stone tile geometry. Both projections sample the same
+// bounded lookup in world coordinates; no extra structural faces.
+export function roomTilePattern(a){
+ const n=a.floorScale,tiles=[];let w=2*n,h=2*n,angle=a.floorAngle;
+ const mod=(x,m)=>((x%m)+m)%m;
+ const poly=(p,tag)=>tiles.push({p,tag});
+ const rect=(x,y,W,H,t)=>poly([[x,y],[x+W,y],[x+W,y+H],[x,y+H]],t);
+ if(a.floor==='plain')return null;
+ if(a.floor==='slabs'||a.floor==='diagonal'){for(let j=0;j<2;j++)for(let i=0;i<2;i++)rect(i*n,j*n,n,n,i+2*j);if(a.floor==='diagonal')angle+=45;}
+ if(a.floor==='bond'){h=n;for(let j=0;j<2;j++)for(let i=-1;i<=2;i++)rect(i*n+j%2*n/2,j*n/2,n,n/2,mod(i,2)+j*2);}
+ if(a.floor==='octagon'){const c=n*(1-1/Math.sqrt(2));for(let j=-1;j<=2;j++)for(let i=-1;i<=2;i++){const x=i*n,y=j*n;poly([[x+c,y],[x+n-c,y],[x+n,y+c],[x+n,y+n-c],[x+n-c,y+n],[x+c,y+n],[x,y+n-c],[x,y+c]],mod(i,2)+2*mod(j,2));poly([[x,y-c],[x+c,y],[x,y+c],[x-c,y]],4);}}
+ if(a.floor==='hex'){const r=n/2,s=Math.sqrt(3)*r;w=2*s;h=3*r;for(let j=-1;j<=2;j++)for(let i=-1;i<=2;i++){const x=i*s+mod(j,2)*s/2,y=j*1.5*r,ps=[];for(let k=0;k<6;k++)ps.push([x+r*Math.cos(Math.PI/6+k*Math.PI/3),y+r*Math.sin(Math.PI/6+k*Math.PI/3)]);poly(ps,mod(i,2)+2*mod(j,2));}}
+ if(a.floor==='herringbone'){const L=3,u=n/L;for(let j=-L;j<2*L;j++)for(let i=-L;i<2*L;i++){if(mod(i+j,2*L)===0)rect(i*u,j*u,L*u,u,mod(i,2)+2*mod(j,2));if(mod(i+j,2*L)===L)rect(i*u,j*u,u,L*u,mod(i,2)+2*mod(j,2));}angle+=45;}
+ if(a.floor==='basket'){for(let j=0;j<2;j++)for(let i=0;i<2;i++)for(let k=0;k<3;k++){if((i+j)%2)rect(i*n+k*n/3,j*n,n/3,n,k);else rect(i*n,j*n+k*n/3,n,n/3,k);}}
+ if(a.floor==='ashlar'){rect(0,0,1.5*n,n,0);rect(1.5*n,0,.5*n,.5*n,1);rect(1.5*n,.5*n,.5*n,.5*n,2);rect(0,n,.5*n,n,3);rect(.5*n,n,1.5*n,.5*n,4);rect(.5*n,1.5*n,.75*n,.5*n,5);rect(1.25*n,1.5*n,.75*n,.5*n,6);}
+ return {w,h,angle,tiles};
+}
+export function roomSurfaceTable(a,p){
+ const pattern=roomTilePattern(a),base=roomFloorColor(p),colors=[base,mix(base,p.metal,.4*a.detail/100)];
+ for(let i=0;i<7;i++)colors.push(mix(base,i%2?p.background:p.engraving,Math.min(.18,(.04+i*.015)*a.variation/100)));
+ if(!pattern)return {pattern:null,colors};
+ const size=48,indices=new Uint8Array(size*size);
+ for(let j=0;j<size;j++)for(let i=0;i<size;i++){
+  const x=(i+.5)*pattern.w/size,y=(j+.5)*pattern.h/size;
+  for(const tile of pattern.tiles){let inside=true,edge=Infinity;
+   for(let k=0;k<tile.p.length;k++){const q=tile.p[k],r=tile.p[(k+1)%tile.p.length],dx=r[0]-q[0],dy=r[1]-q[1],cross=dx*(y-q[1])-dy*(x-q[0]);if(cross<-.00001){inside=false;break;}edge=Math.min(edge,cross/Math.sqrt(dx*dx+dy*dy));}
+   if(inside){indices[j*size+i]=edge<Math.max(a.grout/2,.6)?1:2+tile.tag%7;break;}
+  }
+ }
+ const angle=pattern.angle*Math.PI/180;return {pattern,colors,size,indices,cos:Math.cos(angle),sin:Math.sin(angle)};
+}
+export function roomFloorSample(t,a,x,y,w,h){
+ const near=Math.min(x,y,w-x,h-y);
+ if(a.floorBorder&&near>=0){const d=Math.abs(near-12);if(d<(a.borderStyle==='band'?3:1.5)||a.borderStyle==='double'&&Math.abs(near-20)<1.5||a.borderStyle==='diamond'&&d+Math.abs(((x+y)%24+24)%24-12)<4)return t.colors[1];}
+ if(!t.pattern)return t.colors[0];
+ const X=x*t.cos+y*t.sin,Y=-x*t.sin+y*t.cos,p=t.pattern,mod=(n,m)=>((n%m)+m)%m;
+ return t.colors[t.indices[Math.min(t.size-1,Math.floor(mod(Y,p.h)/p.h*t.size))*t.size+Math.min(t.size-1,Math.floor(mod(X,p.w)/p.w*t.size))]];
+}
+export function roomWallMark(a,t,z,length,height){
+ if(height<=0||length<=0)return false;
+ const bay=length/Math.max(1,Math.round(length/a.wallScale)),u=((t%bay)+bay)%bay/bay,v=1-z/height;
+ const near=(x,y,d=.012)=>Math.abs(x-y)<d;
+ const box=(l,r,top,bottom)=>(v>=top&&v<=bottom&&(near(u,l)||near(u,r)))||(u>=l&&u<=r&&(near(v,top)||near(v,bottom)));
+ let mark=false;
+ switch(a.wall){
+ case 'panel':mark=box(.06,.94,.08,.92)||box(.12,.88,.14,.86);break;
+ case 'masonry':mark=near(v,1/3)||near(v,2/3)||near(u,Math.floor(v*3)%2?.5:0);break;
+ case 'rubble':mark=near(v,.32)||near(v,.73)||near(u,v<.32?.38:v<.73?.7:.24)||v>.73&&near(u,.67);break;
+ case 'pilaster':mark=box(.04,.18,.05,.95)||near(u,.085)||near(u,.135)||box(.25,.94,.15,.85);break;
+ case 'arcade':mark=v>.35&&(near(u,.11)||near(u,.89))||v<=.36&&near(v,.36-.27*Math.sqrt(Math.max(0,1-Math.pow((u-.5)/.39,2))),.015)&&u>.11&&u<.89;break;
+ case 'wainscot':mark=near(v,.65)||box(.06,.94,.68,.94)||v>.68&&(near(u,.33)||near(u,.67));break;
+ case 'ribbed':mark=box(.06,.94,.08,.92)||v>.15&&v<.9&&u>.12&&u<.88&&Math.abs(u*9-Math.round(u*9))<.08;break;
+ }
+ return mark||a.wallMarks&&Math.abs(u-.5)+Math.abs(v-.37)*1.3<.07&&Math.abs(u-.5)+Math.abs(v-.37)*1.3>.048;
+}
+export function roomWallPoint(frame,face,x,y){const depth=face.plane.m*x+face.plane.n*y+face.plane.k;if(!Number.isFinite(depth)||depth<=0)return null;
+ const q=1/depth,u=(x-frame.ox)/frame.scale,v=(y-frame.oy)/frame.scale,s=frame.distance-q;
+ const X=u*q/frame.distance+frame.w/2,Y=frame.sin*s+frame.cos*v*q/frame.distance+frame.h/2,Z=frame.cos*s-frame.sin*v*q/frame.distance;
+ return {t:face.side==='north'||face.side==='south'?X:Y,z:Z};
+}
+

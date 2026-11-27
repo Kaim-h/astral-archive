@@ -1380,5 +1380,8 @@ export function run(){
   eq(Core.owners(n.snapshot),Core.owners(before),'Room owners unchanged');
   const bad=Core.updateAppearance(s,p,'floorScale',0);yes(!!bad.error,'invalid surface range');yes(!!Core.finishAppearance(s,bad).error,'invalid surface cannot commit');
  }
+ {
+  for(const floor of Appearance.floorStyles){const a=Appearance.roomPolicy({floor}),t=View.roomSurfaceTable(a,{background:"#141414",panel:"#333333",metal:"#999999",engraving:"#aaaaaa"});yes(t.colors.includes(View.roomFloorSample(t,a,22,42,1000,1000)),'floor sample '+floor);}
+ }
  return checks;
 }

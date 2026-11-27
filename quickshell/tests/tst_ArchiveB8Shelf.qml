@@ -1666,6 +1666,21 @@ Item {
                 compare(JSON.stringify(ctl.snapshot),mapBefore)
             }finally{study.closeContext();study.mapEnabled=false;study.switchMode("browse")}
         }
+        function test_n5_room_appearance(){
+            var ctl=study.controller
+            clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
+            var before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision
+            clickNamed("toggle-room-plan");tryVerify(function(){return study.showRoomPlan&&!study.roomNavigating})
+            clickNamed("room-appearance")
+            tryVerify(function(){return ctl.appearanceSessionOpen&&ctl.structuralProposal.command.kind==="spatialRoomAppearance"})
+            clickNamed("room-floor-choice");clickNamed("room-floor-bond")
+            compare(JSON.stringify(ctl.snapshot),before)
+            var plan=findChild(study,"archive-room-plan")
+            tryVerify(function(){return plan.surfacePolicy.floor==="bond"})
+            clickNamed("structure-apply");compare(ctl.archiveState.revision,rev+1)
+            grabImage(study).save("archive-b8-native-room-stone.png")
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+        }
         function test_n5_expanded_appearance(){
             var ctl=study.controller,scene=study.scene,before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision
             clickNamed("browse-menu");clickNamed("shelf-appearance");clickNamed("shelf-family-astral")

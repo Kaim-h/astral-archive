@@ -356,7 +356,7 @@ Rectangle {
     // Resolved material roles are separate from semantic theme colors.
     readonly property var materialProposal:archive.structuralProposal&&archive.structuralProposal.command.kind==="materialBatch"?archive.structuralProposal:null
     readonly property var materialSnapshot:materialProposal&&materialProposal.snapshot?materialProposal.snapshot:archive.snapshot
-    readonly property var shelfAppearanceProposal:archive.structuralProposal&&archive.structuralProposal.command.kind==="spatialAppearance"&&archive.structuralProposal.ok?archive.structuralProposal:null
+    readonly property var shelfAppearanceProposal:archive.structuralProposal&&archive.appearanceSessionOpen&&archive.structuralProposal.ok?archive.structuralProposal:null
     readonly property var sceneAppearanceSnapshot:shelfAppearanceProposal?shelfAppearanceProposal.snapshot:materialProposal?materialSnapshot:null
     readonly property var appearanceColors: View.appearancePalette(colors,materialSnapshot.materials)
     function paletteFor(id){
@@ -757,6 +757,11 @@ Rectangle {
         structurePanel.forceActiveFocus()
         return true
     }
+    function startRoomAppearance(){
+        if(!showRoomPlan||!viewSwitchReady||roomPlan.dragging||checkpointLoadPending)return false
+        if(!archive.beginRoomAppearance(currentRoomId))return false
+        structureScroll.resetPosition();structurePanel.forceActiveFocus();return true
+    }
     function setShelfAppearance(key,value){
         return archive.updateAppearance(key,value)
     }
@@ -1125,9 +1130,10 @@ Rectangle {
         visible:study.showRoomPlan||study.roomNavigating
         opacity:study.roomNavigating?study.roomLayers.room:1
         enabled:study.showRoomPlan&&study.viewSwitchReady&&!study.checkpointLoadPending
-        snapshot:archive.snapshot
+        snapshot:study.sceneAppearanceSnapshot||archive.snapshot
         roomId:study.currentRoomId
-        colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
+        colors:View.roomPalette(snapshot,roomId,Themes.Theme.palettes,Themes.Theme.index);palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
+        onCustomizeRoom:study.startRoomAppearance()
         perspective:study.roomPerspective
         arranging:sceneView.mode==="arrange"
         snapEnabled:sceneView.snapEnabled;snapDistance:sceneView.snapDistance
@@ -1637,6 +1643,7 @@ Rectangle {
             if(Math.abs(mouse.x-pressAt.x)>6||Math.abs(mouse.y-pressAt.y)>6)return
             if(mouse.x>=structurePanel.x&&mouse.x<structurePanel.x+structurePanel.width&&mouse.y>=structurePanel.y&&mouse.y<structurePanel.y+structurePanel.height)return
             if(mouse.button===Qt.RightButton&&archive.appearanceSessionOpen){
+                if(study.showRoomPlan){if(study.finishShelfAppearance())study.startRoomAppearance();return}
                 var at=sceneView.mapFromItem(study,mouse.x,mouse.y),target=sceneView.appearanceTargetAt(at.x,at.y)
                 if(target&&study.finishShelfAppearance())study.startShelfAppearance(target,target===sceneView.cubbyId?"basic":"glazing")
                 return
@@ -1653,7 +1660,7 @@ Rectangle {
         availableWidth:study.width-16
         availableHeight:sceneView.height-16
         preferredWidth:265
-        preferredHeight:shelfAppearance?590:mapDoorCommand?300:mapRoomCommand?410:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
+        preferredHeight:shelfAppearance||roomAppearance?590:mapDoorCommand?300:mapRoomCommand?410:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
         property var proposal:study.materialProposal?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
@@ -1663,6 +1670,7 @@ Rectangle {
         readonly property bool bookEdit:!!cmd&&cmd.kind==="spatialAppPlace"
         readonly property bool bookRemove:!!cmd&&cmd.kind==="spatialAppUnplace"
         readonly property bool supportEdit:!!cmd&&cmd.kind==="spatialSupport"
+        readonly property bool roomAppearance:!!cmd&&cmd.kind==="spatialRoomAppearance"
         readonly property bool shelfAppearance:!!cmd&&cmd.kind==="spatialAppearance"
         readonly property bool appearanceIsShelf:shelfAppearance&&Spatial.kind(archive.snapshot,cmd.containerId)==="shelf"
         readonly property var appearanceLocal:shelfAppearance?archive.snapshot.cubbies[cmd.containerId].appearance||({}):({})
@@ -1675,7 +1683,7 @@ Rectangle {
         readonly property bool mapDoorFields:mapDoorCommand&&cmd.kind!=="spatialDoorMerge"
         readonly property var mapMergeChoices:mapDoorCommand&&cmd.kind==="spatialDoorMerge"?View.mapDoorMergeChoices(archive.snapshot,cmd.doorId):[]
         readonly property var lostMapDoors:mapRoomCommand?View.mapRoomLostDoors(archive.snapshot,cmd):[]
-        readonly property bool spatialConfirmation:mapDoorCommand||mapRoomCommand||!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAdoptIndependentProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
+        readonly property bool spatialConfirmation:mapDoorCommand||mapRoomCommand||!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAdoptIndependentProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance","spatialRoomAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
         // Keyed by the editor kind, not each proposal object: typing must
         // not rebuild the active TextInput on every numeric preview.
@@ -1700,7 +1708,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.mapDoorCommand?(structurePanel.cmd.kind==="spatialDoorMerge"?"Merge touching openings":structurePanel.cmd.kind==="spatialDoorCreate"?"Add shared opening":"Opening dimensions"):structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove empty Room":structurePanel.cmd.kind==="spatialRoomCreate"?"Add Room":"Room dimensions"):structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?(structurePanel.appearanceIsShelf?"Shelf appearance":"Cubby appearance"):structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.roomAppearance?"Room appearance":structurePanel.mapDoorCommand?(structurePanel.cmd.kind==="spatialDoorMerge"?"Merge touching openings":structurePanel.cmd.kind==="spatialDoorCreate"?"Add shared opening":"Opening dimensions"):structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove empty Room":structurePanel.cmd.kind==="spatialRoomCreate"?"Add Room":"Room dimensions"):structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?(structurePanel.appearanceIsShelf?"Shelf appearance":"Cubby appearance"):structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:archive.appearanceSessionOpen?"Keep valid appearance":"Cancel fixture adjustment";onClicked:if(archive.appearanceSessionOpen)study.finishShelfAppearance();else study.cancelStructurePanel()}
@@ -1718,7 +1726,7 @@ Rectangle {
                 readonly property var cmd:structurePanel.cmd
                 Text {
                     width:parent.width;wrapMode:Text.WordWrap;color:study.colors.text;font.pixelSize:11
-                    text:!structurePanel.proposal?"":structurePanel.mapDoorCommand?(structurePanel.cmd.kind==="spatialDoorMerge"?"Only contacting openings on the same pair of Room boundaries can merge. Review and Apply.":"Offsets along the first Room wall; positive width in one contiguous clear shared span. Neither Shelf nor Room moves."):structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove this empty Room only. Resolve any attached openings explicitly.":"Exact world X/Y, width and depth. Local Shelf geometry and identities stay unchanged. Apply when valid."):structurePanel.roomShelfEdit?
+                    text:!structurePanel.proposal?"":structurePanel.roomAppearance?"Local stone surfaces. Geometry and ownership remain unchanged.":structurePanel.mapDoorCommand?(structurePanel.cmd.kind==="spatialDoorMerge"?"Only contacting openings on the same pair of Room boundaries can merge. Review and Apply.":"Offsets along the first Room wall; positive width in one contiguous clear shared span. Neither Shelf nor Room moves."):structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove this empty Room only. Resolve any attached openings explicitly.":"Exact world X/Y, width and depth. Local Shelf geometry and identities stay unchanged. Apply when valid."):structurePanel.roomShelfEdit?
                         "Position uses occupied top-left. Width and height describe the interior; depth is independent. Invalid dimensions retain the original arrangement.":structurePanel.shelfTurn?
                         "Quarter-turn of selected Shelf only. Preview outline shows validated new footprint; wall correction is minimal. Apply or Cancel.":structurePanel.adopting?
                         "Adopt real outer profiles for every Shelf. Interior, positions and ownership remain unchanged. Review old/new bounds; unresolved conflicts prevent Apply.":structurePanel.removing?
@@ -1813,6 +1821,12 @@ Rectangle {
                             }
                         }
                     }
+                }
+                Archive.ArchiveRoomAppearanceOptions {
+                    visible:structurePanel.roomAppearance;width:contentStructure.width;colors:roomPlan.colors
+                    room:structurePanel.roomAppearance?archive.snapshot.spatial.rooms[structurePanel.cmd.roomId]:null
+                    patch:structurePanel.roomAppearance?structurePanel.cmd.patch:({})
+                    onChanged:function(key,value){study.setShelfAppearance(key,value)}
                 }
                 Archive.ArchiveAppearanceOptions {
                     visible:structurePanel.shelfAppearance&&study.appearanceTab!=="basic"
