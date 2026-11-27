@@ -98,3 +98,6 @@ Complete exact Cubby interior raw values with invalid null proposals and disable
 - N5d corrective check: `46052768592` passed offline/browser and all other native Shelf cases (41/42), but the actual Room floor choice did not reach the preview assertion. Move the primary floor control to the start of the scrollable editor so its initial choices are visible and add proposal-level diagnostics. Remove the Qt forward-declaration warning. Retain actual pointer input and preview assertion.
 
 - Corrective run `46053356447` confirmed the mis-selection (requested bond, actual ashlar). Fix `ArchiveChoice` with explicit distinct row coordinates and height, not a retry or delay. Keep the actual pointer assertion. Recheck native before advancing the atlas integration.
+
+### N5g.2 — bounded atlas focus motion (candidate)
+Add 240 ms camera-only focus/overview flight with reduced-motion instant path and Escape completion. Block conflicting gestures, editing, checkpoint and layer transitions until complete. The canonical target camera is stored immediately; the transient interpolation is never serialized. Add actual keyboard and flight isolation regression.

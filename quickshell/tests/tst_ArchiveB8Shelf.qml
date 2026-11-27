@@ -1662,6 +1662,24 @@ Item {
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),mapBefore)
             }finally{study.closeContext();study.mapEnabled=false;study.switchMode("browse")}
         }
+        function test_n5_map_focus_motion_and_keyboard(){
+            var ctl=study.controller,oldMotion=study.reducedRoomMotion
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision,map=findChild(study,"archive-map-room")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                var base=JSON.stringify(map.cameraState())
+                keyClick(Qt.Key_Right);verify(!!map.selectedRoom)
+                study.switchMode("arrange");study.reducedRoomMotion=false
+                keyClick(Qt.Key_Return);verify(map.focusAnimating);verify(!study.viewSwitchReady&&!study.checkpointReady)
+                keyClick(Qt.Key_Escape);tryVerify(function(){return !map.focusAnimating&&!!map.focusState})
+                study.reducedRoomMotion=true
+                clickNamed("map-overview");compare(JSON.stringify(map.cameraState()),base)
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
+            }finally{study.mapEnabled=false;study.reducedRoomMotion=oldMotion;study.switchMode("browse")}
+        }
         function test_n5_room_appearance(){
             var ctl=study.controller
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")

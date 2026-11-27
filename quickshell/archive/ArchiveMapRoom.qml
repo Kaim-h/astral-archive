@@ -47,7 +47,7 @@ Item {
     readonly property int contourMaxBuildMs:art.maxBuildMs
     readonly property int mapLastPaintMs:art.lastPaintMs
     function roomColors(room){return room.palette!==null&&palettes[room.palette]?palettes[room.palette]:colors}
-    function openAppearance(roomId){if(!enabled||!visible||appearanceOpen)return;cancelGesture();appearanceRequested(roomId||"")}
+    function openAppearance(roomId){if(!enabled||!visible||appearanceOpen||focusAnimating)return;cancelGesture();appearanceRequested(roomId||"")}
     function closeAppearance(cancel){appearanceCloseRequested(cancel===true);if(!appearanceOpen&&enabled&&visible)forceActiveFocus()}
     onAppearanceOpenChanged:if(appearanceOpen){cancelGesture();chartPanel.forceActiveFocus()}
     property string selectedRoom:""
@@ -79,7 +79,12 @@ Item {
     property var creationBounds:null
     property var presentationFrame:null
     property var focusState:null
-    readonly property var camera:presentationFrame|| (creationBounds?View.mapFrame({bounds:creationBounds},width,height,1):View.mapFrame(dataModel,width,height,zoom,center))
+    property bool reducedMotion:true
+    property var focusFlight:null
+    property real focusProgress:0
+    readonly property bool focusAnimating:!!focusFlight
+    readonly property var focusFrame:focusFlight?View.mapTransitionFrame(focusFlight.from,focusFlight.to,focusProgress):null
+    readonly property var camera:presentationFrame||focusFrame|| (creationBounds?View.mapFrame({bounds:creationBounds},width,height,1):View.mapFrame(dataModel,width,height,zoom,center))
     onProposalCommandChanged:{
         if(!proposalCommand||proposalCommand.kind!=="spatialRoomCreate"){creationBounds=null;return}
         if(!creationBounds&&dataModel){
@@ -113,14 +118,14 @@ Item {
         return true
     }
     function startDoorGesture(id,kind,x,y){
-        if(appearanceOpen||!arranging||!enabled||gesture)return false
+        if(appearanceOpen||focusAnimating||!arranging||!enabled||gesture)return false
         var g=View.mapDoorGesture(snapshot,id,kind,camera,x,y);if(!g)return false
         selectDoor(id);forceActiveFocus();gesture={door:true,data:g,x:x,y:y,snap:snapEnabled,interval:snapDistance};dragPatch=null;return true
     }
-    function removeSelectedDoor(){if(!appearanceOpen&&arranging&&enabled&&!dragging&&selectedOpening){var id=selectedDoor;deleteDoor(id);return true}return false}
+    function removeSelectedDoor(){if(!appearanceOpen&&!focusAnimating&&arranging&&enabled&&!dragging&&selectedOpening){var id=selectedDoor;deleteDoor(id);return true}return false}
     function cancelGesture(){gesture=null;dragPatch=null;press=null;moved=false}
     function startGesture(id,kind,x,y){
-        if(appearanceOpen||!arranging||!enabled||gesture)return false
+        if(appearanceOpen||focusAnimating||!arranging||!enabled||gesture)return false
         var g=View.mapRoomGesture(dataModel,id,kind,camera,x,y);if(!g)return false
         selectedDoor="";selectedRoom=id;forceActiveFocus();gesture={door:false,data:g,x:x,y:y,snap:snapEnabled,interval:snapDistance,magnet:magnetic};dragPatch=null;return true
     }
@@ -160,15 +165,24 @@ Item {
     }
     function cameraState(){return {zoom:zoom,center:center?{x:center.x,y:center.y}:null}}
     function setCameraState(c){zoom=c.zoom;center=c.center?{x:c.center.x,y:c.center.y}:null}
+    function finishFocusFlight(){focusFlight=null;focusAnimation.stop();focusProgress=0}
+    function flyTo(c){
+        finishFocusFlight()
+        var from=camera,to=View.mapFrame(dataModel,width,height,c.zoom,c.center)
+        if(reducedMotion||!from||!to){setCameraState(c);return}
+        focusProgress=0;focusFlight={from:from,to:to};setCameraState(c);focusAnimation.start()
+    }
+    NumberAnimation {id:focusAnimation;target:map;property:"focusProgress";from:0;to:1;duration:240;easing.type:Easing.InOutCubic;onFinished:map.finishFocusFlight()}
+    onReducedMotionChanged:if(reducedMotion)finishFocusFlight()
     function focusSelection(){
-        if(!enabled||dragging||panning||appearanceOpen)return false
+        if(!enabled||dragging||panning||appearanceOpen||focusAnimating)return false
         var kind=selectedDoor?"door":"room",id=selectedDoor||selectedRoom,target=View.mapFocusCamera(dataModel,width,height,kind,id)
         if(!target)return false
-        var base=focusState?focusState.base:cameraState();focusState={kind:kind,id:id,base:base};setCameraState(target);forceActiveFocus();return true
+        var base=focusState?focusState.base:cameraState();focusState={kind:kind,id:id,base:base};flyTo(target);forceActiveFocus();return true
     }
     function restoreOverview(){
-        if(!focusState||dragging||panning)return false
-        var base=focusState.base;focusState=null;setCameraState(base);forceActiveFocus();return true
+        if(!focusState||dragging||panning||focusAnimating)return false
+        var base=focusState.base;focusState=null;flyTo(base);forceActiveFocus();return true
     }
     function reconcileFocus(){
         if(!focusState)return
@@ -177,29 +191,29 @@ Item {
     }
     function savedView(){return {camera:cameraState(),selectedRoom:selectedRoom,selectedDoor:selectedDoor,focus:focusState?{kind:focusState.kind,id:focusState.id,base:focusState.base}:null}}
     function restoreView(v){resetView();if(!v)return;setCameraState(v.camera);selectedRoom=v.selectedRoom;selectedDoor=v.selectedDoor;focusState=v.focus}
-    function fit(){if(dragging)return;press=null;focusState=null;center=null;zoom=1}
+    function fit(){if(dragging)return;finishFocusFlight();press=null;focusState=null;center=null;zoom=1}
     function resetView(){cancelGesture();creationBounds=null;fit();selectedRoom="";selectedDoor="";suggestionIndex=0}
     function zoomAt(value,x,y){
-        if(dragging||!camera||!Number.isFinite(value))return
+        if(dragging||focusAnimating||!camera||!Number.isFinite(value))return
         var anchor=View.mapAt(camera,x,y),next=Math.max(.25,Math.min(8,value))
         var frame=View.mapFrame(dataModel,width,height,next,center)
         if(!frame)return
         center=View.mapCameraCenter(anchor.x-(x-width/2)/frame.scale,anchor.y-(y-height/2)/frame.scale)
         zoom=next
     }
-    onDataModelChanged:{cancelGesture();if(!dataModel||!dataModel.rooms.some(r=>r.id===selectedRoom))selectedRoom="";if(!dataModel||!dataModel.doors.some(d=>d.id===selectedDoor))selectedDoor="";reconcileFocus()}
-    onVisibleChanged:if(!visible){cancelGesture();if(appearanceOpen)closeAppearance(true)}
-    onWidthChanged:cancelGesture()
-    onHeightChanged:cancelGesture()
+    onDataModelChanged:{finishFocusFlight();cancelGesture();if(!dataModel||!dataModel.rooms.some(r=>r.id===selectedRoom))selectedRoom="";if(!dataModel||!dataModel.doors.some(d=>d.id===selectedDoor))selectedDoor="";reconcileFocus()}
+    onVisibleChanged:if(!visible){finishFocusFlight();cancelGesture();if(appearanceOpen)closeAppearance(true)}
+    onWidthChanged:{finishFocusFlight();cancelGesture()}
+    onHeightChanged:{finishFocusFlight();cancelGesture()}
     onEnabledChanged:if(!enabled){cancelGesture();if(appearanceOpen)closeAppearance(true)}else if(visible&&!appearanceOpen)forceActiveFocus()
     onArrangingChanged:cancelGesture()
     onActiveFocusChanged:if(!activeFocus)cancelGesture()
     Connections {target:map.Window.window;function onActiveChanged(){if(map.Window.window&&!map.Window.window.active)map.cancelGesture()}}
-    Keys.onEscapePressed:function(event){if(appearanceOpen){closeAppearance(true);event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(focusState){restoreOverview();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
+    Keys.onEscapePressed:function(event){if(focusAnimating){finishFocusFlight();event.accepted=true}else if(appearanceOpen){closeAppearance(true);event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(focusState){restoreOverview();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
     Keys.onDeletePressed:function(event){if(appearanceOpen||activeFocus&&removeSelectedDoor())event.accepted=true}
     activeFocusOnTab:true
     Keys.onPressed:function(event){
-        if(!appearanceOpen&&!press&&!dragging&&enabled){
+        if(!appearanceOpen&&!focusAnimating&&!press&&!dragging&&enabled){
             if((event.key===Qt.Key_Return||event.key===Qt.Key_Space)&&selectedRoom&&!selectedDoor){if(arranging)focusSelection();else enterRoom(selectedRoom);event.accepted=true;return}
             if(dataModel&&[Qt.Key_Left,Qt.Key_Right,Qt.Key_Up,Qt.Key_Down].includes(event.key)){
                 var ids=dataModel.rooms.map(r=>({kind:"room",id:r.id})).concat(dataModel.doors.map(d=>({kind:"door",id:d.id}))),index=ids.findIndex(v=>v.id===(selectedDoor||selectedRoom)),step=event.key===Qt.Key_Left||event.key===Qt.Key_Up?-1:1
@@ -207,7 +221,7 @@ Item {
             }
         }
         if(event.key===Qt.Key_Backspace&&(appearanceOpen||activeFocus&&removeSelectedDoor()))event.accepted=true
-        else if((event.key===Qt.Key_Menu||event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier))&&!appearanceOpen&&!press&&!dragging){
+        else if((event.key===Qt.Key_Menu||event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier))&&!appearanceOpen&&!focusAnimating&&!press&&!dragging){
             contextRequested(width/2,height/2);event.accepted=true
         }
     }
@@ -350,13 +364,13 @@ Item {
     }
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.RightButton
-        enabled:!map.appearanceOpen&&!map.press&&!map.dragging
+        enabled:!map.appearanceOpen&&!map.focusAnimating&&!map.press&&!map.dragging
         onClicked:function(mouse){var id=map.hit(mouse.x,mouse.y);if(id){map.selectedRoom=id;map.selectedDoor="";map.openAppearance(id)}else map.contextRequested(mouse.x,mouse.y)}
     }
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.LeftButton|Qt.MiddleButton
         onPressed:function(mouse){
-            if(!map.camera||map.appearanceOpen)return
+            if(!map.camera||map.appearanceOpen||map.focusAnimating||mouse.y<64)return
             map.forceActiveFocus();map.moved=false
             if(map.arranging&&mouse.button===Qt.LeftButton){
                 var doorId=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y)
@@ -383,9 +397,9 @@ Item {
             if(p.blankArrange){map.selectedRoom="";map.selectedDoor="";map.restoreOverview()}
         }
         onCanceled:map.cancelGesture()
-        onClicked:function(mouse){if(!map.appearanceOpen&&!map.arranging&&mouse.button===Qt.LeftButton&&!map.moved){var d=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y);if(!d||!map.selectDoor(d)){map.selectedDoor="";map.selectedRoom=map.hit(mouse.x,mouse.y)}}}
+        onClicked:function(mouse){if(!map.appearanceOpen&&!map.focusAnimating&&!map.arranging&&mouse.button===Qt.LeftButton&&!map.moved&&mouse.y>=64){var d=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y);if(!d||!map.selectDoor(d)){map.selectedDoor="";map.selectedRoom=map.hit(mouse.x,mouse.y)}}}
         onDoubleClicked:function(mouse){
-            if(map.appearanceOpen||map.arranging||mouse.button!==Qt.LeftButton||map.moved)return
+            if(map.appearanceOpen||map.focusAnimating||map.arranging||mouse.button!==Qt.LeftButton||map.moved||mouse.y<64)return
             var id=map.hit(mouse.x,mouse.y)
             if(id){map.press=null;map.selectedRoom=id;map.enterRoom(id)}
         }
@@ -483,7 +497,8 @@ Item {
             else if(mouse.button===Qt.LeftButton)map.closeAppearance(false)
         }
     }
-    ArchiveButton {objectName:"map-chart";z:5;anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:map.colors;label:"Chart…";enabled:!map.dragging&&!map.panning;onClicked:if(map.appearanceOpen)map.closeAppearance(false);else map.openAppearance()}
+    MouseArea {anchors.fill:parent;z:7;visible:map.focusAnimating;acceptedButtons:Qt.AllButtons;onWheel:function(wheel){wheel.accepted=true}}
+    ArchiveButton {objectName:"map-chart";z:5;anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:map.colors;label:"Chart…";enabled:!map.dragging&&!map.panning&&!map.focusAnimating;onClicked:if(map.appearanceOpen)map.closeAppearance(false);else map.openAppearance()}
     Rectangle {
         id:chartPanel;objectName:"map-chart-panel";z:6
         anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;anchors.topMargin:42
@@ -522,7 +537,7 @@ Item {
         anchors.bottom:parent.bottom;anchors.bottomMargin:8
         anchors.horizontalCenter:parent.horizontalCenter
         width:458;height:116
-        enabled:!map.dragging&&!map.panning&&!map.appearanceOpen
+        enabled:!map.dragging&&!map.panning&&!map.appearanceOpen&&!map.focusAnimating
         Item {
             objectName:"map-door-actions"
             width:336;x:61;height:26;y:0;visible:map.arranging;enabled:map.arranging

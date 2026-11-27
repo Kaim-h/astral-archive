@@ -281,12 +281,12 @@ Rectangle {
         archive.proposeStructure(cmd)
     }
     readonly property bool showRoomPlan:!showMap&&roomPlanOpen&&Spatial.physicalProfiles(archive.snapshot)
-    readonly property bool viewSwitchReady:!roomNavigating&&!mapNavigating&&!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
+    readonly property bool viewSwitchReady:!roomNavigating&&!mapNavigating&&!mapView.focusAnimating&&!sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!archive.draft&&!archive.structuralProposal&&!contextOpen&&!bookPicker
     // Optional isolated study adapter, injected by the standalone window.
     // No filesystem dependency in the shared scene or model.
     property var checkpointStore:null
     property bool checkpointLoadPending:false
-    readonly property bool checkpointReady:!roomNavigating&&!mapNavigating&&!mapView.press&&!mapView.appearanceOpen&&!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
+    readonly property bool checkpointReady:!roomNavigating&&!mapNavigating&&!mapView.focusAnimating&&!mapView.press&&!mapView.appearanceOpen&&!!checkpointStore&&!archive.draft&&!archive.structuralProposal&&
         !sceneView.busy&&!sceneView.pointer&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&!sceneView.prepared&&!study.contextOpen&&!study.bookPicker&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)
     onCheckpointReadyChanged:if(!checkpointReady)checkpointLoadPending=false
     function checkpointView(){
@@ -631,7 +631,7 @@ Rectangle {
         pickId=""
     }
     function switchMode(value) {
-        if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning)return false
+        if(roomNavigating||mapNavigating||mapView.focusAnimating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning)return false
         if(spatialEnabled){
             if(sceneView.pointer||sceneView.prepared||sceneView.furnitureDrag||sceneView.bookDrag||checkpointLoadPending||bookPicker)return false
             if(archive.draft&&(value!=="browse"||!resolveRackSelection()))return false
@@ -959,7 +959,7 @@ Rectangle {
 
     Column {
         id:heading
-        enabled:!study.roomNavigating&&!study.mapNavigating&&!roomPlan.dragging&&!mapView.appearanceOpen&&!(mapView.panning||mapView.dragging)&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
+        enabled:!study.roomNavigating&&!study.mapNavigating&&!mapView.focusAnimating&&!roomPlan.dragging&&!mapView.appearanceOpen&&!(mapView.panning||mapView.dragging)&&study.materialPanel===""&&!archive.structuralProposal&&!study.checkpointLoadPending&&!study.bookPicker&&!sceneView.bookDrag
         anchors.top:parent.top
         anchors.left:parent.left
         anchors.right:parent.right
@@ -1178,7 +1178,8 @@ Rectangle {
         objectName:"archive-map-room"
         anchors.fill:sceneView
         visible:study.showMap
-        enabled:study.showMap&&(study.viewSwitchReady||mapView.appearanceOpen)&&!study.checkpointLoadPending
+        enabled:study.showMap&&(study.viewSwitchReady||mapView.appearanceOpen||mapView.focusAnimating)&&!study.checkpointLoadPending
+        reducedMotion:study.reducedRoomMotion
         presentationFrame:study.mapNavigation?View.mapTransitionFrame(study.mapNavigation.from,study.mapNavigation.to,study.mapProgress):null
         atlasEnabled:study.mapEnabled
         snapshot:study.sceneAppearanceSnapshot||archive.snapshot;colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
