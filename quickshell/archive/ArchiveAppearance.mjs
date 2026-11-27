@@ -106,7 +106,7 @@ const families=Object.freeze({"Architectural":"plain","Astral":"astral","Botanic
 export function familyKey(f){return f==='None'?'':own(families,f)?families[f]:'plain';}
 export function emblems(f){return catalogue[familyKey(f)]||[];}
 export function emblem(f,key){const entries=emblems(f);return entries.find(e=>e.id===key)||entries[0]||null;}
-const emblemIds=Object.values(catalogue).flat().map(e=>e.id);
+const emblemIds=Object.values(catalogue).reduce((ids,entries)=>ids.concat(entries.map(e=>e.id)),[]);
 export const borderStyles=Object.freeze(['none','ornate','rails','register','inset']);
 export const centerStyles=Object.freeze(['none','seal','axis','span']);
 export const glazingStyles=Object.freeze(['linework','subtle','moderate','clearer','graded','combined']);

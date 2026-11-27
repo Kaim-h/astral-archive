@@ -1336,7 +1336,7 @@ export function run(){
  }
  {
   const state=Core.session(ShelfSample.fixture()),s=state.snapshot,view={path:s.path,theme:1,cameras:{}};
-  eq(Object.values(Appearance.catalogue).flat().length,76,'exact recovered catalogue count');
+  eq(Object.values(Appearance.catalogue).reduce((n,entries)=>n+entries.length,0),76,'exact recovered catalogue count');
   for(const [family,entries] of Object.entries(Appearance.catalogue)){
    eq(new Set(entries.map(e=>e.id)).size,entries.length,'unique catalogue IDs '+family);
    for(const e of entries)if(!e.legacy)yes(e.core.length>0,'static emblem path data '+e.id);
