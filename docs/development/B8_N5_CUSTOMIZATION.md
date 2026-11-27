@@ -83,6 +83,9 @@ N5c.2 native run 46051970925: offline and browser passed; Shelf 40 passed, 1 fai
 ### N5e.1 — atlas appearance model (candidate)
 S19r3/r4 chart title/subtitle, ornament/family, contours/density and map frame/label/mark defaults plus Room-local subtitle and overrides. Separate from camera state and interior surface policy; canonical Room name/family/palette shared. Strict bounded validation, v6 envelope, same revision-bound session, exact undo and no ownership or footprint change. Native controls and label masking follow.
 
+### N5e.2 — persistent chart and atlas Room controls (candidate)
+Existing Chart interface stages the shared appearance proposal, retains isolated handle/gesture input, commits valid close, cancels Escape and supports local Room right-click appearance. Global/default and local map representation choices drive atlas frames, labels and family marks. Chart inscription header is masked; terrain cache remains the same engine. Native prior isolation and cartography tests updated for document persistence and exact undo rather than transient-only Chart state. Visual fidelity, compact dropdown behavior and real native regressions require verification.
+
 - N5d corrective check: `46052768592` passed offline/browser and all other native Shelf cases (41/42), but the actual Room floor choice did not reach the preview assertion. Move the primary floor control to the start of the scrollable editor so its initial choices are visible and add proposal-level diagnostics. Remove the Qt forward-declaration warning. Retain actual pointer input and preview assertion.
 
 - Corrective run `46053356447` confirmed the mis-selection (requested bond, actual ashlar). Fix `ArchiveChoice` with explicit distinct row coordinates and height, not a retry or delay. Keep the actual pointer assertion. Recheck native before advancing the atlas integration.

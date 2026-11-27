@@ -404,7 +404,7 @@ Item {
                 function unchanged(){
                     compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,revision)
                     compare(JSON.stringify(ctl.archiveState.history),history)
-                    verify(!ctl.structuralProposal&&!map.dragging&&!map.dragPatch)
+                    verify((!ctl.structuralProposal||map.appearanceOpen&&ctl.structuralProposal.appearanceSession)&&!map.dragging&&!map.dragPatch)
                 }
                 var pt=map.pointFor(g.line,(g.start+g.end)/2)
                 mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
@@ -457,7 +457,7 @@ Item {
                 mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
                 keyClick(Qt.Key_Delete);verify(!ctl.snapshot.spatial.doors[door.id]);verify(!ctl.structuralProposal)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
-            }finally{map.chartTitle=oldTitle;study.mapEnabled=false;study.switchMode("browse")}
+            }finally{study.mapEnabled=false;study.switchMode("browse")}
         }
         function test_map_cartography(){
             var ctl=study.controller,original=Themes.Theme.index
@@ -484,8 +484,9 @@ Item {
                 clickNamed("map-zoom-in");clickNamed("map-zoom-in");clickNamed("map-zoom-in")
                 tryVerify(function(){return map.contourBuilds>builds})
                 grabImage(study).save("archive-b8-native-shelf-map-chart-detail.png")
-                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
-            }finally{Themes.Theme.index=original;study.mapEnabled=false;var m=findChild(study,"archive-map-room");m.contourMode="subtle";m.contourDensity=55;m.chartOrnament="compass"}
+                compare(ctl.snapshot.spatial.mapAppearance.contours,"engraved");compare(ctl.archiveState.history.length,history+1)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            }finally{Themes.Theme.index=original;study.mapEnabled=false}
         }
         function test_map_focus_checkpoint_and_transition(){
             var ctl=study.controller,oldStore=study.checkpointStore,oldMotion=study.reducedRoomMotion,oldPref=study.roomPreferenceStore

@@ -375,7 +375,7 @@ export function mapPlan(s){
     if(!Spatial.physicalProfiles(s))return null;
     const rooms=Object.values(s.spatial.rooms).map(r=>({id:r.id,name:r.name,x:r.x,y:r.y,w:r.w,h:r.h,
         family:r.appearance&&r.appearance.family!=null?r.appearance.family:s.spatial.appearance&&s.spatial.appearance.family!=null?s.spatial.appearance.family:"Architectural",
-        palette:r.appearance&&r.appearance.palette!=null?r.appearance.palette:null,shelves:[]}));
+        palette:r.appearance&&r.appearance.palette!=null?r.appearance.palette:null,mapStyle:Appearance.mapRoomPolicy(s,r.id),shelves:[]}));
     if(!rooms.length)return null;
     const byId=new Map(rooms.map(r=>[r.id,r]));
     for(const [id,p] of Object.entries(s.spatial.shelves)){

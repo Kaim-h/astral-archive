@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Window
 import "ArchiveView.mjs" as View
 import "ArchiveMapTerrain.mjs" as Terrain
+import "ArchiveAppearance.mjs" as Appearance
 
 // Isolated atlas. Room edits emit proposals; no arrangement writes here.
 // Camera and gesture previews are transient; final cartography follows.
@@ -12,14 +13,33 @@ Item {
     property bool atlasEnabled:false
     property var palettes:[]
     property int desktopPalette:0
-    property string chartTitle:"The Map Room"
-    property string chartSubtitle:""
-    property string chartOrnament:"compass"
-    property string chartFamily:"Astral"
-    property string mapFrameStyle:"engraved"
-    property string contourMode:"subtle"
-    property int contourDensity:55
-    property bool appearanceOpen:false
+    property var appearanceProposal:null
+    readonly property bool appearanceOpen:!!appearanceProposal
+    readonly property bool localAppearance:appearanceOpen&&appearanceProposal.command.kind==="spatialMapRoomAppearance"
+    readonly property var chartPolicy:Appearance.mapPolicy(snapshot)
+    readonly property var localRoom:localAppearance?snapshot.spatial.rooms[appearanceProposal.command.roomId]:null
+    readonly property string chartTitle:chartValue("title")
+    readonly property string chartSubtitle:chartValue("subtitle")
+    readonly property string chartOrnament:chartValue("ornament")
+    readonly property string chartFamily:chartValue("family")
+    readonly property string mapFrameStyle:chartValue("frame")
+    readonly property string contourMode:chartValue("contours")
+    readonly property int contourDensity:chartValue("density")
+    signal appearanceRequested(string roomId)
+    signal appearanceChanged(string key,var value)
+    signal appearanceCloseRequested(bool cancel)
+    function chartValue(key){
+        var p=appearanceOpen&&!localAppearance?appearanceProposal.command.patch:null
+        return p&&Object.prototype.hasOwnProperty.call(p,key)?p[key]:chartPolicy[key]
+    }
+    function localValue(key){
+        if(!localRoom)return null
+        var p=appearanceProposal.command.patch
+        if(Object.prototype.hasOwnProperty.call(p,key))return p[key]
+        var a=key==="name"?localRoom:key==="palette"||key==="family"?localRoom.appearance:localRoom.mapAppearance
+        return a&&a[key]!==undefined?a[key]:null
+    }
+    function choiceItems(values,labels){return values.map((v,i)=>({key:v,label:labels?labels[i]:String(v)}))}
     readonly property int contourBuilds:art.contourBuilds
     readonly property int mapPaints:art.paintCount
     readonly property int contourSegmentCount:art.contourCache?art.contourCache.data.segments:0
@@ -27,9 +47,9 @@ Item {
     readonly property int contourMaxBuildMs:art.maxBuildMs
     readonly property int mapLastPaintMs:art.lastPaintMs
     function roomColors(room){return room.palette!==null&&palettes[room.palette]?palettes[room.palette]:colors}
-    function openAppearance(){if(!enabled||!visible||appearanceOpen)return;cancelGesture();appearanceOpen=true;chartPanel.forceActiveFocus()}
-    function closeAppearance(){appearanceOpen=false;if(enabled&&visible)forceActiveFocus()}
-    onAppearanceOpenChanged:if(appearanceOpen)cancelGesture()
+    function openAppearance(roomId){if(!enabled||!visible||appearanceOpen)return;cancelGesture();appearanceRequested(roomId||"")}
+    function closeAppearance(cancel){appearanceCloseRequested(cancel===true);if(!appearanceOpen&&enabled&&visible)forceActiveFocus()}
+    onAppearanceOpenChanged:if(appearanceOpen){cancelGesture();chartPanel.forceActiveFocus()}
     property string selectedRoom:""
     property string selectedDoor:""
     property int suggestionIndex:0
@@ -157,14 +177,14 @@ Item {
         zoom=next
     }
     onDataModelChanged:{cancelGesture();if(!dataModel||!dataModel.rooms.some(r=>r.id===selectedRoom))selectedRoom="";if(!dataModel||!dataModel.doors.some(d=>d.id===selectedDoor))selectedDoor="";reconcileFocus()}
-    onVisibleChanged:if(!visible){cancelGesture();appearanceOpen=false}
+    onVisibleChanged:if(!visible){cancelGesture();if(appearanceOpen)closeAppearance(true)}
     onWidthChanged:cancelGesture()
     onHeightChanged:cancelGesture()
-    onEnabledChanged:if(!enabled){cancelGesture();appearanceOpen=false}else if(visible)forceActiveFocus()
+    onEnabledChanged:if(!enabled){cancelGesture();if(appearanceOpen)closeAppearance(true)}else if(visible&&!appearanceOpen)forceActiveFocus()
     onArrangingChanged:cancelGesture()
     onActiveFocusChanged:if(!activeFocus)cancelGesture()
     Connections {target:map.Window.window;function onActiveChanged(){if(map.Window.window&&!map.Window.window.active)map.cancelGesture()}}
-    Keys.onEscapePressed:function(event){if(appearanceOpen){closeAppearance();event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(focusState){restoreOverview();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
+    Keys.onEscapePressed:function(event){if(appearanceOpen){closeAppearance(true);event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(focusState){restoreOverview();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
     Keys.onDeletePressed:function(event){if(appearanceOpen||activeFocus&&removeSelectedDoor())event.accepted=true}
     Keys.onPressed:function(event){
         if(event.key===Qt.Key_Backspace&&(appearanceOpen||activeFocus&&removeSelectedDoor()))event.accepted=true
@@ -243,8 +263,8 @@ Item {
                 var palette=map.roomColors(r),detail=View.mapRoomDetail(r,f,map.zoom),selected=map.selectedRoom===r.id
                 wall(r,0,selected?palette.text:palette.metal,selected?2:1.5,1)
                 var inset=Math.min(8/k,r.w*.06,r.h*.06)
-                if(map.mapFrameStyle!=="plain")wall(r,inset,palette.engraving,.75,.55)
-                if(map.mapFrameStyle==="engraved"&&Math.min(r.w,r.h)*k>76){
+                if(r.mapStyle.frame!=="plain")wall(r,inset,palette.engraving,.75,.55)
+                if(r.mapStyle.frame==="engraved"&&Math.min(r.w,r.h)*k>76){
                     var d=Math.min(14/k,r.w*.1,r.h*.1),pad=inset*1.6
                     ctx.save();ctx.globalAlpha=.65;ctx.strokeStyle=palette.engraving;ctx.lineWidth=.8/k
                     for(var corner of [[r.x+pad,r.y+pad,1,1],[r.x+r.w-pad,r.y+pad,-1,1],[r.x+pad,r.y+r.h-pad,1,-1],[r.x+r.w-pad,r.y+r.h-pad,-1,-1]]){
@@ -256,7 +276,7 @@ Item {
                     var sp=map.palettes.length?View.spatialPalette(map.snapshot,shelf.id,map.palettes,map.desktopPalette):palette
                     for(var layer of shelf.glyph.layers){
                         var q=layer.points;ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(var i=1;i<q.length;i++)ctx.lineTo(q[i][0],q[i][1]);ctx.closePath()
-                        ctx.fillStyle=layer.role==="frame"?sp.metal:layer.role==="recess"?sp.background:sp.panel;ctx.fill()
+                        ctx.fillStyle=View.planGlyphColor(map.snapshot,shelf.id,layer.role,sp);ctx.fill()
                     }
                     var lip=shelf.glyph.front;ctx.beginPath();ctx.moveTo(lip[0][0],lip[0][1]);ctx.lineTo(lip[1][0],lip[1][1]);ctx.strokeStyle=sp.engraving;ctx.lineWidth=1.2/k;ctx.stroke()
                 }
@@ -292,7 +312,7 @@ Item {
             width:map.camera?modelData.w*map.camera.scale:0
             height:map.camera?modelData.h*map.camera.scale:0
             visible:width>=44&&height>=16
-            color:map.roomColors(modelData).text;text:modelData.name
+            color:map.roomColors(modelData).text;text:modelData.name+(modelData.mapStyle.labels==="both"&&modelData.mapStyle.subtitle&&height>=48?"\n"+modelData.mapStyle.subtitle:"")
             font.family:"serif";font.pixelSize:Math.max(1,Math.min(19,height*.20))
             horizontalAlignment:Text.AlignHCenter;verticalAlignment:Text.AlignVCenter
             elide:Text.ElideRight;clip:true
@@ -304,7 +324,7 @@ Item {
             required property var modelData
             readonly property point origin:map.pointFor(modelData.x,modelData.y)
             x:origin.x+12;y:origin.y+12;width:22;height:22;opacity:.62
-            visible:!!source.toString()&&map.camera&&Math.min(modelData.w,modelData.h)*map.camera.scale>=100
+            visible:!!source.toString()&&map.camera&&modelData.mapStyle.marks!=="none"&&Math.min(modelData.w,modelData.h)*map.camera.scale>=100&&(modelData.mapStyle.marks==="all"||View.mapRoomDetail(modelData,map.camera,map.zoom))
             source:map.camera&&Math.min(modelData.w,modelData.h)*map.camera.scale>=100?View.ornamentAsset(modelData.family,map.roomColors(modelData).name):""
             fillMode:Image.PreserveAspectFit;asynchronous:false
         }
@@ -312,7 +332,7 @@ Item {
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.RightButton
         enabled:!map.appearanceOpen&&!map.press&&!map.dragging
-        onClicked:function(mouse){map.contextRequested(mouse.x,mouse.y)}
+        onClicked:function(mouse){var id=map.hit(mouse.x,mouse.y);if(id){map.selectedRoom=id;map.selectedDoor="";map.openAppearance(id)}else map.contextRequested(mouse.x,mouse.y)}
     }
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.LeftButton|Qt.MiddleButton
@@ -392,7 +412,9 @@ Item {
             }
         }
     }
+    Rectangle {anchors.top:parent.top;anchors.horizontalCenter:parent.horizontalCenter;width:Math.max(60,parent.width-220);height:map.chartSubtitle?56:34;color:map.colors.background;opacity:.96;z:2}
     Column {
+        z:3
         anchors.top:parent.top;anchors.topMargin:8;anchors.horizontalCenter:parent.horizontalCenter
         width:Math.max(60,parent.width-220);spacing:2
         Text {width:parent.width;text:map.chartTitle.trim()||"The Map Room";horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight;color:map.colors.text;font.family:"serif";font.pixelSize:20}
@@ -410,24 +432,46 @@ Item {
         Text {x:20;y:0;text:"N";color:map.colors.engraving;font.pixelSize:9;visible:map.chartOrnament==="compass"}
         Image {anchors.fill:parent;anchors.margins:5;visible:map.chartOrnament==="family";source:visible?View.ornamentAsset(map.chartFamily,map.colors.name):"";fillMode:Image.PreserveAspectFit}
     }
-    ArchiveButton {objectName:"map-chart";anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:map.colors;label:"Chart…";enabled:!map.dragging&&!map.panning;onClicked:if(map.appearanceOpen)map.closeAppearance();else map.openAppearance()}
+    MouseArea {
+        anchors.fill:parent;z:4;visible:map.appearanceOpen
+        acceptedButtons:Qt.AllButtons
+        property point at:Qt.point(0,0)
+        onPressed:function(mouse){at=Qt.point(mouse.x,mouse.y)}
+        onWheel:function(wheel){wheel.accepted=true}
+        onClicked:function(mouse){if(Math.hypot(mouse.x-at.x,mouse.y-at.y)>6)return
+            if(mouse.button===Qt.RightButton){var id=map.hit(mouse.x,mouse.y);map.closeAppearance(false);if(!map.appearanceOpen)map.openAppearance(id)}
+            else if(mouse.button===Qt.LeftButton)map.closeAppearance(false)
+        }
+    }
+    ArchiveButton {objectName:"map-chart";z:5;anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;colors:map.colors;label:"Chart…";enabled:!map.dragging&&!map.panning;onClicked:if(map.appearanceOpen)map.closeAppearance(false);else map.openAppearance()}
     Rectangle {
         id:chartPanel;objectName:"map-chart-panel";z:6
         anchors.top:parent.top;anchors.right:parent.right;anchors.margins:8;anchors.topMargin:42
-        width:238;height:252;radius:5;color:map.colors.panel;border.color:map.colors.metal
+        width:238;height:Math.min(map.height-52,425);radius:5;color:map.colors.panel;border.color:map.colors.metal
         visible:map.appearanceOpen
-        Keys.onEscapePressed:function(event){map.closeAppearance();event.accepted=true}
+        Keys.onEscapePressed:function(event){map.closeAppearance(true);event.accepted=true}
         MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons;onWheel:function(wheel){wheel.accepted=true}}
-        Column {
-            anchors.fill:parent;anchors.margins:8;spacing:4
-            Text {text:"Chart inscription";color:map.colors.engraving;font.pixelSize:11}
-            Rectangle {width:parent.width;height:26;radius:3;color:map.colors.background;border.color:map.colors.metal;TextInput {objectName:"map-chart-title";anchors.fill:parent;anchors.margins:4;clip:true;text:map.chartTitle;color:map.colors.text;maximumLength:80;onTextEdited:map.chartTitle=text;Keys.onEscapePressed:map.closeAppearance()}}
-            Rectangle {width:parent.width;height:26;radius:3;color:map.colors.background;border.color:map.colors.metal;TextInput {objectName:"map-chart-subtitle";anchors.fill:parent;anchors.margins:4;clip:true;text:map.chartSubtitle;color:map.colors.text;maximumLength:120;onTextEdited:map.chartSubtitle=text;Keys.onEscapePressed:map.closeAppearance()}}
-            Row {spacing:4;Repeater {model:["none","subtle","engraved"];ArchiveButton {required property string modelData;objectName:"map-contour-"+modelData;colors:map.colors;label:modelData;active:map.contourMode===modelData;onClicked:map.contourMode=modelData}}}
-            Row {spacing:5;ArchiveButton {objectName:"map-contour-less";colors:map.colors;label:"−";enabled:map.contourDensity>0;onClicked:map.contourDensity=Math.max(0,map.contourDensity-20)}Text {text:"Density "+map.contourDensity;color:map.colors.text;anchors.verticalCenter:parent.verticalCenter;font.pixelSize:11}ArchiveButton {objectName:"map-contour-more";colors:map.colors;label:"+";enabled:map.contourDensity<100;onClicked:map.contourDensity=Math.min(100,map.contourDensity+20)}}
-            Row {spacing:4;Repeater {model:["plain","inset","engraved"];ArchiveButton {required property string modelData;objectName:"map-frame-"+modelData;colors:map.colors;label:modelData;active:map.mapFrameStyle===modelData;onClicked:map.mapFrameStyle=modelData}}}
-            Row {spacing:4;Repeater {model:["none","family","compass"];ArchiveButton {required property string modelData;objectName:"map-mark-"+modelData;colors:map.colors;label:modelData;active:map.chartOrnament===modelData;onClicked:map.chartOrnament=modelData}}}
-            ArchiveButton {objectName:"map-chart-close";colors:map.colors;label:"Done";onClicked:map.closeAppearance()}
+        Flickable {
+            anchors.fill:parent;anchors.margins:8;anchors.bottomMargin:44;clip:true;contentWidth:width;contentHeight:chartFields.height
+            Column {
+                id:chartFields;width:parent.width;spacing:4
+                Text {text:map.localAppearance?"Room inscription":"Chart inscription";color:map.colors.engraving;font.pixelSize:11}
+                Rectangle {width:parent.width;height:26;radius:3;color:map.colors.background;border.color:map.colors.metal;TextInput {objectName:"map-chart-title";anchors.fill:parent;anchors.margins:4;clip:true;text:map.localAppearance?map.localValue("name")||"":map.chartTitle;color:map.colors.text;maximumLength:80;onTextEdited:map.appearanceChanged(map.localAppearance?"name":"title",text);Keys.onEscapePressed:map.closeAppearance(true)}}
+                Rectangle {width:parent.width;height:26;radius:3;color:map.colors.background;border.color:map.colors.metal;TextInput {objectName:"map-chart-subtitle";anchors.fill:parent;anchors.margins:4;clip:true;text:map.localAppearance?map.localValue("subtitle")||"":map.chartSubtitle;color:map.colors.text;maximumLength:120;onTextEdited:map.appearanceChanged("subtitle",text);Keys.onEscapePressed:map.closeAppearance(true)}}
+                Row {visible:!map.localAppearance;spacing:4;Repeater {model:["none","subtle","engraved"];ArchiveButton {required property string modelData;objectName:"map-contour-"+modelData;colors:map.colors;label:modelData;active:map.contourMode===modelData;onClicked:map.appearanceChanged("contours",modelData)}}}
+                Row {visible:!map.localAppearance;spacing:5;ArchiveButton {objectName:"map-contour-less";colors:map.colors;label:"−";enabled:map.contourDensity>0;onClicked:map.appearanceChanged("density",Math.max(0,map.contourDensity-20))}Text {text:"Density "+map.contourDensity;color:map.colors.text;anchors.verticalCenter:parent.verticalCenter;font.pixelSize:11}ArchiveButton {objectName:"map-contour-more";colors:map.colors;label:"+";enabled:map.contourDensity<100;onClicked:map.appearanceChanged("density",Math.min(100,map.contourDensity+20))}}
+                Row {spacing:4;Repeater {model:map.localAppearance?[null,"plain","inset","engraved"]:["plain","inset","engraved"];ArchiveButton {required property var modelData;objectName:"map-frame-"+modelData;colors:map.colors;label:modelData===null?"Inherit":modelData;active:(map.localAppearance?map.localValue("frame"):map.mapFrameStyle)===modelData;onClicked:map.appearanceChanged("frame",modelData)}}}
+                Row {visible:!map.localAppearance;spacing:4;Repeater {model:["none","family","compass"];ArchiveButton {required property string modelData;objectName:"map-mark-"+modelData;colors:map.colors;label:modelData;active:map.chartOrnament===modelData;onClicked:map.appearanceChanged("ornament",modelData)}}}
+                ArchiveChoice {width:parent.width;colors:map.colors;title:"Family";prefix:"map-family";value:map.localAppearance?map.localValue("family"):map.chartFamily;options:map.choiceItems((map.localAppearance?[null]:[]).concat(["None","Architectural","Astral","Botanical","Bestiary","Elemental · Water","Elemental · Air","Elemental · Earth","Elemental · Fire","Horological"]));onSelected:function(v){map.appearanceChanged("family",v)}}
+                ArchiveChoice {visible:map.localAppearance;width:parent.width;colors:map.colors;title:"Palette";prefix:"map-room-palette";value:map.localValue("palette");options:map.choiceItems([null,0,1,2],["Desktop","Evening","Twilight","Midnight"]);onSelected:function(v){map.appearanceChanged("palette",v)}}
+                ArchiveChoice {width:parent.width;colors:map.colors;title:"Inscriptions";prefix:"map-labels";value:map.localAppearance?map.localValue("labels"):map.chartValue("labels");options:map.choiceItems(map.localAppearance?[null,"title","both"]:["title","both"]);onSelected:function(v){map.appearanceChanged("labels",v)}}
+                ArchiveChoice {width:parent.width;colors:map.colors;title:"Room marks";prefix:"map-room-marks";value:map.localAppearance?map.localValue("marks"):map.chartValue("marks");options:map.choiceItems(map.localAppearance?[null,"none","detail","all"]:["none","detail","all"]);onSelected:function(v){map.appearanceChanged("marks",v)}}
+                Text {width:parent.width;wrapMode:Text.WordWrap;color:map.colors.engraving;font.pixelSize:11;text:map.appearanceProposal&&map.appearanceProposal.error||"";visible:!!text}
+            }
+        }
+        Row {anchors.bottom:parent.bottom;anchors.left:parent.left;anchors.margins:8;spacing:6
+            ArchiveButton {objectName:"map-chart-close";colors:map.colors;label:"Done";enabled:!!map.appearanceProposal&&!map.appearanceProposal.error;onClicked:map.closeAppearance(false)}
+            ArchiveButton {objectName:"map-chart-cancel";colors:map.colors;label:"Cancel";onClicked:map.closeAppearance(true)}
         }
     }
     // Explicit, non-overlapping hit rectangles. Do not reposition the

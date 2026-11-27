@@ -757,6 +757,10 @@ Rectangle {
         structurePanel.forceActiveFocus()
         return true
     }
+    function startMapAppearance(id){
+        if(!showMap||!viewSwitchReady||checkpointLoadPending||mapView.dragging||mapView.panning)return false
+        return id?archive.beginMapRoomAppearance(id):archive.beginMapAppearance()
+    }
     function startRoomAppearance(){
         if(!showRoomPlan||!viewSwitchReady||roomPlan.dragging||checkpointLoadPending)return false
         if(!archive.beginRoomAppearance(currentRoomId))return false
@@ -1155,10 +1159,14 @@ Rectangle {
         objectName:"archive-map-room"
         anchors.fill:sceneView
         visible:study.showMap
-        enabled:study.showMap&&study.viewSwitchReady&&!study.checkpointLoadPending
+        enabled:study.showMap&&(study.viewSwitchReady||mapView.appearanceOpen)&&!study.checkpointLoadPending
         presentationFrame:study.mapNavigation?View.mapTransitionFrame(study.mapNavigation.from,study.mapNavigation.to,study.mapProgress):null
         atlasEnabled:study.mapEnabled
-        snapshot:archive.snapshot;colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
+        snapshot:study.sceneAppearanceSnapshot||archive.snapshot;colors:study.colors;palettes:Themes.Theme.palettes;desktopPalette:Themes.Theme.index
+        appearanceProposal:archive.appearanceSessionOpen&&archive.structuralProposal&&["spatialMapAppearance","spatialMapRoomAppearance"].includes(archive.structuralProposal.command.kind)?archive.structuralProposal:null
+        onAppearanceRequested:function(id){study.startMapAppearance(id)}
+        onAppearanceChanged:function(key,value){archive.updateAppearance(key,value)}
+        onAppearanceCloseRequested:function(cancel){if(cancel)study.cancelStructurePanel();else study.finishShelfAppearance()}
         arranging:sceneView.mode==="arrange"
         snapEnabled:sceneView.snapEnabled;showGrid:sceneView.showGrid;snapDistance:sceneView.snapDistance
         proposalCommand:structurePanel.mapRoomCommand?structurePanel.cmd:null
@@ -1662,7 +1670,7 @@ Rectangle {
         preferredWidth:265
         preferredHeight:shelfAppearance||roomAppearance?590:mapDoorCommand?300:mapRoomCommand?410:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
-        property var proposal:study.materialProposal?null:archive.structuralProposal
+        property var proposal:study.materialProposal||mapView.appearanceOpen?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
         readonly property bool cubbyEdit:!!cmd&&cmd.kind==="cubby"
         readonly property bool holderEdit:!!cmd&&["holderCreate","holderEdit"].includes(cmd.kind)
