@@ -94,11 +94,15 @@ Item {
     signal deleteRoom(string id)
     signal addDoor(var patch)
     signal editDoor(string id,var patch)
+    signal directRoomEdit(string id,var patch)
+    signal directDoorEdit(string id,var patch,string mergeId)
+    signal directDoorCreate(var patch)
     signal mergeDoor(string id,string otherId)
     signal deleteDoor(string id)
     signal toggleGrid()
     signal toggleSnap()
     signal cycleSnapDistance()
+    readonly property string contactMerge:gesture&&gesture.door&&dragPatch?View.mapDoorGestureMerge(snapshot,gesture.data.id,dragPatch):""
     readonly property var selectedBox:dataModel&&selectedRoom?dataModel.rooms.find(r=>r.id===selectedRoom)||null:null
     readonly property var outline:gesture&&!gesture.door&&dragPatch?View.mapRoomOutline(snapshot,{kind:"spatialRoomEdit",roomId:gesture.data.id,patch:dragPatch}):View.mapRoomOutline(snapshot,proposalCommand)
     readonly property var doorOutline:gesture&&gesture.door&&dragPatch?View.mapDoorOutline(snapshot,gesture.data.id,dragPatch):View.mapDoorCommandOutline(snapshot,doorProposalCommand)
@@ -129,14 +133,21 @@ Item {
     function finishGesture(x,y){
         if(appearanceOpen){cancelGesture();return}
         if(!gesture)return
-        updateGesture(x,y);var g=gesture,p=dragPatch;cancelGesture()
+        updateGesture(x,y);var g=gesture,p=dragPatch,mergeId=contactMerge;cancelGesture()
         if(p&&Object.keys(p).length){
-            if(g.door){var d=snapshot.spatial.doors[g.data.id];if(d&&(p.start!==d.start||p.end!==d.end))editDoor(g.data.id,p)}
-            else {var r=snapshot.spatial.rooms[g.data.id];if(r&&Object.keys(p).some(k=>p[k]!==r[k]))editRoom(g.data.id,p)}
-        }
+            if(g.door){var d=snapshot.spatial.doors[g.data.id];if(d&&(p.start!==d.start||p.end!==d.end))directDoorEdit(g.data.id,p,mergeId)}
+            else {var r=snapshot.spatial.rooms[g.data.id];if(r&&Object.keys(p).some(k=>p[k]!==r[k]))directRoomEdit(g.data.id,p)}
+        }else if(Math.hypot(x-g.x,y-g.y)<4)focusSelection()
     }
     function pointFor(x,y){return camera?Qt.point(camera.x+x*camera.scale,camera.y+y*camera.scale):Qt.point(-1,-1)}
     function hit(x,y){var p=View.mapAt(camera,x,y);return p?View.mapRoomHit(dataModel,p.x,p.y):""}
+    function suggestionHit(x,y){
+        var d=suggestedOpening
+        if(!d||selectedDoor||!camera)return false
+        var a=pointFor(d.vertical?d.line:d.start,d.vertical?d.start:d.line),b=pointFor(d.vertical?d.line:d.end,d.vertical?d.end:d.line)
+        var along=d.vertical?y:x,cross=d.vertical?x:y,start=d.vertical?a.y:a.x,end=d.vertical?b.y:b.x,line=d.vertical?a.x:a.y
+        return Math.hypot(cross-line,Math.max(start-along,0,along-end))<=10
+    }
     // Used only by the host's numeric-editor selection handoff. Header
     // and controls are not atlas targets, and doorway hit precedes Room.
     function editTargetAt(x,y){
@@ -342,7 +353,9 @@ Item {
             if(map.arranging&&mouse.button===Qt.LeftButton){
                 var doorId=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y)
                 if(doorId){map.startDoorGesture(doorId,"move",mouse.x,mouse.y);return}
-                var id=map.hit(mouse.x,mouse.y);map.selectedDoor="";map.selectedRoom=id;if(id)map.startGesture(id,"move",mouse.x,mouse.y);return
+                if(map.suggestionHit(mouse.x,mouse.y)){map.press={x:mouse.x,y:mouse.y,suggestion:map.suggestedOpening.patch};return}
+                var id=map.hit(mouse.x,mouse.y);if(id){map.startGesture(id,"move",mouse.x,mouse.y);return}
+                map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale,blankArrange:true};return
             }
             map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale}
         }
@@ -351,9 +364,16 @@ Item {
             if(!pressed||!map.press)return
             var p=map.press,dx=mouse.x-p.x,dy=mouse.y-p.y
             if(!map.moved&&Math.hypot(dx,dy)<4)return
+            if(p.suggestion){map.moved=true;return}
             map.moved=true;map.center=View.mapCameraCenter(p.cx-dx/p.scale,p.cy-dy/p.scale)
         }
-        onReleased:function(mouse){if(map.gesture)map.finishGesture(mouse.x,mouse.y);else map.press=null}
+        onReleased:function(mouse){
+            if(map.gesture){map.finishGesture(mouse.x,mouse.y);return}
+            var p=map.press;map.press=null
+            if(!p||map.appearanceOpen||map.moved||Math.hypot(mouse.x-p.x,mouse.y-p.y)>=4)return
+            if(p.suggestion){map.directDoorCreate(p.suggestion);return}
+            if(p.blankArrange){map.selectedRoom="";map.selectedDoor="";map.restoreOverview()}
+        }
         onCanceled:map.cancelGesture()
         onClicked:function(mouse){if(!map.appearanceOpen&&!map.arranging&&mouse.button===Qt.LeftButton&&!map.moved){var d=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y);if(!d||!map.selectDoor(d)){map.selectedDoor="";map.selectedRoom=map.hit(mouse.x,mouse.y)}}}
         onDoubleClicked:function(mouse){
@@ -379,12 +399,24 @@ Item {
                 anchors.fill:parent
                 cursorShape:resizeHandle.modelData.key==="n"||resizeHandle.modelData.key==="s"?Qt.SizeVerCursor:resizeHandle.modelData.key==="e"||resizeHandle.modelData.key==="w"?Qt.SizeHorCursor:resizeHandle.modelData.key==="nw"||resizeHandle.modelData.key==="se"?Qt.SizeFDiagCursor:Qt.SizeBDiagCursor
                 function local(mouse){return resizeHandle.mapToItem(map,mouse.x,mouse.y)}
-                onPressed:function(mouse){var p=local(mouse);map.startGesture(map.selectedRoom,"resize-"+resizeHandle.modelData.key,p.x,p.y)}
+                onPressed:function(mouse){var p=local(mouse);if(View.mapDoorHit(map.dataModel,map.camera,p.x,p.y)){mouse.accepted=false;return}map.startGesture(map.selectedRoom,"resize-"+resizeHandle.modelData.key,p.x,p.y)}
                 onPositionChanged:function(mouse){if(pressed){var p=local(mouse);map.updateGesture(p.x,p.y)}}
                 onReleased:function(mouse){var p=local(mouse);map.finishGesture(p.x,p.y)}
                 onCanceled:map.cancelGesture()
             }
         }
+    }
+    Rectangle {
+        objectName:"map-door-center-grip"
+        visible:map.arranging&&!map.appearanceOpen&&!!map.selectedOpening&&!map.doorProposalCommand
+        width:14;height:14;radius:7;color:map.colors.panel;border.color:map.colors.engraving;border.width:2
+        readonly property var opening:map.selectedOpening
+        readonly property point center:opening?map.pointFor(opening.vertical?opening.line:(opening.start+opening.end)/2,opening.vertical?(opening.start+opening.end)/2:opening.line):Qt.point(0,0)
+        x:center.x-width/2;y:center.y-height/2
+    }
+    Text {
+        visible:!!map.contactMerge;anchors.horizontalCenter:parent.horizontalCenter;anchors.bottom:mapControls.top;anchors.bottomMargin:8
+        text:"Contact · release to merge";color:map.colors.text;font.pixelSize:12
     }
     Repeater {
         model:["start","end"]

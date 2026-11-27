@@ -1400,5 +1400,9 @@ export function run(){
   eq(Core.owners(local.snapshot),Core.owners(before),'atlas owners unchanged');eq(local.snapshot.spatial.shelves,before.spatial.shelves,'atlas footprints unchanged');
   const bad=Core.updateAppearance(s,Core.beginMapAppearance(s),'density',101);yes(!!bad.error,'atlas density bounded');yes(!!Core.finishAppearance(s,bad).error,'invalid chart cannot commit');
  }
+ {
+  const data=View.mapPlan(ShelfSample.roomFixture()),r=data.rooms[0],p=View.mapRoomDraftAt(data,{x:r.x+r.w/2,y:r.y+r.h/2},true,20);
+  yes(!!p,'free-space room suggestion');yes(!data.rooms.some(q=>p.x<q.x+q.w&&q.x<p.x+p.w&&p.y<q.y+q.h&&q.y<p.y+p.h),'no room overlap');
+ }
  return checks;
 }

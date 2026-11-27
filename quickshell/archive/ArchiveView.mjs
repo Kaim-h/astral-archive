@@ -411,6 +411,22 @@ export function mapRoomDraft(data){
     const pos=positions.find(v=>v.every(n=>Number.isInteger(n)&&Math.abs(n)<=limit));
     return {name:'New Room',x:pos?pos[0]:0,y:pos?pos[1]:0,w,h};
 }
+export function mapRoomDraftAt(data,point,snap,interval){
+ if(!data||!point||![point.x,point.y].every(Number.isFinite))return null;
+ const w=1000,h=800,limit=Spatial.spatialLimits.mapCoordinate;
+ const x=Core.snapCoordinate(point.x-w/2,interval,snap),y=Core.snapCoordinate(point.y-h/2,interval,snap);
+ const options=[[x,y]];
+ for(let ring=1;ring<=12;ring++)for(let i=-ring;i<=ring;i++){
+  options.push([x+i*w/2,y-ring*h/2],[x+i*w/2,y+ring*h/2]);
+  if(Math.abs(i)<ring)options.push([x-ring*w/2,y+i*h/2],[x+ring*w/2,y+i*h/2]);
+ }
+ options.sort((a,b)=>Math.hypot(a[0]-x,a[1]-y)-Math.hypot(b[0]-x,b[1]-y));
+ for(const v of options){const a=Core.snapCoordinate(v[0],interval,snap),b=Core.snapCoordinate(v[1],interval,snap);
+  if(Math.abs(a)>limit||Math.abs(b)>limit||data.rooms.some(r=>a<r.x+r.w&&r.x<a+w&&b<r.y+r.h&&r.y<b+h))continue;
+  return {name:'New Room',x:a,y:b,w,h};
+ }
+ return null;
+}
 export function mapRoomOutline(s,cmd){
     if(!cmd||!Spatial.physicalProfiles(s))return null;
     const r=cmd.kind==='spatialRoomCreate'?{}:s.spatial.rooms[cmd.roomId];

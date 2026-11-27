@@ -203,6 +203,12 @@ Rectangle {
         onFinished:study.finishRoomNavigation()
     }
     property var mapDoorEditText:({})
+    function commitMapDoorGesture(id,patch,mergeId){
+        var p=mergeId?Object.assign({},patch,{otherId:mergeId}):patch
+        startMapDoorEdit(mergeId?"spatialDoorMerge":"spatialDoorEdit",id,p)
+        if(archive.structuralProposal&&archive.structuralProposal.ok)confirmStructure()
+    }
+    function commitMapRoomGesture(id,patch){startMapRoomEdit("spatialRoomEdit",id,patch);if(archive.structuralProposal&&archive.structuralProposal.ok)confirmStructure()}
     function startMapDoorEdit(kind,id,patch){
         if(!showMap||!viewSwitchReady||checkpointLoadPending||mapView.appearanceOpen||mapView.dragging||mapView.panning||sceneView.mode!=="arrange")return
         var d=kind==="spatialDoorCreate"?patch:archive.snapshot.spatial.doors[id];if(!d)return
@@ -230,7 +236,7 @@ Rectangle {
     function startMapRoomEdit(kind,id,patch){
         if(mapNavigationDiagnostics)console.log("B8 map arrangement entered",JSON.stringify({kind:kind,id:id,patch:patch,showMap:showMap,ready:viewSwitchReady,checkpoint:checkpointLoadPending,pan:mapView.panning,drag:mapView.dragging,mode:sceneView.mode}))
         if(!showMap||!viewSwitchReady||checkpointLoadPending||mapView.appearanceOpen||(mapView.panning||mapView.dragging)||sceneView.mode!=="arrange")return
-        var r=kind==="spatialRoomCreate"?View.mapRoomDraft(mapView.dataModel):archive.snapshot.spatial.rooms[id]
+        var r=kind==="spatialRoomCreate"?(patch&&Number.isFinite(patch.x)?patch:View.mapRoomDraft(mapView.dataModel)):archive.snapshot.spatial.rooms[id]
         if(!r)return
         var cmd={kind:kind,patch:kind==="spatialRoomCreate"?r:patch||{}}
         if(kind!=="spatialRoomCreate")cmd.roomId=id
@@ -489,6 +495,7 @@ Rectangle {
         if(action==="root-grid-guide"){sceneView.showGrid=!sceneView.showGrid;return}
         if(action==="root-grid-snap"){sceneView.snapEnabled=!sceneView.snapEnabled;return}
         if(action==="root-grid-interval"){var intervals=[5,10,20,25,50,100];sceneView.snapDistance=intervals[(intervals.indexOf(sceneView.snapDistance)+1)%intervals.length];return}
+        var mapAtPoint=action==="root-add-room"?mapView.mapFromItem(study,contextPoint.x,contextPoint.y):null
         closeContext()
         if(action==="shelf-appearance"){startShelfAppearance();return}
         if(action==="map-context-appearance"){mapView.openAppearance();return}
@@ -496,7 +503,7 @@ Rectangle {
         if(action==="root-undo"){archive.undo();focusActiveLayer();return}
         if(sceneView.mode!=="arrange"&&!switchMode("arrange"))return
         if(action==="root-shelf-dimensions"){if(Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf")startRoomShelfEdit(sceneView.cubbyId,{},true);else{sceneView.clearSelection();startCubbyEdit()}return}
-        if(action==="root-add-room"){startMapRoomEdit("spatialRoomCreate","",{});return}
+        if(action==="root-add-room"){var point=View.mapAt(mapView.camera,mapAtPoint.x,mapAtPoint.y),draft=View.mapRoomDraftAt(mapView.dataModel,point,sceneView.snapEnabled,sceneView.snapDistance);if(!draft)return;startMapRoomEdit("spatialRoomCreate","",draft);if(archive.structuralProposal&&archive.structuralProposal.ok&&confirmStructure())mapView.focusSelection();return}
         if(action.indexOf("root-add-")===0){startFixture(action.slice(9));if(archive.structuralProposal)structurePanel.forceActiveFocus()}
     }
     function openContext(x,y){
@@ -619,7 +626,7 @@ Rectangle {
         pickId=""
     }
     function switchMode(value) {
-        if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning||mapView.appearanceOpen)return false
+        if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning)return false
         if(spatialEnabled){
             if(sceneView.pointer||sceneView.prepared||sceneView.furnitureDrag||sceneView.bookDrag||checkpointLoadPending||bookPicker)return false
             if(archive.draft&&(value!=="browse"||!resolveRackSelection()))return false
@@ -1180,6 +1187,9 @@ Rectangle {
         onDeleteRoom:function(id){study.startMapRoomEdit("spatialRoomDelete",id,{})}
         onAddDoor:function(patch){study.startMapDoorEdit("spatialDoorCreate","",patch)}
         onEditDoor:function(id,patch){study.startMapDoorEdit("spatialDoorEdit",id,patch)}
+        onDirectRoomEdit:function(id,patch){study.commitMapRoomGesture(id,patch)}
+        onDirectDoorEdit:function(id,patch,mergeId){study.commitMapDoorGesture(id,patch,mergeId)}
+        onDirectDoorCreate:function(patch){study.startMapDoorEdit("spatialDoorCreate","",patch);if(archive.structuralProposal&&archive.structuralProposal.ok&&study.confirmStructure())mapView.focusSelection()}
         onMergeDoor:function(id,otherId){study.startMapDoorEdit("spatialDoorMerge",id,{otherId:otherId})}
         onDeleteDoor:function(id){study.startMapDoorEdit("spatialDoorDelete",id,{})}
         onEnterRoom:function(id){study.enterMapRoom(id)}
