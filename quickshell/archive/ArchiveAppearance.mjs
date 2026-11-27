@@ -112,7 +112,7 @@ export const centerStyles=Object.freeze(['none','seal','axis','span']);
 export const glazingStyles=Object.freeze(['linework','subtle','moderate','clearer','graded','combined']);
 export const materialRoles=Object.freeze(['panel','background','metal','engraving']);
 export const containerKeys=Object.freeze(['emblem','border','center','fields','frame','backing','glazing','glazingDefault']);
-export function extended(s){return Object.values(s.cubbies||{}).some(c=>plain(c.appearance)&&containerKeys.some(k=>own(c.appearance,k)));}
+export function extended(s){return Object.values(s.cubbies||{}).some(c=>plain(c.appearance)&&containerKeys.some(k=>own(c.appearance,k)))||Object.values(s.spatial&&s.spatial.rooms||{}).some(r=>plain(r.appearance)&&roomKeys.some(k=>own(r.appearance,k)));}
 function fieldError(fields,w,h){
  if(fields===undefined||fields===null)return null;
  if(!Array.isArray(fields)||fields.length>16)return 'Backing field budget exceeded';
@@ -196,3 +196,21 @@ export function borderSvg(f,style,w,h,ink){
  }
  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+w+' '+h+'" width="'+Math.ceil(w)+'" height="'+Math.ceil(h)+'"><g fill="none" stroke="'+ink+'" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round">'+art+'</g></svg>';
 }
+
+// S14r5 stone surface references, bounded local Room policy. Absent values
+// retain the previous plain native surface; no implicit migration.
+export const floorStyles=Object.freeze(['plain','slabs','bond','diagonal','octagon','hex','herringbone','basket','ashlar']);
+export const wallStyles=Object.freeze(['plain','panel','masonry','rubble','pilaster','arcade','wainscot','ribbed']);
+export const roomDefaults=Object.freeze({floor:'plain',wall:'plain',floorBorder:false,wallMarks:false,detail:55,floorScale:80,floorAngle:0,grout:.5,variation:30,borderStyle:'double',wallScale:150});
+export const roomKeys=Object.freeze(Object.keys(roomDefaults));
+export function roomError(a){
+ if(a===undefined)return null;
+ if(!keys(a,['family','palette',...roomKeys]))return 'Invalid Room appearance reference';
+ const num=(v,min,max,integer)=>v===undefined||v===null||Number.isFinite(v)&&v>=min&&v<=max&&(!integer||Number.isInteger(v));
+ const bool=v=>v===undefined||v===null||typeof v==='boolean';
+ if(!choice(a.floor,floorStyles)||!choice(a.wall,wallStyles)||!choice(a.floorAngle,[0,45,90])||!choice(a.borderStyle,['single','double','band','diamond'])||
+ !bool(a.floorBorder)||!bool(a.wallMarks)||!num(a.detail,0,100,true)||!num(a.floorScale,24,160,true)||!num(a.grout,.5,4,false)||!num(a.variation,0,100,true)||!num(a.wallScale,75,250,true))return 'Invalid Room surface policy';
+ return null;
+}
+export function roomPolicy(a){const out=Object.assign({},roomDefaults);for(const k of roomKeys)if(a&&a[k]!==undefined&&a[k]!==null)out[k]=a[k];return out;}
+

@@ -54,9 +54,10 @@ function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 function inside(a,w,h){return a.x>=0&&a.y>=0&&a.x+a.w<=w&&a.y+a.h<=h;}
 function keysOnly(o,keys){return plain(o)&&Object.keys(o).every(k=>keys.includes(k));}
 export const shelfProfiles=Object.freeze(['cornice','crest','pilaster']);
-function appearance(v,shelf=false,container=false){
+function appearance(v,shelf=false,container=false,room=false){
  const allowed=shelf?['family','palette','profile']:['family','palette'];
  if(container)allowed.push(...Appearance.containerKeys);
+ if(room)allowed.push(...Appearance.roomKeys);
  return v===undefined||keysOnly(v,allowed)&&
   (v.profile===undefined||v.profile===null||shelf&&shelfProfiles.includes(v.profile))&&
   (v.family===undefined||v.family===null||name(v.family))&&
@@ -71,7 +72,8 @@ export function validate(s){
   need(rooms.length>0&&rooms.length<=spatialLimits.rooms&&shelves.length>0&&shelves.length<=128,'Spatial room/shelf budget');
   for(const k of rooms){
    const r=a.rooms[k];
-   need(id(k)&&!own(s.cubbies,k)&&keysOnly(r,independentProfiles(s)?['id','name','x','y','w','h','appearance','wallHeight']:['id','name','x','y','w','h','appearance'])&&r.id===k&&name(r.name)&&appearance(r.appearance),'Invalid Room identity or metadata');
+   need(id(k)&&!own(s.cubbies,k)&&keysOnly(r,independentProfiles(s)?['id','name','x','y','w','h','appearance','wallHeight']:['id','name','x','y','w','h','appearance'])&&r.id===k&&name(r.name)&&appearance(r.appearance,false,false,true),'Invalid Room identity or metadata');
+   const roomError=Appearance.roomError(r.appearance);need(!roomError,roomError);
    if(independentProfiles(s))need(wallValid(r.wallHeight),'Invalid independent Room wall height');
    need(integer(r.x,-spatialLimits.mapCoordinate,spatialLimits.mapCoordinate)&&integer(r.y,-spatialLimits.mapCoordinate,spatialLimits.mapCoordinate)&&integer(r.w,130,spatialLimits.roomSize)&&integer(r.h,100,spatialLimits.roomSize),'Invalid Room dimensions');
    need(!roomBoxes.some(b=>overlap(b,r)),'Rooms overlap');roomBoxes.push(r);shelfBoxes.set(k,[]);
@@ -272,6 +274,12 @@ export function edit(s,cmd,allocate){
    delete m.flatTop;delete m.items;
    for(const record of s.caseItems)if(record.originCubbyId===cmd.containerId&&record.originModuleId===m.id)record.originStale=true;
   }
+ }else if(cmd.kind==='spatialRoomAppearance'){
+  need(own(a.rooms,cmd.roomId),'Room no longer exists');
+  need(keysOnly(p,['name','family','palette',...Appearance.roomKeys]),'Unknown Room appearance property');
+  const target=a.rooms[cmd.roomId],local=Object.assign({},p);
+  if(own(local,'name')){need(name(local.name),'Invalid Room name');target.name=local.name;delete local.name;}
+  if(Object.keys(local).length)target.appearance=Object.assign({},target.appearance||{},local);
  }else if(cmd.kind==='spatialAppearance'){
   const isShelf=cmd.containerId!==undefined&&own(a.shelves,cmd.containerId);
   need(appearance(p,isShelf,cmd.containerId!==undefined),'Invalid appearance reference');

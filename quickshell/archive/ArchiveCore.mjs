@@ -6,6 +6,7 @@
 import * as Mixed from "./representation/B7Ownership.mjs";
 import * as Capacity from "./ArchiveCapacity.mjs";
 import * as Spatial from "./ArchiveSpatial.mjs";
+import * as Appearance from "./ArchiveAppearance.mjs";
 const RACK_PAD=11, B6_WALL=3.2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const FIXED_STEP=1/120;
@@ -1096,27 +1097,35 @@ export function finishBrowseStructure(s,proposal){
 
 // A revision-bound appearance session occupies the existing proposal slot.
 // Only existing appearance references are staged; never publish samples.
-export function beginAppearance(s,containerId){
- if(s.draft||!Spatial.enabled(s.snapshot)||typeof containerId!=='string'||
-    !Object.prototype.hasOwnProperty.call(s.snapshot.cubbies,containerId))return null;
- return Object.assign(previewStructure(s,{kind:'spatialAppearance',containerId,patch:{}}),{appearanceSession:true,appearanceTarget:containerId});
+function appearanceDescriptor(s,c){
+ if(!Spatial.enabled(s.snapshot)||!c)return null;
+ const own=(o,k)=>typeof k==='string'&&Object.prototype.hasOwnProperty.call(o,k);
+ if(c.kind==='spatialAppearance'&&own(s.snapshot.cubbies,c.containerId))return {id:c.containerId,base:s.snapshot.cubbies[c.containerId].appearance||{},keys:['family','palette','profile',...Appearance.containerKeys]};
+ if(c.kind==='spatialRoomAppearance'&&own(s.snapshot.spatial.rooms,c.roomId)){
+  const r=s.snapshot.spatial.rooms[c.roomId];
+  return {id:c.roomId,base:Object.assign({name:r.name},r.appearance||{}),keys:['name','family','palette',...Appearance.roomKeys]};
+ }
+ return null;
 }
+function appearanceProposal(s,command){
+ const d=appearanceDescriptor(s,command);if(s.draft||!d)return null;
+ return Object.assign(previewStructure(s,command),{appearanceSession:true,appearanceTarget:d.id});
+}
+export function beginAppearance(s,containerId){return appearanceProposal(s,{kind:'spatialAppearance',containerId,patch:{}});}
+export function beginRoomAppearance(s,roomId){return appearanceProposal(s,{kind:'spatialRoomAppearance',roomId,patch:{}});}
 function appearanceCurrent(s,p){
- return !!p&&p.appearanceSession===true&&p.revision===s.revision&&!s.draft&&
-  p.command&&p.command.kind==='spatialAppearance'&&typeof p.command.containerId==='string'&&p.appearanceTarget===p.command.containerId&&
-  p.command.patch&&typeof p.command.patch==='object'&&!Array.isArray(p.command.patch)&&
-  Spatial.enabled(s.snapshot)&&Object.prototype.hasOwnProperty.call(s.snapshot.cubbies,p.command.containerId);
+ const d=p&&appearanceDescriptor(s,p.command);
+ return !!d&&p.appearanceSession===true&&p.revision===s.revision&&!s.draft&&p.appearanceTarget===d.id&&
+  p.command.patch&&typeof p.command.patch==='object'&&!Array.isArray(p.command.patch);
 }
 export function updateAppearance(s,proposal,key,value){
- if(!appearanceCurrent(s,proposal)||!['family','palette','profile','emblem','border','center','fields','frame','backing','glazing','glazingDefault'].includes(key)||
-    !(value===null||typeof value==='string'||Number.isFinite(value)||key==='fields'&&Array.isArray(value)))return null;
- const command=clone(proposal.command),a=s.snapshot.cubbies[command.containerId].appearance||{},base=a[key];
- // Returning to the original local policy is a no-op. Explicit None
- // remains distinct from inheritance; the default profile is cornice.
+ if(!appearanceCurrent(s,proposal))return null;
+ const command=clone(proposal.command),d=appearanceDescriptor(s,command),base=d.base[key];
+ if(!d.keys.includes(key)||!(value===null||typeof value==='string'||typeof value==='boolean'||Number.isFinite(value)||key==='fields'&&Array.isArray(value)))return null;
  if(equalPreview(value,base)||value===null&&(base===undefined||base===null)||
-    key==='profile'&&value==='cornice'&&(base===undefined||base===null)&&Spatial.kind(s.snapshot,command.containerId)==='shelf')delete command.patch[key];
+    key==='profile'&&value==='cornice'&&(base===undefined||base===null)&&command.kind==='spatialAppearance'&&Spatial.kind(s.snapshot,command.containerId)==='shelf')delete command.patch[key];
  else command.patch[key]=clone(value);
- return Object.assign(previewStructure(s,command),{appearanceSession:true,appearanceTarget:proposal.appearanceTarget});
+ return appearanceProposal(s,command);
 }
 export function finishAppearance(s,proposal){
  if(!appearanceCurrent(s,proposal))return structuralError(s,'No current appearance session');

@@ -28,6 +28,7 @@ Item {
     // refuse live pointer/solver activity before entering a structural edit.
     property var structuralProposal: null
     property string appearanceSessionTarget:""
+    property string appearanceSessionKind:""
     readonly property bool appearanceSessionOpen:appearanceSessionTarget!==""
     property string checkpointError: ""
     // Synchronous publication markers for view-only lifecycle consumers.
@@ -40,29 +41,35 @@ Item {
         structuralProposal=Core.previewStructure(archiveState,command)
         return structuralProposal.ok
     }
-    function beginAppearance(containerId) {
-        if(!spatialEnabled||structuralProposal||draft||queued||runningRevision!==-1)return false
-        var p=Core.beginAppearance(archiveState,containerId)
-        if(!p)return false
-        appearanceSessionTarget=containerId
+    function beginAppearance(containerId) {return openAppearanceProposal(Core.beginAppearance(archiveState,containerId))}
+    function beginRoomAppearance(roomId) {return openAppearanceProposal(Core.beginRoomAppearance(archiveState,roomId))}
+    function openAppearanceProposal(p) {
+        if(!spatialEnabled||structuralProposal||draft||queued||runningRevision!==-1||!p)return false
+        appearanceSessionTarget=p.appearanceTarget
+        appearanceSessionKind=p.command.kind
         structuralProposal=p
         return true
     }
+    function appearanceTargetCurrent(){
+        return appearanceSessionOpen&&structuralProposal&&structuralProposal.appearanceTarget===appearanceSessionTarget&&
+            structuralProposal.command.kind===appearanceSessionKind&&
+            (appearanceSessionKind==="spatialRoomAppearance"?structuralProposal.command.roomId:structuralProposal.command.containerId)===appearanceSessionTarget
+    }
     function updateAppearance(key,value) {
-        if(!appearanceSessionOpen||!structuralProposal||structuralProposal.appearanceTarget!==appearanceSessionTarget)return false
+        if(!appearanceTargetCurrent())return false
         var next=Core.updateAppearance(archiveState,structuralProposal,key,value)
         if(!next)return false
         structuralProposal=next
         return !next.error
     }
-    function cancelStructure() { structuralProposal=null;appearanceSessionTarget="" }
+    function cancelStructure() { structuralProposal=null;appearanceSessionTarget="";appearanceSessionKind="" }
     function editMixed(command) {
         if(draft||structuralProposal||!command||command.kind!=="holderMove")return false
         archiveState=Core.editStructure(archiveState,command)
         return !archiveState.error
     }
     function applyStructure(implicitBrowse) {
-        if(appearanceSessionOpen&&(!structuralProposal||structuralProposal.appearanceTarget!==appearanceSessionTarget||structuralProposal.command.containerId!==appearanceSessionTarget))return false
+        if(appearanceSessionOpen&&!appearanceTargetCurrent())return false
         if(!structuralProposal||(!spatialEnabled&&String(structuralProposal.command.kind).indexOf("spatial")===0))return false
         if(!physicalProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptProfiles"||Spatial.physicalProfiles(structuralProposal.snapshot)))return false
         if(!independentProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptIndependentProfiles"||Spatial.independentProfiles(structuralProposal.snapshot)))return false

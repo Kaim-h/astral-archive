@@ -1371,5 +1371,14 @@ export function run(){
   eq(Appearance.emblemSvg('Astral','armillary','bad'),'','reject non-theme ink');
   eq(Appearance.emblem('Botanical','armillary').id,'vine-seal','unmatched inherited family safe fallback');
  }
+ {
+  const roomId=Object.keys(s.snapshot.spatial.rooms)[0],before=Core.clone(s.snapshot);
+  let p=Core.beginRoomAppearance(s,roomId);yes(!!p,'Room appearance session');
+  p=Core.updateAppearance(s,p,'floor','octagon');p=Core.updateAppearance(s,p,'wall','arcade');p=Core.updateAppearance(s,p,'palette',2);
+  yes(p.ok,'Room surfaces preview');eq(s.snapshot,before,'Room appearance isolated');
+  const n=Core.finishAppearance(s,p);eq(n.error,'','Room appearance commit');eq(n.history.length,Math.min(30,s.history.length+1),'Room one undo');eq(Core.undo(n).snapshot,before,'Room exact undo');eq(Spatial.checkpointVersion(n.snapshot),6,'Room extended envelope');
+  eq(Core.owners(n.snapshot),Core.owners(before),'Room owners unchanged');
+  const bad=Core.updateAppearance(s,p,'floorScale',0);yes(!!bad.error,'invalid surface range');yes(!!Core.finishAppearance(s,bad).error,'invalid surface cannot commit');
+ }
  return checks;
 }
