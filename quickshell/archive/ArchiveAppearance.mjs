@@ -111,7 +111,7 @@ export const borderStyles=Object.freeze(['none','ornate','rails','register','ins
 export const centerStyles=Object.freeze(['none','seal','axis','span']);
 export const glazingStyles=Object.freeze(['linework','subtle','moderate','clearer','graded','combined']);
 export const materialRoles=Object.freeze(['panel','background','metal','engraving']);
-export const containerKeys=Object.freeze(['emblem','border','center','fields','frame','backing','glazing']);
+export const containerKeys=Object.freeze(['emblem','border','center','fields','frame','backing','glazing','glazingDefault']);
 export function extended(s){return Object.values(s.cubbies||{}).some(c=>plain(c.appearance)&&containerKeys.some(k=>own(c.appearance,k)));}
 function fieldError(fields,w,h){
  if(fields===undefined||fields===null)return null;
@@ -135,7 +135,8 @@ export function containerError(a,c,isShelf){
  if(a===undefined)return null;
  if(!plain(a)||!choice(a.emblem,emblemIds)||!choice(a.border,borderStyles)||!choice(a.center,centerStyles)||
     !choice(a.frame,materialRoles)||!choice(a.backing,materialRoles)||!choice(a.glazing,glazingStyles)||
-    isShelf&&a.glazing!==undefined&&a.glazing!==null)return 'Invalid local appearance reference';
+    !choice(a.glazingDefault,glazingStyles)||isShelf&&a.glazing!==undefined&&a.glazing!==null||
+    !isShelf&&a.glazingDefault!==undefined&&a.glazingDefault!==null)return 'Invalid local appearance reference';
  return fieldError(a.fields,c.w,c.h);
 }
 // Default family glyphs use existing local SVGs. Non-default choices use
@@ -158,4 +159,40 @@ export function suggestField(fields,w,h){
   if(!fieldError(list.concat([field]),w,h))return field;
  }
  return null;
+}
+
+// Bounded themed corner linework adapted from S11r1 familyBorder. The
+// geometry stays in the decorative field, separate from frame structure.
+const corners={
+ astral:'M0 40V0H40 M5 31V5H31 M0 26Q26 26 26 0 M0 18Q18 18 18 0',
+ botanical:'M0 40Q14 30 9 19Q5 6 19 7Q30 10 40 0 M4 28Q20 22 10 12Q1 12 4 28Z M20 7Q19 21 33 14Q32 8 20 7Z M3 37Q12 42 20 30Q10 29 3 37Z',
+ plain:'M0 40V0H40 M5 32V5H32 M10 25V10H25 M0 17H17V0',
+ bestiary:'M0 40Q5 12 38 0 M3 28Q19 8 36 7 M9 19L6 7M15 14L15 3M20 10L28 16M6 27L16 29',
+ water:'M0 40Q17 32 12 20Q7 7 22 7Q32 7 40 0 M0 29Q9 23 5 14Q1 4 14 0 M13 20Q28 19 25 8',
+ air:'M0 40Q4 24 20 20Q36 16 40 0 M0 26Q1 13 12 10Q20 7 26 0 M14 32Q24 26 24 17',
+ earth:'M0 40V0H40 M5 30V5H30 M10 22L18 10L30 10 M10 22L23 22L23 10',
+ fire:'M0 40Q14 28 6 17Q1 9 10 0 M7 31Q28 22 21 11Q30 12 40 0 M13 24Q18 18 15 12',
+ horological:'M0 40V0H40 M4 27Q27 27 27 4 M4 19Q19 19 19 4 M8 0V5M16 0V4M32 0V5M0 8H5M0 16H4M0 32H5'
+};
+export function borderSvg(f,style,w,h,ink){
+ const corner=corners[familyKey(f)];
+ if(!corner||!borderStyles.includes(style)||style==='none'||![w,h].every(Number.isFinite)||w<1||h<1||!/^#[0-9a-fA-F]{6}$/.test(ink))return '';
+ const margin=Math.min(8,w*.04,h*.04),x=margin,y=margin,W=w-2*margin,H=h-2*margin;
+ const d=Math.min(40,W*.24,H*.20),scale=d/40;
+ const path=(d,extra='')=>'<path d="'+d+'" '+extra+'/>';
+ let art='';
+ for(const [xx,yy,sx,sy] of [[x,y,1,1],[x+W,y,-1,1],[x,y+H,1,-1],[x+W,y+H,-1,-1]])art+='<g transform="translate('+xx+' '+yy+') scale('+sx*scale+' '+sy*scale+')">'+path(corner)+'</g>';
+ for(const [xx,yy,angle,len] of [[x,y,0,W],[x+W,y+H,180,W],[x+W,y,90,H],[x,y+H,-90,H]]){
+  if(style==='rails'&&angle%180!==0)continue;
+  const a=d+4,b=len-d-4;if(b<=a)continue;
+  let edge='';
+  if(style==='rails'||style==='inset')edge=path('M'+d+' 0H'+(len-d));
+  if(style==='ornate')edge=path('M'+a+' 0h'+Math.min(14,(b-a)*.24)+' M'+(b-Math.min(14,(b-a)*.24))+' 0H'+b);
+  if(style==='register')for(let i=0,n=Math.min(32,Math.max(1,Math.floor((b-a)/36)));i<n;i++){
+   const at=a+(i+.5)*(b-a)/n,r=Math.min(12,(b-a)/n*.36);
+   edge+=path('M'+(at-r)+' 0Q'+at+' '+Math.min(6,r)+' '+(at+r)+' 0 M'+at+' 0v'+Math.min(3,r));
+  }
+  art+='<g transform="translate('+xx+' '+yy+') rotate('+angle+')">'+edge+'</g>';
+ }
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+w+' '+h+'" width="'+Math.ceil(w)+'" height="'+Math.ceil(h)+'"><g fill="none" stroke="'+ink+'" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round">'+art+'</g></svg>';
 }

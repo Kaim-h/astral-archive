@@ -10,6 +10,9 @@ Item {
     required property var child
     required property var colors
     property string ornamentFamily:"None"
+    property bool spatialStyle:false
+    property string glazingStyle:"linework"
+    readonly property var glazingPolicy:({linework:[.38,.27],subtle:[.68,.19],moderate:[.53,.30],clearer:[.20,.52],graded:[.43,.32],combined:[.34,.46]})[glazingStyle]||[.38,.27]
     property int depth: 1
     property bool selected: false
     property bool browse: true
@@ -56,7 +59,7 @@ Item {
                     height: modelData.h
                     color: View.mix(face.colors.engraving,face.colors.panel,.5)
                     border.color: face.colors.engraving
-                    opacity: .27
+                    opacity: face.spatialStyle?face.glazingPolicy[1]:.27
                     radius: 2
                 }
             }
@@ -65,12 +68,25 @@ Item {
             anchors.fill: parent
             visible:face.previewMode==="veiled"
             color: View.backingColor(face.child,face.colors,face.depth)
-            opacity: .38
+            opacity:face.spatialStyle?face.glazingPolicy[0]:.38
+        }
+        Rectangle {
+            anchors.fill:parent;visible:face.spatialStyle&&face.previewMode==="veiled"
+            color:"transparent"
+            border.color:View.mix(face.colors.metal,face.colors.engraving,.26)
+            border.width:1
+            opacity:.7
+            gradient:Gradient {
+                GradientStop {position:0;color:Qt.rgba(1,1,1,face.glazingStyle==="graded"?.15:.045)}
+                GradientStop {position:.45;color:Qt.rgba(1,1,1,.015)}
+                GradientStop {position:1;color:Qt.rgba(0,0,0,face.glazingStyle==="graded"?.14:.03)}
+            }
         }
         ArchiveFamilyMark {
             objectName:"cubby-face-ornament"
             family:face.previewMode==="inventory"?"None":face.ornamentFamily
             colors:face.colors;exterior:true
+            emblemKey:face.child.appearance&&face.child.appearance.emblem||""
         }
         Column {
             objectName:"cubby-preview-inventory"
@@ -94,6 +110,21 @@ Item {
                 horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight
             }
         }
+    }
+    Repeater {
+        model:face.spatialStyle&&face.previewMode==="veiled"?[.27,.73]:[]
+        Rectangle {
+            required property real modelData
+            x:face.frame*.30;y:face.height*modelData-height/2
+            width:Math.max(2,face.frame*.44);height:Math.min(14,face.height*.12)
+            radius:1;color:face.colors.metal;opacity:.72
+        }
+    }
+    Rectangle {
+        visible:face.spatialStyle&&face.previewMode==="veiled"
+        x:face.width-face.frame*.68;y:face.height*.5-height/2
+        width:Math.max(2,face.frame*.36);height:Math.min(20,face.height*.16)
+        radius:2;color:face.colors.metal;opacity:.82
     }
     Rectangle {
         height: 17

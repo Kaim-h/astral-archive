@@ -113,6 +113,14 @@ Item {
     signal destinationPressed(string rackId,string key)
     signal furnitureContext(real sceneX,real sceneY)
     signal shelfAppearanceRequested()
+    signal containerAppearanceRequested(string containerId)
+    function appearanceTargetAt(x,y){
+        if(!spatialStyle||caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return ""
+        var id=committedFixtureAt(x,y),m=cubby.mods.find(q=>q.id===id)
+        if(m)return m.type==="cubby"?m.childId:""
+        var at=world.mapFromItem(scene,x,y)
+        return at.x>=0&&at.x<=world.width&&at.y>=0&&at.y<=world.height?cubbyId:""
+    }
     signal rackTargetSwitchRequested(string moduleId)
     signal fixtureTargetSwitchRequested(string moduleId)
     function committedFixtureAt(x,y){
@@ -121,7 +129,7 @@ Item {
         var m=cubby.mods.find(q=>Mixed.fixtureRects(q).some(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h))
         return m?m.id:""
     }
-    readonly property bool browseContext:mode==="browse"&&Spatial.kind(controller.snapshot,cubbyId)==="shelf"
+    readonly property bool browseContext:mode==="browse"&&spatialStyle
     // View-only preference, independent of the arrangement/Undo history.
     property string cubbyPreviewMode:"veiled"
     property bool snapEnabled:false
@@ -132,7 +140,9 @@ Item {
         if((mode!=="arrange"&&!browseContext)||live.busy||controller.draft||controller.structuralProposal||furnitureDrag||bookDrag||pointer||prepared)return
         var p=interior.mapFromItem(scene,x,y),m=cubby.mods.find(function(q){return Mixed.fixtureRects(q).some(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)})
         if(browseContext){
-            if(!m&&p.x>=0&&p.x<=cubby.w&&p.y>=0&&p.y<=cubby.h)shelfAppearanceRequested()
+            var target=appearanceTargetAt(x,y)
+            if(target===cubbyId)shelfAppearanceRequested()
+            else if(target)containerAppearanceRequested(target)
             else furnitureContext(x,y)
             return
         }
@@ -535,10 +545,26 @@ Item {
                 color:View.backingColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
                 border.color:View.mix(scene.colors.metal,scene.colors.panel,.32)
             }
-            ArchiveFamilyMark {
-                objectName:"archive-backing-ornament"
+            ArchiveEngravingField {
+                anchors.fill:parent
+                readonly property var policy:scene.appearanceCubby.appearance||({})
+                visible:!Array.isArray(policy.fields)
+                primaryField:true
                 family:scene.ornamentFamily(scene.cubbyId)
-                colors:scene.colors
+                colors:scene.colors;emblemKey:policy.emblem||""
+                borderStyle:policy.border||"none";centerStyle:policy.center||"seal"
+            }
+            Repeater {
+                model:scene.appearanceCubby.appearance&&Array.isArray(scene.appearanceCubby.appearance.fields)?scene.appearanceCubby.appearance.fields:[]
+                ArchiveEngravingField {
+                    required property var modelData
+                    objectName:"archive-backing-"+modelData.id
+                    x:modelData.x;y:modelData.y;width:modelData.w;height:modelData.h;opacity:modelData.opacity
+                    readonly property var policy:scene.appearanceCubby.appearance||({})
+                    family:modelData.family||scene.ornamentFamily(scene.cubbyId)
+                    colors:scene.colors;emblemKey:modelData.emblem||policy.emblem||""
+                    borderStyle:modelData.border||policy.border||"none";centerStyle:modelData.center||policy.center||"seal"
+                }
             }
             Item {
                 objectName:"cubby-guide-grid"
@@ -662,6 +688,8 @@ Item {
                             child:(scene.appearanceSnapshot||scene.interiorPreviewSnapshot||scene.controller.snapshot).cubbies[module.childId]
                             colors:scene.childColors(module.childId)
                             ornamentFamily:scene.ornamentFamily(module.childId)
+                            spatialStyle:scene.spatialStyle
+                            glazingStyle:scene.spatialStyle?Spatial.resolveGlazing(scene.appearanceSnapshot||scene.controller.snapshot,module.childId):"linework"
                             depth:scene.viewPath.length
                             previewMode:scene.cubbyPreviewMode
                             selected:scene.selectedModuleId===module.id

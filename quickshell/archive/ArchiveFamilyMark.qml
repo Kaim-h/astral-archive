@@ -8,9 +8,10 @@ Image {
     property string family:"None"
     required property var colors
     property bool exterior:false
-    readonly property string asset:View.ornamentAsset(family,colors.name)
+    property string emblemKey:""
+    readonly property string asset:View.emblemSource(family,emblemKey,colors)
     objectName:"archive-family-mark"
-    source:visible&&asset!==""?Qt.resolvedUrl(asset):""
+    source:visible&&asset!==""?(asset.indexOf("data:")===0?asset:Qt.resolvedUrl(asset)):""
     visible:family!=="None"&&asset!==""&&width>0&&height>0
     width:parent?View.familyMarkSize(parent.width,parent.height,exterior):0
     height:width

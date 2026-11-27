@@ -1360,6 +1360,13 @@ export function run(){
   const glass=Core.updateAppearance(state,Core.beginAppearance(state,'child'),'glazing','combined');
   yes(glass.ok,'local child glazing');const glazed=Core.finishAppearance(state,glass);eq(glazed.snapshot.cubbies.root,s.cubbies.root,'glazing local not inherited');
   yes(Core.updateAppearance(state,Core.beginAppearance(state,'root'),'glazing','combined').error,'Shelf is not a glazed child door');
+  const def=Core.finishAppearance(state,Core.updateAppearance(state,Core.beginAppearance(state,'root'),'glazingDefault','moderate'));
+  eq(Spatial.resolveGlazing(def.snapshot,'child'),'moderate','Shelf default glazing');
+  const local=Core.finishAppearance(def,Core.updateAppearance(def,Core.beginAppearance(def,'child'),'glazing','clearer'));
+  eq(Spatial.resolveGlazing(local.snapshot,'child'),'clearer','local glazing overrides default');
+  eq(Spatial.resolveGlazing(Core.undo(local).snapshot,'child'),'moderate','Undo restores inherited glazing');
+  yes(Appearance.borderSvg('Astral','register',180,180,'#91ada1').includes('<path'),'bounded themed border SVG');
+  eq(Appearance.borderSvg('None','register',180,180,'#91ada1'),'','None has no border');
   yes(Appearance.emblemSvg('Astral','armillary','#91ada1').includes('<path'),'static recovered emblem SVG');
   eq(Appearance.emblemSvg('Astral','armillary','bad'),'','reject non-theme ink');
   eq(Appearance.emblem('Botanical','armillary').id,'vine-seal','unmatched inherited family safe fallback');

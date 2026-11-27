@@ -27,7 +27,8 @@ Item {
     // Structural proposals are independent of the rack planner. Callers must
     // refuse live pointer/solver activity before entering a structural edit.
     property var structuralProposal: null
-    readonly property bool appearanceSessionOpen:!!structuralProposal&&structuralProposal.appearanceSession===true
+    property string appearanceSessionTarget:""
+    readonly property bool appearanceSessionOpen:appearanceSessionTarget!==""
     property string checkpointError: ""
     // Synchronous publication markers for view-only lifecycle consumers.
     property bool resetting:false
@@ -43,30 +44,32 @@ Item {
         if(!spatialEnabled||structuralProposal||draft||queued||runningRevision!==-1)return false
         var p=Core.beginAppearance(archiveState,containerId)
         if(!p)return false
+        appearanceSessionTarget=containerId
         structuralProposal=p
         return true
     }
     function updateAppearance(key,value) {
-        if(!appearanceSessionOpen)return false
+        if(!appearanceSessionOpen||!structuralProposal||structuralProposal.appearanceTarget!==appearanceSessionTarget)return false
         var next=Core.updateAppearance(archiveState,structuralProposal,key,value)
         if(!next)return false
         structuralProposal=next
         return !next.error
     }
-    function cancelStructure() { structuralProposal=null }
+    function cancelStructure() { structuralProposal=null;appearanceSessionTarget="" }
     function editMixed(command) {
         if(draft||structuralProposal||!command||command.kind!=="holderMove")return false
         archiveState=Core.editStructure(archiveState,command)
         return !archiveState.error
     }
     function applyStructure(implicitBrowse) {
+        if(appearanceSessionOpen&&(!structuralProposal||structuralProposal.appearanceTarget!==appearanceSessionTarget||structuralProposal.command.containerId!==appearanceSessionTarget))return false
         if(!structuralProposal||(!spatialEnabled&&String(structuralProposal.command.kind).indexOf("spatial")===0))return false
         if(!physicalProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptProfiles"||Spatial.physicalProfiles(structuralProposal.snapshot)))return false
         if(!independentProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptIndependentProfiles"||Spatial.independentProfiles(structuralProposal.snapshot)))return false
         if(implicitBrowse===true&&!spatialEnabled)return false
         archiveState=implicitBrowse===true?Core.finishBrowseStructure(archiveState,structuralProposal):
             appearanceSessionOpen?Core.finishAppearance(archiveState,structuralProposal):Core.applyStructure(archiveState,structuralProposal)
-        if(!archiveState.error)structuralProposal=null
+        if(!archiveState.error)cancelStructure()
         return !archiveState.error
     }
     function exportCheckpoint(view) {
@@ -95,7 +98,7 @@ Item {
         fresh.revision = archiveState.revision + 1
         queued = null
         debounce.stop()
-        structuralProposal=null
+        cancelStructure()
         resetting=true
         try{archiveState=fresh}finally{resetting=false}
     }
@@ -123,7 +126,7 @@ Item {
     function approveRadius(approved) { archiveState = Core.approveRadius(archiveState, approved) }
     function apply() { if(appearanceSessionOpen)return false;archiveState = Core.apply(archiveState); return !archiveState.error }
     function cancel() {
-        structuralProposal=null
+        cancelStructure()
         queued = null
         debounce.stop()
         archiveState = Core.cancel(archiveState)

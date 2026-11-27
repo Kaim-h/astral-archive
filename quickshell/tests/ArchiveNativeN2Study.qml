@@ -467,7 +467,7 @@ Rectangle {
     readonly property bool rootMenuReady:viewSwitchReady&&!checkpointLoadPending&&!mapView.appearanceOpen&&!mapView.press&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)&&materialPanel===""
     function closeContext(){contextOpen=false;rootContext="";bookPicker=false;bookTarget=null;focusActiveLayer()}
     function openRootContext(kind,x,y){
-        if(!rootMenuReady||kind==="map"&&!showMap||kind==="shelf"&&(upperView||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf"))return false
+        if(!rootMenuReady||kind==="map"&&!showMap||kind==="shelf"&&(upperView||!sceneView.spatialStyle))return false
         rootContext=kind;contextPoint=Qt.point(x,y);contextOpen=true
         rootMenu.prepareOpen()
         return true
@@ -480,7 +480,7 @@ Rectangle {
             {id:"root-grid-interval",label:"Interval: "+sceneView.snapDistance}]}
         var undo={id:"root-undo",label:"Undo",enabled:archive.archiveState.history.length>0}
         if(rootContext==="map")return [app,{id:"root-add-room",label:"Add Room…"},grid,{id:"root-fit-map",label:"Fit map"},undo]
-        var structural=[{id:"root-shelf-dimensions",label:"Shelf dimensions…"},
+        var structural=[{id:"root-shelf-dimensions",label:Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"?"Shelf dimensions…":"Cubby dimensions…"},
             {id:"root-add-furniture",label:"Add furniture…",items:[{id:"root-add-shelf",label:"Support board"},{id:"root-add-rack",label:"Rack"},{id:"root-add-cubby",label:"Nested Cubby"},{id:"root-add-artwork",label:"Artwork mount"}]},grid]
         return sceneView.mode==="arrange"?structural.concat([app,undo]):[app].concat(structural,[undo])
     }
@@ -495,14 +495,14 @@ Rectangle {
         if(action==="root-fit-map"){mapView.fit();return}
         if(action==="root-undo"){archive.undo();focusActiveLayer();return}
         if(sceneView.mode!=="arrange"&&!switchMode("arrange"))return
-        if(action==="root-shelf-dimensions"){startRoomShelfEdit(sceneView.cubbyId,{},true);return}
+        if(action==="root-shelf-dimensions"){if(Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf")startRoomShelfEdit(sceneView.cubbyId,{},true);else{sceneView.clearSelection();startCubbyEdit()}return}
         if(action==="root-add-room"){startMapRoomEdit("spatialRoomCreate","",{});return}
         if(action.indexOf("root-add-")===0){startFixture(action.slice(9));if(archive.structuralProposal)structurePanel.forceActiveFocus()}
     }
     function openContext(x,y){
         if(archive.appearanceSessionOpen)return
         var at=sceneView.mapToItem(study,x,y)
-        if(spatialEnabled&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"&&(sceneView.mode==="browse"||!selectedFixture)){
+        if(sceneView.spatialStyle&&(sceneView.mode==="browse"||!selectedFixture)){
             openRootContext("shelf",at.x,at.y);return
         }
         if(sceneView.mode!=="arrange")return
@@ -744,12 +744,16 @@ Rectangle {
     }
     readonly property bool appearanceReady:spatialEnabled&&!upperView&&!roomNavigating&&!mapNavigating&&!checkpointLoadPending&&
         !sceneView.busy&&!sceneView.pointer&&!sceneView.prepared&&!sceneView.furnitureDrag&&!sceneView.bookDrag&&
-        !archive.draft&&!archive.structuralProposal&&!bookPicker&&materialPanel===""&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"
-    function startShelfAppearance(){
+        !archive.draft&&!archive.structuralProposal&&!bookPicker&&materialPanel===""&&sceneView.spatialStyle
+    property string appearanceTab:"basic"
+    function startShelfAppearance(target,tab){
         if(!appearanceReady)return false
-        var id=sceneView.cubbyId
+        var id=target||sceneView.cubbyId
+        if(id!==sceneView.cubbyId&&!sceneView.cubby.mods.some(m=>m.type==="cubby"&&m.childId===id))return false
         closeContext()
         if(!archive.beginAppearance(id))return false
+        appearanceTab=tab||"basic"
+        structureScroll.resetPosition()
         structurePanel.forceActiveFocus()
         return true
     }
@@ -1033,7 +1037,7 @@ Rectangle {
             Item {
                 objectName:"archive-layer-tool-slot"
                 readonly property bool arrangeShown:sceneView.mode==="arrange"&&!study.upperView
-                readonly property bool browseShown:sceneView.mode==="browse"&&!study.upperView&&study.spatialEnabled&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"
+                readonly property bool browseShown:sceneView.mode==="browse"&&!study.upperView&&sceneView.spatialStyle
                 readonly property bool mapShown:study.showMap
                 readonly property bool layerShown:arrangeShown||browseShown||mapShown
                 width:arrangeTool.width;height:arrangeTool.height
@@ -1103,6 +1107,7 @@ Rectangle {
         eligibleKeys:study.pickId&&study.activeIssue?study.activeIssue.options:[]
         onFurnitureContext:function(x,y){study.openContext(x,y)}
         onShelfAppearanceRequested:study.startShelfAppearance()
+        onContainerAppearanceRequested:function(id){study.startShelfAppearance(id,"glazing")}
         onRackTargetSwitchRequested:function(id){study.switchRackTarget(id)}
         onFixtureTargetSwitchRequested:function(id){study.switchFixtureTarget(id)}
         onSelectedModuleIdChanged:if(!archive.draft)study.rackNumericText={}
@@ -1202,7 +1207,7 @@ Rectangle {
         id:rootMenu;objectName:"archive-root-context"
         anchors.fill:parent;z:40;visible:study.contextOpen&&study.rootContext!==""
         colors:study.colors;entries:study.rootActions;anchorPoint:study.contextPoint
-        heading:study.rootContext==="map"?"Map Room":"Shelf"
+        heading:study.rootContext==="map"?"Map Room":Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"?"Shelf":"Cubby"
         onChosen:function(action){study.runRootAction(action)}
         onDismissed:study.closeContext()
     }
@@ -1236,6 +1241,7 @@ Rectangle {
             Archive.ArchiveButton {objectName:"unplace-selected-book";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&study.selectedSupport&&!!sceneView.selectedAppId;label:"Unplace selected book";onClicked:study.startBook(sceneView.selectedAppId,true)}
             Archive.ArchiveButton {objectName:"legacy-shelf-appearance";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!study.selectedFixture&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf";label:"Shelf appearance…";onClicked:study.startShelfAppearance()}
             Archive.ArchiveButton {objectName:"remove-architectural-shelf";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!study.selectedFixture&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"&&sceneView.shelfRoots.length>1;label:"Remove architectural Shelf";onClicked:study.startShelfRemoval()}
+            Archive.ArchiveButton {objectName:"selected-cubby-appearance";colors:study.colors;width:parent.width;label:"Cubby appearance…";visible:study.spatialEnabled&&!!study.selectedFixture&&study.selectedFixture.type==="cubby";onClicked:study.startShelfAppearance(study.selectedFixture.childId,"glazing")}
             Archive.ArchiveButton {objectName:"edit-rack";colors:study.colors;width:parent.width;label:"Rack size / cell pigment";visible:!!study.selectedRack;onClicked:study.openRackInspector()}
             Archive.ArchiveButton {objectName:"material-local";colors:study.colors;width:parent.width;label:!study.selectedFixture||study.selectedFixture.type==="cubby"?"Cubby colors":"Fixture color";visible:!study.selectedFixture||study.selectedFixture.type!=="artwork";onClicked:study.openMaterials(!study.selectedFixture||study.selectedFixture.type==="cubby"?"cubby":"fixture")}
             Archive.ArchiveButton {objectName:"material-presets";colors:study.colors;width:parent.width;label:"Furniture materials…";onClicked:study.openMaterials("roles")}
@@ -1628,9 +1634,14 @@ Rectangle {
         onPressed:function(mouse){pressAt=Qt.point(mouse.x,mouse.y)}
         onWheel:function(wheel){wheel.accepted=true}
         onClicked:function(mouse){
-            if(mouse.button!==Qt.LeftButton||Math.abs(mouse.x-pressAt.x)>6||Math.abs(mouse.y-pressAt.y)>6)return
-            if(mouse.x>=structurePanel.x&&mouse.x<structurePanel.x+structurePanel.width&&
-               mouse.y>=structurePanel.y&&mouse.y<structurePanel.y+structurePanel.height)return
+            if(Math.abs(mouse.x-pressAt.x)>6||Math.abs(mouse.y-pressAt.y)>6)return
+            if(mouse.x>=structurePanel.x&&mouse.x<structurePanel.x+structurePanel.width&&mouse.y>=structurePanel.y&&mouse.y<structurePanel.y+structurePanel.height)return
+            if(mouse.button===Qt.RightButton&&archive.appearanceSessionOpen){
+                var at=sceneView.mapFromItem(study,mouse.x,mouse.y),target=sceneView.appearanceTargetAt(at.x,at.y)
+                if(target&&study.finishShelfAppearance())study.startShelfAppearance(target,target===sceneView.cubbyId?"basic":"glazing")
+                return
+            }
+            if(mouse.button!==Qt.LeftButton)return
             if(archive.appearanceSessionOpen)study.finishShelfAppearance()
             else study.switchNumericTarget(mouse.x,mouse.y)
         }
@@ -1642,7 +1653,7 @@ Rectangle {
         availableWidth:study.width-16
         availableHeight:sceneView.height-16
         preferredWidth:265
-        preferredHeight:shelfAppearance?450:mapDoorCommand?300:mapRoomCommand?410:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
+        preferredHeight:shelfAppearance?590:mapDoorCommand?300:mapRoomCommand?410:roomShelfEdit?350:spatialConfirmation?260:structureHeader.implicitHeight+contentStructure.implicitHeight+structureFooter.implicitHeight+28
         panelMix:.60
         property var proposal:study.materialProposal?null:archive.structuralProposal
         property var cmd:proposal?proposal.command:null
@@ -1653,6 +1664,8 @@ Rectangle {
         readonly property bool bookRemove:!!cmd&&cmd.kind==="spatialAppUnplace"
         readonly property bool supportEdit:!!cmd&&cmd.kind==="spatialSupport"
         readonly property bool shelfAppearance:!!cmd&&cmd.kind==="spatialAppearance"
+        readonly property bool appearanceIsShelf:shelfAppearance&&Spatial.kind(archive.snapshot,cmd.containerId)==="shelf"
+        readonly property var appearanceLocal:shelfAppearance?archive.snapshot.cubbies[cmd.containerId].appearance||({}):({})
         readonly property bool adopting:!!cmd&&["spatialAdoptProfiles","spatialAdoptIndependentProfiles"].includes(cmd.kind)
         readonly property bool shelfTurn:!!cmd&&cmd.kind==="spatialShelfTurn"
         readonly property bool roomShelfEdit:!!cmd&&cmd.kind==="spatialShelfEdit"
@@ -1687,7 +1700,7 @@ Rectangle {
             Text {
                 width:Math.max(0,parent.width-35);elide:Text.ElideRight
                 color:study.colors.text;font.pixelSize:12;font.bold:true
-                text:structurePanel.mapDoorCommand?(structurePanel.cmd.kind==="spatialDoorMerge"?"Merge touching openings":structurePanel.cmd.kind==="spatialDoorCreate"?"Add shared opening":"Opening dimensions"):structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove empty Room":structurePanel.cmd.kind==="spatialRoomCreate"?"Add Room":"Room dimensions"):structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?"Shelf appearance":structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
+                text:structurePanel.mapDoorCommand?(structurePanel.cmd.kind==="spatialDoorMerge"?"Merge touching openings":structurePanel.cmd.kind==="spatialDoorCreate"?"Add shared opening":"Opening dimensions"):structurePanel.mapRoomCommand?(structurePanel.cmd.kind==="spatialRoomDelete"?"Remove empty Room":structurePanel.cmd.kind==="spatialRoomCreate"?"Add Room":"Room dimensions"):structurePanel.roomShelfEdit?"Shelf dimensions":structurePanel.shelfTurn?"Rotate architectural Shelf":structurePanel.adopting?"Adopt physical profiles":structurePanel.shelfAppearance?(structurePanel.appearanceIsShelf?"Shelf appearance":"Cubby appearance"):structurePanel.bookEdit?"Place application book":structurePanel.bookRemove?"Unplace application book":structurePanel.supportEdit?"Top support":structurePanel.removing?(structurePanel.cmd.kind==="spatialShelfDelete"?"Remove architectural Shelf":"Remove fixture"):structurePanel.cubbyEdit?"Cubby interior":structurePanel.holderEdit?"Upright holder":structurePanel.artworkEdit?"Artwork mount":"Fixture placement"
                 anchors.verticalCenter:parent.verticalCenter
             }
             Archive.ArchiveButton {objectName:"structure-close";colors:study.colors;label:"×";hint:archive.appearanceSessionOpen?"Keep valid appearance":"Cancel fixture adjustment";onClicked:if(archive.appearanceSessionOpen)study.finishShelfAppearance();else study.cancelStructurePanel()}
@@ -1741,16 +1754,28 @@ Rectangle {
                         text:"Conflict: "+modelData.kind+" · "+(modelData.shelfId||modelData.doorId||"")
                     }
                 }
+                Flow {
+                    visible:structurePanel.shelfAppearance;width:contentStructure.width;spacing:3
+                    Repeater {
+                        model:[{id:"basic",label:"Frame / family"},{id:"materials",label:"Materials"},{id:"emblems",label:"Emblems"},{id:"backing",label:"Backing"},{id:"glazing",label:"Glazing"}]
+                        Archive.ArchiveButton {
+                            required property var modelData
+                            objectName:"appearance-tab-"+modelData.id;colors:study.colors;label:modelData.label
+                            active:study.appearanceTab===modelData.id
+                            onClicked:{study.appearanceTab=modelData.id;structureScroll.resetPosition()}
+                        }
+                    }
+                }
                 Column {
-                    visible:structurePanel.shelfAppearance
+                    visible:structurePanel.shelfAppearance&&study.appearanceTab==="basic"
                     width:contentStructure.width;spacing:4
                     Repeater {
-                        model:[{key:"cornice",label:"Straight cornice"},{key:"crest",label:"Crest trim"},{key:"pilaster",label:"Pilaster trim"}]
+                        model:structurePanel.appearanceIsShelf?[{key:"cornice",label:"Straight cornice"},{key:"crest",label:"Crest trim"},{key:"pilaster",label:"Pilaster trim"}]:[]
                         Archive.ArchiveButton {
                             required property var modelData
                             objectName:"shelf-profile-"+modelData.key
                             colors:study.colors;width:contentStructure.width;label:modelData.label
-                            active:structurePanel.shelfAppearance&&(structurePanel.cmd.patch.profile!==undefined?structurePanel.cmd.patch.profile:Spatial.shelfProfile(archive.snapshot,structurePanel.cmd.containerId))===modelData.key
+                            active:structurePanel.appearanceIsShelf&&(structurePanel.cmd.patch.profile!==undefined?structurePanel.cmd.patch.profile:Spatial.shelfProfile(archive.snapshot,structurePanel.cmd.containerId))===modelData.key
                             onClicked:study.setShelfAppearance("profile",modelData.key)
                         }
                     }
@@ -1765,8 +1790,8 @@ Rectangle {
                                 colors:study.colors;width:(contentStructure.width-6)/3;label:modelData.label
                                 active:structurePanel.shelfAppearance&&(
                                     structurePanel.cmd.patch.family!==undefined?structurePanel.cmd.patch.family:
-                                    (archive.snapshot.cubbies[sceneView.cubbyId].appearance||{}).family===undefined?null:
-                                    archive.snapshot.cubbies[sceneView.cubbyId].appearance.family)===modelData.key
+                                    structurePanel.appearanceLocal.family===undefined?null:
+                                    structurePanel.appearanceLocal.family)===modelData.key
                                 onClicked:study.setShelfAppearance("family",modelData.key)
                             }
                         }
@@ -1782,15 +1807,22 @@ Rectangle {
                                 colors:study.colors;label:modelData.label
                                 active:structurePanel.shelfAppearance&&(
                                     structurePanel.cmd.patch.palette!==undefined?structurePanel.cmd.patch.palette:
-                                    (archive.snapshot.cubbies[sceneView.cubbyId].appearance||{}).palette===undefined?null:
-                                    archive.snapshot.cubbies[sceneView.cubbyId].appearance.palette)===modelData.key
+                                    structurePanel.appearanceLocal.palette===undefined?null:
+                                    structurePanel.appearanceLocal.palette)===modelData.key
                                 onClicked:study.setShelfAppearance("palette",modelData.key)
                             }
                         }
                     }
                 }
+                Archive.ArchiveAppearanceOptions {
+                    visible:structurePanel.shelfAppearance&&study.appearanceTab!=="basic"
+                    width:contentStructure.width;colors:study.paletteFor(structurePanel.shelfAppearance?structurePanel.cmd.containerId:sceneView.cubbyId)
+                    snapshot:archive.snapshot;proposal:structurePanel.shelfAppearance?structurePanel.proposal:null;desktopPalette:Themes.Theme.index
+                    tab:study.appearanceTab
+                    onChanged:function(key,value){study.setShelfAppearance(key,value)}
+                }
                 Column {
-                    visible:structurePanel.shelfAppearance&&archive.appearanceSessionOpen
+                    visible:structurePanel.shelfAppearance&&archive.appearanceSessionOpen&&study.appearanceTab==="materials"&&structurePanel.cmd.containerId===sceneView.cubbyId
                     width:contentStructure.width;spacing:4
                     Archive.ArchiveButton {objectName:"root-material-local";colors:study.colors;width:parent.width;label:"Frame and backing colours…";onClicked:if(study.finishShelfAppearance()){sceneView.clearSelection();study.openMaterials("cubby")}}
                     Archive.ArchiveButton {objectName:"root-material-presets";colors:study.colors;width:parent.width;label:"Furniture materials…";onClicked:if(study.finishShelfAppearance()){sceneView.clearSelection();study.openMaterials("roles")}}

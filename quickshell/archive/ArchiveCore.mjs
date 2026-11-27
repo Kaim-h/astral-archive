@@ -1108,7 +1108,7 @@ function appearanceCurrent(s,p){
   Spatial.enabled(s.snapshot)&&Object.prototype.hasOwnProperty.call(s.snapshot.cubbies,p.command.containerId);
 }
 export function updateAppearance(s,proposal,key,value){
- if(!appearanceCurrent(s,proposal)||!['family','palette','profile','emblem','border','center','fields','frame','backing','glazing'].includes(key)||
+ if(!appearanceCurrent(s,proposal)||!['family','palette','profile','emblem','border','center','fields','frame','backing','glazing','glazingDefault'].includes(key)||
     !(value===null||typeof value==='string'||Number.isFinite(value)||key==='fields'&&Array.isArray(value)))return null;
  const command=clone(proposal.command),a=s.snapshot.cubbies[command.containerId].appearance||{},base=a[key];
  // Returning to the original local policy is a no-op. Explicit None

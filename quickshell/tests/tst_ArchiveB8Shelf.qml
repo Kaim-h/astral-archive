@@ -1666,6 +1666,32 @@ Item {
                 compare(JSON.stringify(ctl.snapshot),mapBefore)
             }finally{study.closeContext();study.mapEnabled=false;study.switchMode("browse")}
         }
+        function test_n5_expanded_appearance(){
+            var ctl=study.controller,scene=study.scene,before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision
+            clickNamed("browse-menu");clickNamed("shelf-appearance");clickNamed("shelf-family-astral")
+            clickNamed("appearance-tab-emblems");clickNamed("appearance-emblem-armillary")
+            var mark=findChild(scene,"archive-backing-ornament")
+            tryCompare(mark,"emblemKey","armillary");tryCompare(mark,"status",Image.Ready)
+            clickNamed("appearance-tab-materials");clickNamed("appearance-frame-choice");clickNamed("appearance-frame-metal")
+            clickNamed("appearance-tab-backing");clickNamed("appearance-border-choice");clickNamed("appearance-border-rails")
+            clickNamed("appearance-field-add")
+            tryVerify(function(){return !!findChild(scene,"archive-backing-field-1")})
+            clickNamed("appearance-tab-glazing");clickNamed("appearance-glazing-choice");clickNamed("appearance-glazing-moderate")
+            var child=findChild(scene,"cubby-cubby-child")
+            tryCompare(child,"glazingStyle","moderate")
+            compare(JSON.stringify(ctl.snapshot),before)
+            grabImage(study).save("archive-b8-native-shelf-n5-expanded.png")
+            clickNamed("structure-close");verify(!ctl.structuralProposal);compare(ctl.archiveState.revision,rev+1)
+            var saved=ctl.exportCheckpoint({path:["root"],theme:1,cameras:{}})
+            compare(JSON.parse(saved).version,6)
+            mouseClick(child,child.width/2,child.height/2,Qt.RightButton)
+            tryVerify(function(){return ctl.appearanceSessionOpen&&ctl.structuralProposal.command.containerId==="child"})
+            clickNamed("appearance-glazing-choice");clickNamed("appearance-glazing-clearer")
+            tryCompare(child,"glazingStyle","clearer")
+            keyClick(Qt.Key_Escape);tryVerify(function(){return !ctl.structuralProposal})
+            tryCompare(child,"glazingStyle","moderate")
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+        }
         function test_n5_appearance_session(){
             var scene=study.scene,ctl=study.controller,before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
             study.switchMode("browse")

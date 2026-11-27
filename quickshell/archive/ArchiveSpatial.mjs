@@ -130,6 +130,20 @@ export function resolveAppearance(s,containerId,globalPalette){
  const local=s.cubbies[containerId].appearance;
  return {family:chosen?chosen.family:'Architectural',palette:local&&local.palette!==undefined&&local.palette!==null?local.palette:globalPalette};
 }
+// Glazing is an explicit local Cubby policy, with a separate default at
+// its architectural Shelf. No local palette or geometry is propagated.
+export function resolveGlazing(s,id){
+ need(enabled(s)&&own(s.cubbies,id),'Invalid glazing target');
+ const local=s.cubbies[id].appearance||{};
+ if(kind(s,id)==='cubby'&&local.glazing)return local.glazing;
+ let cursor=id,seen=new Set();
+ while(!own(s.spatial.shelves,cursor)){
+  need(!seen.has(cursor),'Cyclic spatial hierarchy');seen.add(cursor);
+  const p=Object.values(s.cubbies).find(c=>c.mods.some(m=>m.type==='cubby'&&m.childId===cursor));
+  need(p,'Unattached Cubby');cursor=p.id;
+ }
+ return (s.cubbies[cursor].appearance||{}).glazingDefault||'linework';
+}
 // Profiles are explicit per architectural Shelf, never inherited by Cubbies.
 export function shelfProfile(s,id){
  need(enabled(s)&&own(s.spatial.shelves,id),'Invalid Shelf profile target');
