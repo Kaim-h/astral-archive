@@ -59,6 +59,8 @@ jobs:
         run: node scripts/check-b7-n2.mjs
       - name: B8-N1 spatial foundation contract
         run: node scripts/check-b8-n1.mjs
+      - name: Measure integrated B8 synthetic projection and solver
+        run: node scripts/check-b8-n6.mjs
       - name: Native Archive B6-N1 pure logic
         run: node scripts/check-archive-n1.mjs
       - name: Native Archive B6-N2 visual adapter and fixture
@@ -276,11 +278,19 @@ jobs:
             test -s "archive-b8-native-shelf-n5-$capture.png" || exit 1
           done
           test -s archive-b8-native-shelf-map-compact-context.png
+          test -s archive-b8-native-shelf-n6-integrated.png
+          test -s archive-b8-native-shelf-n6-dense-room.png
           test -s archive-b8-native-room-stone.png
           test -s archive-b8-native-room-stone-perspective.png
           for capture in plain-plan plain-perspective patterned-plan patterned-perspective; do
             test -s "archive-b8-native-room-stone-exposed-$capture.png" || exit 1
           done
+      - name: Execute B8 v6 checkpoint restart (two isolated Qt processes)
+        run: |
+          export XDG_DATA_HOME="$(mktemp -d)"
+          trap 'rm -rf -- "$XDG_DATA_HOME"' EXIT
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8RestartWrite.qml
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8RestartRead.qml
       - name: Attach B8 native Shelf capture
         if: always()
         uses: actions/upload-artifact@v4

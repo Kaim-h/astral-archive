@@ -14,6 +14,7 @@ import * as Architecture from "../archive/ArchiveArchitecture.mjs";
 import * as Projection from "../archive/ArchiveRoomProjection.mjs";
 import * as Transition from "../archive/ArchiveRoomTransition.mjs";
 import * as ShelfSample from "./ArchiveB8ShelfFixture.mjs";
+import * as N6 from "./ArchiveB8N6Cases.mjs";
 export function run(){
  let checks=0;
  function eq(a,b,label){checks++;if(JSON.stringify(a)!==JSON.stringify(b))throw Error(label+': '+JSON.stringify(a)+' != '+JSON.stringify(b));}
@@ -1446,5 +1447,5 @@ export function run(){
   }
   eq(Appearance.secondarySvg('None','#667788'),'','None has no secondary marks');eq(Appearance.secondarySvg('Astral','not-a-color'),'','reject non-palette SVG ink');
  }
- return checks;
+ return checks+N6.run();
 }

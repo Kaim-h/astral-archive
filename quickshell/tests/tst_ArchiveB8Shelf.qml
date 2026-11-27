@@ -4,6 +4,7 @@ import "../themes" as Themes
 import "../archive/ArchiveCore.mjs" as Core
 import "../archive/ArchiveSpatial.mjs" as Spatial
 import "ArchiveB8ShelfFixture.mjs" as Sample
+import "ArchiveB8N6Cases.mjs" as N6
 import "../archive/ArchiveView.mjs" as View
 import "../archive/ArchiveRoomProjection.mjs" as Projection
 
@@ -1887,6 +1888,79 @@ Item {
             tryVerify(function(){return study.roomPerspective&&plan.visible&&!!plan.visibilityRaster&&plan.surfacePolicy.floor==="bond"&&plan.surfacePolicy.wall==="masonry"})
             grabImage(study).save("archive-b8-native-room-stone-perspective.png")
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+        }
+        function test_n6_repeated_hierarchy_and_routing(){
+            var ctl=study.controller,scene=study.scene,oldWidth=study.parent.width,oldTheme=Themes.Theme.index
+            study.mapEnabled=true
+            try{
+                ctl.reset(N6.restartFixture())
+                var original=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
+                var hall=ctl.snapshot.spatial.shelves.root.roomId,r=ctl.snapshot.spatial.rooms[hall]
+                var map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
+                var door=Object.values(ctl.snapshot.spatial.doors).find(d=>d.a.roomId===hall&&d.a.side==="south")
+                var g=Spatial.doorGeometry(ctl.snapshot,door.id)
+                for(var cycle=0;cycle<3;cycle++){
+                    study.parent.width=cycle===1?1100:1366
+                    Themes.Theme.index=cycle
+                    clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                    clickNamed("map-fit")
+                    var dp=map.pointFor((g.start+g.end)/2,g.line)
+                    var rp=map.pointFor(r.x+r.w/2,r.y+r.h/2)
+                    // Real door-origin press followed by Room release must
+                    // not activate a Room. Refit after the deliberate pan.
+                    mousePress(map,dp.x,dp.y,Qt.LeftButton)
+                    mouseMove(map,rp.x,rp.y,20,Qt.LeftButton)
+                    mouseRelease(map,rp.x,rp.y,Qt.LeftButton)
+                    verify(map.visible&&!plan.visible)
+                    clickNamed("map-fit");dp=map.pointFor((g.start+g.end)/2,g.line)
+                    mouseClick(map,dp.x,dp.y);compare(map.selectedDoor,door.id);verify(map.visible)
+                    rp=map.pointFor(r.x+r.w/2,r.y+r.h/2)
+                    mouseClick(map,rp.x,rp.y,Qt.RightButton)
+                    tryVerify(function(){return map.appearanceOpen&&map.localAppearance})
+                    keyClick(Qt.Key_Escape);tryVerify(function(){return !map.appearanceOpen&&map.activeFocus})
+                    // Immediately use ordinary Browse activation after the
+                    // context closes, not a retry or direct entry helper.
+                    rp=map.pointFor(r.x+r.w/2,r.y+r.h/2)
+                    mouseClick(map,rp.x,rp.y)
+                    tryVerify(function(){return plan.visible&&plan.activeFocus&&!map.visible})
+                    compare(plan.roomId,hall)
+                    var box=Spatial.footprint(ctl.snapshot,"root"),p=plan.pointFor(box.x+box.w/2,box.y+box.h/2)
+                    mouseDoubleClickSequence(plan,p.x,p.y,Qt.LeftButton)
+                    tryVerify(function(){return scene.visible&&scene.activeFocus})
+                    compare(scene.cubbyId,"root")
+                    clickNamed("cubby-cubby-child");tryCompare(scene,"cubbyId","child")
+                    verify(study.switchMode("arrange"));verify(study.switchMode("browse"))
+                    verify(scene.back());tryCompare(scene,"cubbyId","root")
+                    compare(JSON.stringify(ctl.snapshot),original);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
+                }
+                grabImage(study).save("archive-b8-native-shelf-n6-integrated.png")
+            }finally{study.mapEnabled=false;study.parent.width=oldWidth;Themes.Theme.index=oldTheme;study.roomPlanOpen=false;study.roomPerspective=false;study.switchMode("browse")}
+        }
+        function test_n6_dense_room_idle(){
+            var ctl=study.controller,scene=study.scene
+            study.mapEnabled=true
+            try{
+                var dense=N6.denseFixture(8)
+                ctl.reset(dense.snapshot)
+                var before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision
+                var map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                clickNamed("map-fit");map.selectedDoor="";map.selectedRoom=dense.roomId
+                var start=Date.now();clickNamed("map-enter-room")
+                tryVerify(function(){return plan.visible&&plan.roomId===dense.roomId})
+                compare(plan.planData.shelves.length,8)
+                var art=findChild(plan,"room-depth-art"),paints=art.paintCount
+                clickNamed("toggle-room-perspective")
+                tryVerify(function(){return !!plan.visibilityRaster&&art.paintCount>paints},10000)
+                var elapsed=Date.now()-start
+                verify(plan.visibilityRaster.w*plan.visibilityRaster.h<=1200000)
+                grabImage(study).save("archive-b8-native-shelf-n6-dense-room.png")
+                // Deliberate idle observation, not synchronization or retry.
+                wait(120);paints=art.paintCount;var mapPaints=map.mapPaints,builds=map.contourBuilds
+                wait(250);compare(art.paintCount,paints);compare(map.mapPaints,mapPaints);compare(map.contourBuilds,builds)
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
+                console.log("B8 N6 offscreen dense Room "+JSON.stringify({shelves:8,pixels:plan.visibilityRaster.w*plan.visibilityRaster.h,faces:plan.visibilityRaster.faces.length,entryAndPerspectiveMs:elapsed,idleMs:250,idleRoomPaints:art.paintCount-paints,hiddenMapPaints:map.mapPaints-mapPaints,hiddenContourBuilds:map.contourBuilds-builds}))
+            }finally{study.mapEnabled=false;study.roomPlanOpen=false;study.roomPerspective=false}
         }
         function test_n5_room_surface_evidence(){
             var ctl=study.controller,oldMap=study.mapEnabled
