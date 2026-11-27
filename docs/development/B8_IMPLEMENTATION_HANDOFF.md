@@ -1,4 +1,6 @@
-# B8 — Developer implementation handoff (S20)
+# B8 — historical Developer implementation handoff (S20)
+
+**Historical starting plan, fulfilled at the accepted isolated synthetic scope by merged PR #19.** See [integrated implementation](B8_INTEGRATED_IMPLEMENTATION.md) for current status and N6a–d evidence. The target desktop release gate remains outstanding. Do not open a new implementation PR on the basis of the original instructions below.
 
 Design topic: [public draft PR #5](https://github.com/Kaim-h/astral-archive/pull/5), design/archive-b8-architecture. Frozen S20 source head `78744690e145b9715d2abb62f94c27f408e4d891`; reconciliation branch `docs/b8-s20-integration` preserves that head and merges current main `5d52486c40070d498270801640ebab58d2e871c0`. Use the reconciled design integration as the eventual main base; do not advance #5 or add native implementation to this documentation branch. Pre-closeout design head `cbaddad1bdda08d4df1a4bd9aad99b67588a87c1`; observed public main `5d52486c40070d498270801640ebab58d2e871c0`. Permanent public repository ID 1470973161. Refresh actual heads, PRs and checks. This is a design handoff, not native implementation evidence or blanket implementation authorization.
 

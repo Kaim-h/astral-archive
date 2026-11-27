@@ -5,6 +5,8 @@
 // filesystem paths, browser globals, persistence or production shell wiring.
 import * as Mixed from "./representation/B7Ownership.mjs";
 import * as Capacity from "./ArchiveCapacity.mjs";
+import * as Spatial from "./ArchiveSpatial.mjs";
+import * as Appearance from "./ArchiveAppearance.mjs";
 const RACK_PAD=11, B6_WALL=3.2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const FIXED_STEP=1/120;
@@ -444,7 +446,8 @@ export function owners(snapshot){
   if(m.type==='rack'){
    for(const [key,records] of Object.entries(m.scrollCells||{}))for(const scroll of records)
     entries.push({id:scroll.id,where:'rack',cubbyId:c.id,rackId:m.id,key,scroll});
-  }else entries.push(...Mixed.owners(c.id,m));
+  }
+  entries.push(...Mixed.owners(c.id,m));
  }
  for(const scroll of snapshot.caseItems)entries.push({id:scroll.id,where:'case',scroll});
  return entries;
@@ -473,6 +476,17 @@ export function validate(snapshot){
   for(const m of c.mods){
    if(typeof m.id!=='string'||!m.id||modules.has(m.id))return 'Duplicate module identity';
    modules.add(m.id);
+   // All eligible surfaces share the same B7 contact envelopes and owners;
+   // rack cell records are still validated independently below.
+   try{
+    if(Mixed.supportsTop(m)){
+     Mixed.validateShelf(m);
+     for(const entry of m.items||[])if(entry.kind==='holder'){
+      if(modules.has(entry.id))return 'Duplicate fixture identity';modules.add(entry.id);
+     }
+    }
+    for(const e of Mixed.owners(cubbyId,m)){if(ids.has(e.id))return 'Duplicate file identity';ids.add(e.id);}
+   }catch(e){return String(e.message||e);}
    if(m.type==='cubby'){
     if(![m.x,m.y,m.w,m.h].every(Number.isFinite)||m.w<130||m.h<100||!rackBounds(c,m))return 'Invalid nested cubby footprint';
     if(typeof m.childId!=='string'||!snapshot.cubbies[m.childId]||parents.has(m.childId)||m.childId===cubbyId)return 'Invalid or multiply parented cubby';
@@ -480,18 +494,10 @@ export function validate(snapshot){
    }
    if(m.type==='shelf'){
     if(![m.x,m.y,m.w,m.h].every(Number.isFinite)||m.w<120||m.h!==15||!rackBounds(c,m))return 'Invalid shelf board geometry';
-    try{
-     Mixed.validateShelf(m);
-     for(const entry of m.items||[])if(entry.kind==='holder'){
-      if(modules.has(entry.id))return 'Duplicate fixture identity';modules.add(entry.id);
-     }
-     for(const e of Mixed.owners(cubbyId,m)){if(ids.has(e.id))return 'Duplicate file identity';ids.add(e.id);}
-    }catch(e){return String(e.message||e);}
     continue;
    }
    if(m.type==='artwork'){
     try{Mixed.validateMount(m);if(!rackBounds(c,m))return 'Invalid mounted artwork footprint';
-     for(const e of Mixed.owners(cubbyId,m)){if(ids.has(e.id))return 'Duplicate file identity';ids.add(e.id);}
     }catch(e){return String(e.message||e);}
     continue;
    }
@@ -593,16 +599,42 @@ export function apply(s){
  if(!d||d.phase!=='ready'||!d.result.ok||d.result.unchanged||needsRadiusApproval(s))return updateSession(s,{error:'No approved latest proposal'});
  const view=projection(s),r=d.result;
  if(view.unresolved.length||JSON.stringify(view.caseOverflow.map(e=>e.id).sort())!==JSON.stringify(r.caseOverflow.map(e=>e.id).sort()))return updateSession(s,{error:'Unresolved ownership'});
- const next=clone(s.snapshot),m=rackAt(next,d.cubbyId,d.rackId),used=new Set();
- for(const c of Object.values(next.cubbies))for(const rack of c.mods)for(const meta of Object.values(rack.cellMeta||{}))used.add(meta.id);
+ const next=clone(s.snapshot),m=rackAt(next,d.cubbyId,d.rackId),used=Spatial.enabled(next)?editorIds(next):new Set();
+ if(!Spatial.enabled(next))for(const c of Object.values(next.cubbies))for(const rack of c.mods)for(const meta of Object.values(rack.cellMeta||{}))used.add(meta.id);
  const meta=clone(r.meta);
- for(const value of Object.values(meta))if(value.id.indexOf('~new-')===0){let id;do{id='hc'+next.next++;}while(used.has(id));value.id=id;used.add(id);}
+ try{
+  for(const value of Object.values(meta))if(value.id.indexOf('~new-')===0){value.id=allocateId(next,'hc',used);used.add(value.id);}
+ }catch(e){return updateSession(s,{error:String(e.message||e)});}
  Object.assign(m,d.proposed,{cellMeta:meta,scrollCells:clone(r.mapped)});
  for(const item of r.caseOverflow){const record=Object.assign({},item,{originCubbyId:d.cubbyId});Mixed.clearMixedOrigin(record);next.caseItems.push(record);}
  for(const item of next.caseItems)if(item.originCubbyId===d.cubbyId&&item.originRackId===d.rackId){
   const key=Object.keys(meta).find(k=>meta[k].id===item.originCellId);item.originStale=!key;if(key)item.originKey=key;
  }
  return commit(s,next);
+}
+// A rack's shape/lattice edit always keeps the existing explicit physical
+// review. Only an exact no-op or fully reviewed rigid translation can
+// finish on target selection/Browse. Never treat a ready reflow as consent.
+export function finishRackSelection(s){
+ const d=s.draft,m=d&&rackAt(s.snapshot,d.cubbyId,d.rackId);
+ const refuse=msg=>updateSession(s,{error:msg});
+ if(!Spatial.enabled(s.snapshot)||!d||!m||d.revision!==s.revision)return refuse('No current rack proposal');
+ if(d.phase!=='ready'||!d.result||!d.result.ok)return refuse(d.reason||'Finish the current rack proposal first');
+ if(['w','h','r'].some(k=>d.proposed[k]!==m[k])||Object.keys(d.decisions).length||needsRadiusApproval(s))
+  return refuse('Explicit rack reflow review required · Apply or Cancel');
+ if(parseReflowNumbers(d.proposed)||!rackBounds(s.snapshot.cubbies[d.cubbyId],Object.assign({},m,d.proposed)))
+  return refuse('Rack overlaps or exceeds cubby');
+ const r=d.result,unchanged=d.proposed.x===m.x&&d.proposed.y===m.y;
+ if(r.unchanged!==unchanged||!equalPreview(r.mapped,m.scrollCells||{})||!equalPreview(r.meta,m.cellMeta||{})||
+    !Array.isArray(r.review)||r.review.length||!Array.isArray(r.caseOverflow)||r.caseOverflow.length)
+  return refuse('Rack preview changed; use explicit Apply or Cancel');
+ if(unchanged)return updateSession(s,{draft:null,error:''});
+ const expected=clone(s.snapshot),rack=rackAt(expected,d.cubbyId,d.rackId);
+ rack.x=d.proposed.x;rack.y=d.proposed.y;
+ const next=apply(s);
+ if(next.error)return next;
+ if(!equalPreview(expected,next.snapshot))return refuse('Rack move has dependent changes; review explicitly');
+ return next;
 }
 export function undo(s){
  if(s.draft||!s.history.length)return updateSession(s,{error:'No available Undo'});
@@ -678,9 +710,50 @@ export function fixture(){
 
 // Publish only a completed, revision-matched motion draft. The motion module
 // owns the provisional records; this remains the sole commit boundary.
+// File motion may change only file-bearing locations. Retain all other
+// snapshot fields, fixture geometry/identity, cell metadata, holder geometry
+// and slot count, app entries and their relative ordering. Normalize absent
+// versus empty eligible support items, since first placement creates the array.
+// Shallow projections avoid copying the contents of every file record.
+function motionStructure(snapshot){
+ const state=Object.assign({},snapshot),containers={};
+ delete state.caseItems;
+ for(const [id,c] of Object.entries(snapshot.cubbies)){
+  const modules=c.mods.map(m=>{
+   const v=Object.assign({},m);
+   if(m.type==='rack')delete v.scrollCells;
+   if(m.type==='artwork')delete v.record;
+   if(Mixed.supportsTop(m)){
+    const items=m.items===undefined?[]:m.items;
+    if(!Array.isArray(items))throw Error('Invalid support contents');
+    delete v.items;
+    v.items=items.filter(e=>e.kind!=='object').map(e=>{
+     if(e.kind!=='holder')return e;
+     if(!Array.isArray(e.slots))throw Error('Invalid holder slots');
+     const h=Object.assign({},e);
+     h.slots=e.slots.map(()=>null);
+     return h;
+    });
+   }
+   return v;
+  });
+  containers[id]=Object.assign({},c,{mods:modules});
+ }
+ state.cubbies=containers;
+ return state;
+}
 export function commitMotion(s,q){
  if(!q||s.draft||q.baseRevision!==s.revision||!q.released||q.cells.size||q.carried.length||q.error)
   return updateSession(s,{error:'Motion is incomplete or stale'});
+ // File motion cannot also edit architecture, appearance or applications.
+ // This is a consistency guard, not an in-process security boundary.
+ if(Spatial.enabled(s.snapshot)||Spatial.enabled(q.draft)){
+  try{
+   if(!Spatial.enabled(s.snapshot)||!Spatial.enabled(q.draft)||
+      JSON.stringify(motionStructure(s.snapshot))!==JSON.stringify(motionStructure(q.draft)))
+    return updateSession(s,{error:'File motion changed non-file structural or appearance state'});
+  }catch(e){return updateSession(s,{error:'Invalid spatial motion draft'});}
+ }
  if(JSON.stringify(s.snapshot)===JSON.stringify(q.draft))return updateSession(s,{error:''});
  return commit(s,clone(q.draft));
 }
@@ -700,14 +773,19 @@ export function paintCell(s,cubbyId,rackId,key,color,depth){
 
 // N3r1: speculative structural edits use the same ownership/Undo commit boundary.
 function structuralError(s,message){return updateSession(s,{error:message});}
-function editorId(next,prefix){
+function editorIds(next){
  const used=new Set(Object.keys(next.cubbies));
+ if(Spatial.enabled(next))for(const k of Object.keys(next.spatial.rooms).concat(Object.keys(next.spatial.doors||{})))used.add(k);
  for(const c of Object.values(next.cubbies))for(const m of c.mods){
   used.add(m.id);for(const meta of Object.values(m.cellMeta||{}))used.add(meta.id);
   for(const entry of m.items||[])if(entry.kind==='holder')used.add(entry.id);
  }
+ return used;
+}
+function allocateId(next,prefix,used){
  let id;do{if(next.next>=Number.MAX_SAFE_INTEGER)throw Error('Identity budget exhausted');id=prefix+next.next++;}while(used.has(id));return id;
 }
+function editorId(next,prefix){return allocateId(next,prefix,editorIds(next));}
 function editorColor(value){
  if(value!==null&&(typeof value!=='string'||!/^#[0-9a-fA-F]{6}$/.test(value)))throw Error('Use a six-digit hex color or reset');
  return value;
@@ -804,6 +882,25 @@ export function editStructure(s,command){
    if(JSON.stringify(candidate.snapshot)===JSON.stringify(s.snapshot))return updateSession(s,{error:''});
    return commit(s,candidate.snapshot);
   }
+  if(typeof command.kind==='string'&&command.kind.indexOf('spatial')===0){
+   let candidate=s;
+   // Reuse the established recursive fixture deletion and Case provenance
+   // logic on unpublished values, then commit once from the original state.
+   if(command.kind==='spatialShelfDelete'){
+    const k=command.containerId;
+    if(!Spatial.enabled(s.snapshot)||!Object.prototype.hasOwnProperty.call(s.snapshot.spatial.shelves,k)||Object.keys(s.snapshot.spatial.shelves).length<=1)throw Error('Keep at least one architectural Shelf');
+    for(const m of s.snapshot.cubbies[k].mods){
+     candidate=editStructure(candidate,{kind:'delete',cubbyId:k,moduleId:m.id});
+     if(candidate.error)throw Error(candidate.error);
+    }
+   }
+   const next=clone(candidate.snapshot);
+   // Nested appearance/edge objects must belong to the unpublished clone,
+   // not to the caller's mutable command or preview object.
+   Spatial.edit(next,clone(command),prefix=>editorId(next,prefix));
+   if(JSON.stringify(next)===JSON.stringify(s.snapshot))return updateSession(s,{error:''});
+   return commit(s,next);
+  }
   const next=clone(s.snapshot),c=next.cubbies[command.cubbyId];
   if(!c)throw Error('Cubby no longer exists');
   const p=command.patch||{},m=c.mods.find(q=>q.id===command.moduleId);
@@ -834,9 +931,9 @@ export function editStructure(s,command){
    function collect(childId){
     if(deletedCubbyIds.has(childId))throw Error('Cyclic child');
     deletedCubbyIds.add(childId);
-    for(const q of next.cubbies[childId].mods){if(q.type==='cubby')collect(q.childId);else deletedRackIds.add(q.id);}
+    for(const q of next.cubbies[childId].mods){deletedRackIds.add(q.id);if(q.type==='cubby')collect(q.childId);}
    }
-   if(m.type==='cubby')collect(m.childId);else deletedRackIds.add(m.id);
+   deletedRackIds.add(m.id);if(m.type==='cubby')collect(m.childId);
    // Apply is the explicit confirmation; preview never publishes the evacuation.
    const removed=owners(next).filter(e=>e.where!=='case'&&deletedRackIds.has(e.rackId||e.moduleId));
    for(const e of removed){
@@ -884,7 +981,7 @@ export function editStructure(s,command){
    if(Object.prototype.hasOwnProperty.call(p,'profile'))m.profile=p.profile;
    Mixed.validateMount(m);
   }else if(['holderCreate','holderEdit','holderDelete'].includes(command.kind)){
-   if(!m||m.type!=='shelf')throw Error('Select a shelf');
+   if(!Mixed.supportsTop(m))throw Error('Select an eligible support surface');
    if(!m.items)m.items=[];
    const holder=m.items.find(e=>e.kind==='holder'&&e.id===command.holderId);
    if(command.kind==='holderCreate'){
@@ -912,7 +1009,7 @@ export function editStructure(s,command){
    }
    Mixed.validateShelf(m);
   }else if(command.kind==='holderMove'){
-   if(!m||m.type!=='shelf')throw Error('Select an upright holder');
+   if(!Mixed.supportsTop(m))throw Error('Select an upright holder');
    const holder=(m.items||[]).find(e=>e.kind==='holder'&&e.id===command.holderId);
    if(!holder||!Number.isInteger(command.from)||!Number.isInteger(command.to)||command.from<0||command.to<0||command.from>=holder.slots.length||command.to>=holder.slots.length||!holder.slots[command.from]||holder.slots[command.from].id!==command.recordId)throw Error('Invalid or stale holder move');
    const a=holder.slots[command.from];holder.slots[command.from]=holder.slots[command.to];holder.slots[command.to]=a;
@@ -941,17 +1038,123 @@ export function editStructure(s,command){
 }
 export function previewStructure(s,command){
  const candidate=editStructure(s,command);
- return {revision:s.revision,command:clone(command),ok:!candidate.error&&candidate.snapshot!==s.snapshot,error:candidate.error||'',snapshot:candidate.error?null:candidate.snapshot,caseTransferCount:candidate.error?0:Math.max(0,candidate.snapshot.caseItems.length-s.snapshot.caseItems.length)};
+ const result={revision:s.revision,command:clone(command),ok:!candidate.error&&candidate.snapshot!==s.snapshot,error:candidate.error||'',snapshot:candidate.error?null:candidate.snapshot,caseTransferCount:candidate.error?0:Math.max(0,candidate.snapshot.caseItems.length-s.snapshot.caseItems.length)};
+ if(Spatial.enabled(s.snapshot)){
+  if(command&&command.kind==='spatialAdoptProfiles'&&!Spatial.physicalProfiles(s.snapshot))
+   result.profileAdoption=Spatial.profileAdoptionReport(s.snapshot);
+  if(command&&command.kind==='spatialAdoptIndependentProfiles'&&!Spatial.independentProfiles(s.snapshot))
+   result.profileAdoption=Spatial.profileAdoptionReport(s.snapshot,true);
+  result.appUnplacementCount=candidate.error?0:Math.max(0,Spatial.appPlacements(s.snapshot).length-Spatial.appPlacements(candidate.snapshot).length);
+  result.removedDoorIds=candidate.error?[]:Object.keys(s.snapshot.spatial.doors||{}).filter(k=>!Object.prototype.hasOwnProperty.call(candidate.snapshot.spatial.doors||{},k));
+ }
+ return result;
+}
+// JSON snapshots are data, not insertion-order-sensitive JS dictionaries.
+// Compare every value and array position; property enumeration order alone
+// must not invalidate a reviewed preview crossing a QML value boundary.
+function equalPreview(a,b){
+ if(a===b)return true;
+ if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+ const keys=Object.keys(a);
+ if(keys.length!==Object.keys(b).length||Array.isArray(a)&&a.length!==b.length)return false;
+ return keys.every(k=>Object.prototype.hasOwnProperty.call(b,k)&&equalPreview(a[k],b[k]));
 }
 export function applyStructure(s,proposal){
  if(!proposal||!proposal.ok||proposal.revision!==s.revision||s.draft)return structuralError(s,'No valid latest structural proposal');
- return editStructure(s,proposal.command);
+ const candidate=editStructure(s,proposal.command);
+ if((Spatial.enabled(s.snapshot)||Spatial.enabled(candidate.snapshot))&&!candidate.error&&
+    !equalPreview(candidate.snapshot,proposal.snapshot))
+  return structuralError(s,'Structural preview changed; review a fresh proposal');
+ return candidate;
+}
+
+// Browse may resolve ordinary B8 edits, but never act as consent to
+// removal, dependent rearrangement, adoption, reflow or unplacement.
+// Replay the same command through the existing commit boundary, including
+// exact preview comparison and a checked unchanged case.
+export function finishBrowseStructure(s,proposal){
+ if(!Spatial.enabled(s.snapshot)||s.draft||!proposal||proposal.revision!==s.revision||
+    !proposal.command)return structuralError(s,'No current structural proposal');
+ if(proposal.appearanceSession===true)return finishAppearance(s,proposal);
+ const cmd=proposal.command;
+ if(!['create','cubby','child','shelf','artwork','holderCreate','holderEdit','materialBatch',
+       'spatialRoomCreate','spatialRoomEdit','spatialShelfCreate','spatialShelfEdit',
+       'spatialShelfTurn','spatialDoorCreate','spatialDoorEdit'].includes(cmd.kind)||
+    cmd.rearrange===true||cmd.removeDoors!==undefined)
+  return structuralError(s,'Explicit review required · Apply or Cancel');
+ if(proposal.error)return structuralError(s,proposal.error);
+ const candidate=editStructure(s,cmd);
+ if(candidate.error)return candidate;
+ if(!equalPreview(candidate.snapshot,proposal.snapshot)||proposal.ok!==(candidate.snapshot!==s.snapshot))
+  return structuralError(s,'Structural preview changed; review a fresh proposal');
+ const before=s.snapshot,next=candidate.snapshot;
+ if(next.caseItems.length!==before.caseItems.length||
+    Spatial.appPlacements(next).length!==Spatial.appPlacements(before).length||
+    Object.keys(before.spatial.doors||{}).some(id=>!Object.prototype.hasOwnProperty.call(next.spatial.doors||{},id)))
+  return structuralError(s,'Explicit review required · dependent removal');
+ return candidate;
+}
+
+// A revision-bound appearance session occupies the existing proposal slot.
+// Only existing appearance references are staged; never publish samples.
+function appearanceDescriptor(s,c){
+ if(!Spatial.enabled(s.snapshot)||!c)return null;
+ const own=(o,k)=>typeof k==='string'&&Object.prototype.hasOwnProperty.call(o,k);
+ if(c.kind==='spatialAppearance'&&own(s.snapshot.cubbies,c.containerId))return {id:c.containerId,base:s.snapshot.cubbies[c.containerId].appearance||{},keys:['family','palette','profile',...Appearance.containerKeys]};
+ if(c.kind==='spatialMapAppearance')return {id:'@chart',base:s.snapshot.spatial.mapAppearance||{},keys:Appearance.mapKeys};
+ if(c.kind==='spatialMapRoomAppearance'&&own(s.snapshot.spatial.rooms,c.roomId)){const r=s.snapshot.spatial.rooms[c.roomId];return {id:c.roomId,base:Object.assign({name:r.name},r.appearance||{},r.mapAppearance||{}),keys:['name','family','palette',...Appearance.mapRoomKeys]};}
+ if(c.kind==='spatialRoomAppearance'&&own(s.snapshot.spatial.rooms,c.roomId)){
+  const r=s.snapshot.spatial.rooms[c.roomId];
+  return {id:c.roomId,base:Object.assign({name:r.name},r.appearance||{}),keys:['name','family','palette',...Appearance.roomKeys]};
+ }
+ return null;
+}
+function appearanceProposal(s,command){
+ const d=appearanceDescriptor(s,command);if(s.draft||!d)return null;
+ return Object.assign(previewStructure(s,command),{appearanceSession:true,appearanceTarget:d.id});
+}
+export function beginAppearance(s,containerId){return appearanceProposal(s,{kind:'spatialAppearance',containerId,patch:{}});}
+export function beginRoomAppearance(s,roomId){return appearanceProposal(s,{kind:'spatialRoomAppearance',roomId,patch:{}});}
+export function beginMapAppearance(s){return appearanceProposal(s,{kind:'spatialMapAppearance',patch:{}});}
+export function beginMapRoomAppearance(s,roomId){return appearanceProposal(s,{kind:'spatialMapRoomAppearance',roomId,patch:{}});}
+function appearanceCurrent(s,p){
+ const d=p&&appearanceDescriptor(s,p.command);
+ return !!d&&p.appearanceSession===true&&p.revision===s.revision&&!s.draft&&p.appearanceTarget===d.id&&
+  p.command.patch&&typeof p.command.patch==='object'&&!Array.isArray(p.command.patch);
+}
+export function updateAppearance(s,proposal,key,value){
+ if(!appearanceCurrent(s,proposal))return null;
+ const command=clone(proposal.command),d=appearanceDescriptor(s,command),base=d.base[key];
+ if(!d.keys.includes(key)||!(value===null||typeof value==='string'||typeof value==='boolean'||Number.isFinite(value)||key==='fields'&&Array.isArray(value)))return null;
+ if(equalPreview(value,base)||value===null&&(base===undefined||base===null)||
+    key==='profile'&&value==='cornice'&&(base===undefined||base===null)&&command.kind==='spatialAppearance'&&Spatial.kind(s.snapshot,command.containerId)==='shelf')delete command.patch[key];
+ else command.patch[key]=clone(value);
+ return appearanceProposal(s,command);
+}
+export function finishAppearance(s,proposal){
+ if(!appearanceCurrent(s,proposal))return structuralError(s,'No current appearance session');
+ if(proposal.error)return structuralError(s,proposal.error);
+ if(proposal.ok)return applyStructure(s,proposal);
+ // Recompute unchanged sessions too; a false no-op flag must not
+ // silently discard a real edit.
+ const fresh=previewStructure(s,proposal.command);
+ if(fresh.ok||fresh.error||!equalPreview(fresh.snapshot,proposal.snapshot))
+  return structuralError(s,'Appearance preview changed; review a fresh proposal');
+ return updateSession(s,{error:''});
 }
 
  // Shared grid contract. Coordinates are cubby-local, not screen pixels.
 export function snapCoordinate(value,interval,enabled){
  if(!Number.isFinite(value)||!Number.isInteger(interval)||interval<5||interval>100)throw Error('Invalid grid coordinate or interval');
  return enabled?Math.round(value/interval)*interval:Math.round(value);
+}
+
+// Relative, support-local book movement. Preserve the original fractional
+// anchor, snap only the displacement; exact numeric entry is independent.
+// No clamping through other objects or mutation of the committed placement.
+export function bookDragPosition(x,delta,interval,snap){
+ if(!Number.isFinite(x)||!Number.isFinite(delta))throw Error('Invalid book movement');
+ return x+snapCoordinate(delta,interval,snap);
 }
 
 // Both rack and structural drags consume interior-local deltas. Snap the

@@ -1,6 +1,8 @@
 # Architecture
 
-Historical desktop Batch 6/7 architecture (November 2026), retained for the original layering and interaction rationale. Later shell batches and the isolated B6–B7-N2 Archive are integrated; see [component map](architecture/COMPONENT_MAP.md) and [current state](development/CURRENT_STATE.md) for current implementation and named public baseline verification. The Archive study is not imported by the production shell and does not operate on real files. Target: Fedora Linux, Hyprland and Quickshell/QML, with KDE retained as a fallback desktop during development. Target validation (N4) remains outstanding.
+Historical desktop Batch 6/7 architecture (November 2026), retained for the original layering and interaction rationale. Later shell batches and the isolated B6–B8 Archive are integrated; see [component map](architecture/COMPONENT_MAP.md) and [current state](development/CURRENT_STATE.md) for current implementation and named public baseline verification. The Archive study is not imported by the production shell and does not operate on real files. Target: Fedora Linux, Hyprland and Quickshell/QML, with KDE retained as a fallback desktop during development. Target validation (N4) remains outstanding.
+
+For the integrated B8 spatial hierarchy, ownership, geometry, appearance and checkpoint boundaries, see [B8 native implementation](development/B8_INTEGRATED_IMPLEMENTATION.md).
 
 ## Layering
 

@@ -16,7 +16,7 @@ Current source establishes implementation, accepted product requirements establi
 
 ## Technical index
 
-- [B8 documentation consolidation plan](development/B8_DOCUMENTATION_CONSOLIDATION.md) — preparation and post-integration evidence gates.
+- [B8 documentation consolidation record](development/B8_DOCUMENTATION_CONSOLIDATION.md) — post-integration reconciliation and remaining gates.
 - [Current state](development/CURRENT_STATE.md) and [active work](development/ACTIVE_WORK.md) — integrated implementation and active topics.
 - [Development history](development/DEVELOPMENT_HISTORY.md) — readable retrospective of major milestones and public PRs.
 - [Engineering history and relocation map](development/history/README.md) — detailed decisions and exact checkpoint evidence; retrieve on demand.
@@ -26,7 +26,7 @@ Current source establishes implementation, accepted product requirements establi
 - [Development guide](development.md), [environment](development/ENVIRONMENT.md) and [native bring-up](bringup.md) — dependencies, safe launch and verification.
 - [Archive native studies](../quickshell/archive/README.md), [mixed cubbies](development/B7_N2_MIXED_CUBBIES.md) and [representation assets](product/REPRESENTATION_ASSETS.md).
 - [Capsule](capsule.md), [utility shelf](utility-shelf.md), [Veranda](veranda-of-vistas.md), [Gallery](celestial-gallery-qml.md) and [Gallery customization](gallery-customization.md).
-- [B8 spatial Archive contract](product/B8_SPATIAL_ARCHIVE.md), [feature reference matrix](research/prototypes/2026-11-24/b8/S20_REFERENCE_MATRIX.md) and [implementation handoff](development/B8_IMPLEMENTATION_HANDOFF.md) — integrated design baseline; native implementation tracked separately in active work.
+- [B8 spatial Archive contract](product/B8_SPATIAL_ARCHIVE.md), [feature reference matrix](research/prototypes/2026-11-24/b8/S20_REFERENCE_MATRIX.md) and [implementation handoff](development/B8_IMPLEMENTATION_HANDOFF.md) — integrated design baseline; [integrated native implementation and evidence](development/B8_INTEGRATED_IMPLEMENTATION.md) records the accepted synthetic scope.
 - [Research index](research/README.md) — standalone studies, accepted baselines and historical evidence.
 
 Historical status entries are not live assignments. Public baseline integration and its offline, browser and offscreen Qt verification are complete at the revision recorded in [current state](development/CURRENT_STATE.md). See [active work](development/ACTIVE_WORK.md) for continuing public PRs and outstanding checks. Actual target desktop validation remains outstanding. Ordinary development requires explicit owner authorization.

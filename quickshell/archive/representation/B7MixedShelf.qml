@@ -1,7 +1,10 @@
 import QtQuick
 import ".." as Archive
+import "../../widgets" as Widgets
+import "../../services/AppMatching.js" as Matching
 import "B7Ownership.mjs" as Mixed
 import "B7Layout.mjs" as Layout
+import "../ArchiveView.mjs" as View
 
 // The wrapper covers the supported objects as well as the board. Each
 // placement remains shelf-local; the model owns every record.
@@ -11,6 +14,10 @@ Item {
     required property var colors
     required property Item plaqueHost
     property Item gestureHost:null
+    property bool showBoard:true
+    property bool spatialStyle:false
+    property var apps: ({})
+    signal appActivated(string appId)
     property bool browse:true
     property bool interactive:true
     property bool selected:false
@@ -20,8 +27,8 @@ Item {
     signal moveRequested(string holderId,int from,int to,string recordId)
     readonly property real rise:Mixed.validateShelf(module).reduce((h,b)=>Math.max(h,-b.y),0)
     readonly property real supportY:rise
-    objectName:"mixed-shelf-"+module.id
-    x:module.x;y:module.y-rise;width:module.w;height:rise+module.h
+    objectName:(showBoard?"mixed-shelf-":"mixed-top-")+module.id
+    x:module.x;y:module.y-rise;width:module.w;height:rise+(showBoard?module.h:0)
     function displayRecord(r){
         if(!r)return null
         var p=Mixed.preferred(r)
@@ -29,8 +36,8 @@ Item {
     }
     Archive.ArchiveShelf {
         module:Object.assign({},shelf.module,{x:0,y:shelf.supportY})
-        colors:shelf.colors;browse:shelf.browse;selected:shelf.selected
-        enabled:shelf.interactive
+        colors:shelf.colors;browse:shelf.browse;selected:shelf.selected;spatialStyle:shelf.spatialStyle
+        visible:shelf.showBoard;enabled:shelf.showBoard&&shelf.interactive
         onActivated:shelf.activated("")
     }
     Repeater {
@@ -40,7 +47,49 @@ Item {
             required property var modelData
             readonly property var value:modelData
             readonly property var record:value.kind==="object"?shelf.displayRecord(value.record):null
-            sourceComponent:value.kind==="holder"?holderComponent:record&&Mixed.preferred(record).family==="artwork"?frameComponent:objectComponent
+            sourceComponent:value.kind==="app"?bookComponent:value.kind==="holder"?holderComponent:record&&Mixed.preferred(record).family==="artwork"?frameComponent:objectComponent
+            Component {
+                id:bookComponent
+                Widgets.Book {
+                    objectName:"archive-book-"+entry.value.appId
+                    appId:entry.value.appId
+                    title:shelf.apps[appId]?shelf.apps[appId].title:appId
+                    x:entry.value.x-width/2;y:shelf.supportY-height
+                    readonly property var coordinated:View.bookColors(Matching.bindingColor(appId),shelf.colors)
+                    coverColor:shelf.spatialStyle?coordinated.cover:Matching.bindingColor(appId)
+                    metalColor:shelf.colors.metal
+                    inscriptionColor:shelf.spatialStyle?coordinated.inscription:shelf.colors.engraving
+                    ornamentColor:shelf.spatialStyle?coordinated.ornament:metalColor
+                    spineLabel:shelf.spatialStyle?title.slice(0,7).toUpperCase():""
+                    selectionColor:shelf.colors.engraving
+                    runningColor:shelf.colors.engraving;focusedColor:shelf.colors.metal
+                    running:false;focused:false;windowCount:0
+                    enabled:shelf.interactive
+                    onActivated:function(id){if(shelf.browse)shelf.appActivated(id);else if(!shelf.gestureHost||!shelf.gestureHost.bookDrag)shelf.appActivated(id)}
+                    keyboardSelected:!!shelf.gestureHost&&shelf.gestureHost.selectedAppId===appId
+                    // Keep the original delegate alive while dragging. The
+                    // scene draws one outline; release creates the proposal.
+                    MouseArea {
+                        anchors.fill:parent;z:10
+                        enabled:!shelf.browse&&shelf.interactive&&!!shelf.gestureHost
+                        acceptedButtons:Qt.LeftButton
+                        preventStealing:true
+                        cursorShape:pressed?Qt.ClosedHandCursor:Qt.OpenHandCursor
+                        onPressed:function(mouse){
+                            var p=mapToItem(shelf.gestureHost,mouse.x,mouse.y)
+                            mouse.accepted=shelf.gestureHost.beginBookDrag(shelf.module.id,entry.value.appId,p.x,p.y)
+                        }
+                        onPositionChanged:function(mouse){
+                            if(pressed){var p=mapToItem(shelf.gestureHost,mouse.x,mouse.y);shelf.gestureHost.updateBookDrag(p.x,p.y)}
+                        }
+                        onReleased:function(mouse){
+                            var p=mapToItem(shelf.gestureHost,mouse.x,mouse.y)
+                            shelf.gestureHost.finishBookDrag(p.x,p.y)
+                        }
+                        onCanceled:if(shelf.gestureHost)shelf.gestureHost.cancelBookDrag()
+                    }
+                }
+            }
             Component {
                 id:objectComponent
                 B7SupportedDisplay {

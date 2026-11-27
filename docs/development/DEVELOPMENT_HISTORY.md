@@ -151,7 +151,7 @@ These integrations did not establish native Quickshell service behavior, actual 
 
 **Read more:** [correction record](STABLE_MAIN_BUGFIXES_3.md), [regression verification](REGRESSION_VERIFICATION.md), [external-review evidence](CURRENT_STATE.md#external-review-integration), [architecture advisory](../architecture/ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md), [recovered research index](../research/prototypes/2026-11-20/ZIP_IMPORTED_SOURCES.md).
 
-## 7. The B8 spatial Archive — November 25–26
+## 7. The B8 spatial Archive — November 25–27
 
 The next design phase expanded individual storage units into a coherent architectural hierarchy: Map Room → Room → Shelf → recursive Cubby. The design explored shared doors, plan and perspective navigation, physical casework, appearance and support relationships.
 
@@ -161,19 +161,20 @@ The next design phase expanded individual storage units into a coherent architec
 | [#18 — Design integration](https://github.com/Kaim-h/astral-archive/pull/18) | Integrated the design contract and implementation handoff with the updated public main, preserving the original research references. |
 | [#20 — CI efficiency](https://github.com/Kaim-h/astral-archive/pull/20) | Reduced duplicate CI runs and Chromium setup work while retaining the regression commands and required verification scope. |
 
-At this snapshot, main after #20 was `494b0f8493adbf072884ee0fd5906a6a8c69240b`; [CI 45750244590](https://github.com/Kaim-h/astral-archive/actions/runs/45750244590) passed all three jobs. The integrated design is not yet integrated native B8 source.
+At this snapshot, main after #20 was `494b0f8493adbf072884ee0fd5906a6a8c69240b`; [CI 45750244590](https://github.com/Kaim-h/astral-archive/actions/runs/45750244590) passed all three jobs. At that earlier checkpoint, the integrated design preceded native implementation.
 
 **Read more:** [B8 product contract](../product/B8_SPATIAL_ARCHIVE.md), [S20 reference matrix](../research/prototypes/2026-11-24/b8/S20_REFERENCE_MATRIX.md), [implementation handoff](B8_IMPLEMENTATION_HANDOFF.md), [CI efficiency record](CI_EXECUTION_EFFICIENCY.md).
 
-## 8. Continuing work at the initial snapshot
+Native development then integrated the hierarchy in six stages, moving from explicit spatial roots and shared support/ownership to furnished Shelf/Cubby views, physical Room projections, the Map Room and shared openings, contextual appearance and integrated verification. The geometry policies were versioned explicitly; expanded appearance selected a conditional v6 checkpoint rather than silently redefining older formats. The team retained failed native runs, corrected actual input-routing and test-fixture problems, and obtained targeted independent visual and engineering acceptance. Final [N6a–d CI 46071612984](https://github.com/Kaim-h/astral-archive/actions/runs/46071612984) passed 15,105 shared assertions and 50 Shelf passes, plus separate v6 restart processes. [PR #19](https://github.com/Kaim-h/astral-archive/pull/19) merged at `6c8c90733b43d24ce66aea3eba4c330c48644ad8`. This completes the isolated synthetic B8 implementation at its accepted scope, not actual target desktop or production acceptance. See [integrated implementation](B8_INTEGRATED_IMPLEMENTATION.md) for evidence, limitations and deferred refinements.
+
+## 8. Continuing work after B8 integration
 
 | PR | Purpose |
 |---|---|
-| [#19 — Native spatial Archive](https://github.com/Kaim-h/astral-archive/pull/19) | Isolated implementation of B8 hierarchy, furnished Shelves, Room/Map navigation, appearance and integrated verification. N1–N3 reached scoped implementation and review checkpoints; N3h verification passed. Owner-authorized B8-N4 Map Room work began; the first native navigation regression failed. See [active work](ACTIVE_WORK.md) for the pinned snapshot and live PR for later dispositions. |
 | [#3 — Audit backlog](https://github.com/Kaim-h/astral-archive/pull/3) | Continuing independent defect and regression record, separate from implementation topics. |
-| [#21 — Documentation preparation](https://github.com/Kaim-h/astral-archive/pull/21) | Visitor-facing README, milestone roadmap, PR documentation standards and preparation for final B8 documentation reconciliation, including this history. |
+| [#21 — Documentation preparation](https://github.com/Kaim-h/astral-archive/pull/21) | Visitor-facing README, milestone roadmap, PR documentation standards and canonical B8 documentation reconciliation after integration, issue workflow proposal and this history. |
 
-These entries are open-topic snapshots, not claims of completion. The earlier history remains distinct from future plans for Archive refinement, real file management, desktop quality of life and production integration.
+These entries describe continuing topics, not claims of completion. The earlier history remains distinct from future plans for Archive refinement, real file management, desktop quality of life and production integration.
 
 ## Maintaining this history
 

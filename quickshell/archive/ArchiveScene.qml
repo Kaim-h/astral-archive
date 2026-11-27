@@ -3,6 +3,7 @@ import QtQuick.Window
 import "ArchiveMotion.mjs" as Motion
 import "ArchiveCore.mjs" as Core
 import "ArchiveView.mjs" as View
+import "ArchiveSpatial.mjs" as Spatial
 import "representation/B7Ownership.mjs" as Mixed
 import "representation/B7Layout.mjs" as Layout
 import "representation" as B7
@@ -11,6 +12,20 @@ Item {
     id: scene
     required property var controller
     required property var colors
+    property var paletteOptions:[]
+    property int desktopPaletteIndex:1
+    readonly property bool spatialStyle:Spatial.enabled(controller.snapshot)
+    readonly property bool architectural:spatialStyle&&Spatial.kind(controller.snapshot,cubbyId)==="shelf"
+    function ornamentFamily(id){
+        var s=appearanceSnapshot||controller.snapshot
+        return spatialStyle&&Object.prototype.hasOwnProperty.call(s.cubbies,id)?Spatial.resolveAppearance(s,id,desktopPaletteIndex).family:"None"
+    }
+    function childColors(id){
+        var s=appearanceSnapshot||controller.snapshot
+        return spatialStyle&&paletteOptions.length===3&&Object.prototype.hasOwnProperty.call(s.cubbies,id)?View.spatialPalette(s,id,paletteOptions,desktopPaletteIndex):colors
+    }
+    // View-only Room navigation: never fades the physical frame itself.
+    property real roomDetailOpacity:1
     property string mode: "browse"
     property var viewPath: ["root"]
     // Always render an existing reachable cubby, even during snapshot reset.
@@ -28,8 +43,14 @@ Item {
     readonly property var appearanceCubby:appearanceSnapshot&&appearanceSnapshot.cubbies[cubbyId]||cubby
     function materialModule(m){
         var proposal=controller.structuralProposal
+        if(proposal&&proposal.ok&&["spatialAppPlace","spatialAppUnplace","spatialSupport"].includes(proposal.command.kind)){
+            var updated=proposal.snapshot.cubbies[cubbyId].mods.find(q=>q.id===m.id)
+            if(updated)return updated
+        }
         if(proposal&&proposal.ok&&proposal.command.moduleId===m.id&&
-           (proposal.command.kind==="shelf"&&proposal.command.rearrange===true||["holderCreate","holderEdit","artwork"].includes(proposal.command.kind))){
+           (proposal.command.kind==="shelf"&&(Spatial.enabled(controller.snapshot)||proposal.command.rearrange===true)||
+            proposal.command.kind==="child"&&Spatial.enabled(controller.snapshot)||
+            ["holderCreate","holderEdit","artwork"].includes(proposal.command.kind))){
             var candidate=proposal.snapshot.cubbies[cubbyId].mods.find(q=>q.id===m.id)
             if(candidate)return candidate
         }
@@ -43,6 +64,7 @@ Item {
     }
     property string selectedModuleId: ""
     property string selectedHolderId:""
+    property string selectedAppId:""
     property string selectedCell: ""
     property string selectedScrollId: ""
     property var selectedIds: []
@@ -51,6 +73,8 @@ Item {
     property bool pointerActive: false
     property point ghostPoint: Qt.point(0,0)
     property var furnitureDrag: null
+    property var bookDrag:null
+    signal bookPlacementProposed(real position)
     property var prepared: null
     property var insertionContext: null
     property var insertionHover: null
@@ -59,6 +83,8 @@ Item {
     readonly property alias motion: live
     readonly property var committedCaseRecords: View.caseRecords(controller)
     readonly property bool busy: live.busy
+    readonly property bool motionClockActive:live.clockActive
+    readonly property int motionStepCount:live.stepCount
     focus:true
     ArchiveMotion {
         id:live
@@ -74,13 +100,67 @@ Item {
     Component.onCompleted:cameraSnapshot=controller.snapshot
     property var pinnedRecord: null
     property var hoveredRecord: null
+    // B8 uses one passive observer on the upper context surface. The
+    // underlying rack MouseArea continues to own clicks and gestures.
+    property bool metadataBlocked:false
+    readonly property bool rackMetadataReady:spatialStyle&&visible&&enabled&&!metadataBlocked&&
+        !controller.draft&&!controller.structuralProposal&&!pointer&&!prepared&&!furnitureDrag&&!bookDrag&&!live.busy
+    onRackMetadataReadyChanged:if(!rackMetadataReady&&spatialStyle)hoveredRecord=null
+    function rackMetadataAt(x,y){
+        if(!rackMetadataReady||x<0||x>=width||y<0||y>=height||
+           caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return null
+        var p=interior.mapFromItem(scene,x,y)
+        if(p.x<0||p.x>interior.width||p.y<0||p.y>interior.height)return null
+        for(var i=cubby.mods.length-1;i>=0;i--){
+            var m=cubby.mods[i]
+            if(m.type!=="rack")continue
+            var item=moduleItem(m.id)
+            if(!item||!item.visible||item.phase!=="idle"||item.locked)continue
+            var local=item.mapFromItem(scene,x,y)
+            if(local.x<0||local.y<0||local.x>item.width||local.y>item.height)continue
+            return item.hitRecord(local.x,local.y)
+        }
+        return null
+    }
+    function updateRackMetadata(point){
+        if(!rackMetadataReady){hoveredRecord=null;return}
+        showRecord(rackMetadataAt(point.x,point.y),point,false)
+    }
     property point tipPoint: Qt.point(0,0)
-    readonly property var camera: View.camera(displayCubby,width,Math.max(1,height-42),zoom,pan)
+    // Valid appearance and interior previews only; refused proposals retain
+    // committed geometry. Legacy Cubby and unadopted Shelf remain unchanged.
+    readonly property var frontSnapshot:interiorPreviewSnapshot||appearanceSnapshot||controller.snapshot
+    readonly property var frontEnvelope:View.frontEnvelope(frontSnapshot,cubbyId,displayCubby)
+    readonly property bool physicalFront:!!frontEnvelope.parts
+    readonly property var camera: View.fitEnvelope(frontEnvelope,width,Math.max(1,height-42),zoom,pan)
     readonly property alias caseDock: caseView
     readonly property alias tooltip: tooltipView
     readonly property alias worldItem: world
     signal destinationPressed(string rackId,string key)
     signal furnitureContext(real sceneX,real sceneY)
+    signal shelfAppearanceRequested()
+    signal containerAppearanceRequested(string containerId)
+    function appearanceTargetAt(x,y){
+        if(!spatialStyle||caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return ""
+        var id=committedFixtureAt(x,y),m=cubby.mods.find(q=>q.id===id)
+        if(m)return m.type==="cubby"?m.childId:""
+        var at=world.mapFromItem(scene,x,y)
+        return at.x>=0&&at.x<=world.width&&at.y>=0&&at.y<=world.height?cubbyId:""
+    }
+    signal rackTargetSwitchRequested(string moduleId)
+    signal fixtureTargetSwitchRequested(string moduleId,string holderId)
+    function committedHolderAt(id,x,y){
+        var m=cubby.mods.find(q=>q.id===id),p=interior.mapFromItem(scene,x,y)
+        if(!m||!Mixed.supportsTop(m))return ""
+        var h=Mixed.holderAt(m,{x:p.x-m.x,y:p.y-m.y});return h?h.id:""
+    }
+    function committedFixtureAt(x,y){
+        if(caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return ""
+        var p=interior.mapFromItem(scene,x,y)
+        var m=cubby.mods.find(q=>Mixed.fixtureRects(q).some(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h))
+        return m?m.id:""
+    }
+    readonly property bool browseContext:mode==="browse"&&spatialStyle
     // View-only preference, independent of the arrangement/Undo history.
     property string cubbyPreviewMode:"veiled"
     property bool snapEnabled:false
@@ -88,13 +168,20 @@ Item {
     property int snapDistance:20
     function quantize(v){return Core.snapCoordinate(v,snapDistance,snapEnabled)}
     function contextAt(x,y){
-        if(mode!=="arrange"||live.busy||controller.draft||controller.structuralProposal||furnitureDrag)return
+        if((mode!=="arrange"&&!browseContext)||live.busy||controller.draft||controller.structuralProposal||furnitureDrag||bookDrag||pointer||prepared)return
         var p=interior.mapFromItem(scene,x,y),m=cubby.mods.find(function(q){return Mixed.fixtureRects(q).some(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)})
+        if(browseContext){
+            var target=appearanceTargetAt(x,y)
+            if(target===cubbyId)shelfAppearanceRequested()
+            else if(target)containerAppearanceRequested(target)
+            else furnitureContext(x,y)
+            return
+        }
         clearSelection()
         if(m){
             selectedModuleId=m.id
             if(m.type==="rack"){var item=moduleItem(m.id),c=item?item.hitCell(p.x-m.x,p.y-m.y):null;selectedCell=c?c.key:""}
-            else if(m.type==="shelf"){var h=Mixed.holderAt(m,{x:p.x-m.x,y:p.y-m.y});selectedHolderId=h?h.id:""}
+            if(Mixed.supportsTop(m)){var h=Mixed.holderAt(m,{x:p.x-m.x,y:p.y-m.y});selectedHolderId=h?h.id:""}
         }
         furnitureContext(x,y)
     }
@@ -137,6 +224,46 @@ Item {
             if(e){selectedScrollId=recordId;selectedIds=[recordId];message=e.scroll.name}
         }
     }
+    function selectApp(moduleId,appId){
+        if(!mixedInteractive)return
+        selectMixed(moduleId,"");selectedAppId=appId
+        var app=controller.snapshot.spatial.apps[appId]
+        message="Application book · "+app.title+" (synthetic)"
+    }
+    function beginBookDrag(moduleId,appId,x,y){
+        if(mode!=="arrange"||!Spatial.enabled(controller.snapshot)||!mixedInteractive||furnitureDrag||bookDrag)return false
+        var m=cubby.mods.find(v=>v.id===moduleId),e=m&&(m.items||[]).find(v=>v.kind==="app"&&v.appId===appId)
+        if(!e||!Mixed.supportsTop(m))return false
+        selectApp(moduleId,appId)
+        forceActiveFocus()
+        bookDrag={revision:controller.archiveState.revision,containerId:cubbyId,moduleId:moduleId,appId:appId,
+            startX:x,startY:y,baseX:e.x,worldX:m.x,worldY:m.y,scale:camera.scale,
+            interval:snapDistance,snap:snapEnabled,active:false,targetX:e.x}
+        return true
+    }
+    function updateBookDrag(x,y){
+        if(!bookDrag)return
+        var d=bookDrag,dx=x-d.startX,dy=y-d.startY
+        if(!d.active&&Math.hypot(dx,dy)<6)return
+        bookDrag=Object.assign({},d,{active:true,targetX:Core.bookDragPosition(d.baseX,dx/d.scale,d.interval,d.snap)})
+    }
+    function cancelBookDrag(){bookDrag=null}
+    function finishBookDrag(x,y){
+        if(!bookDrag)return
+        updateBookDrag(x,y)
+        var d=bookDrag;bookDrag=null
+        if(!d.active||d.targetX===d.baseX)return
+        if(d.revision!==controller.archiveState.revision||d.containerId!==cubbyId||mode!=="arrange"||controller.draft||controller.structuralProposal)return
+        // Publish one validated proposal on release; never mutate while moving.
+        controller.proposeStructure({kind:"spatialAppPlace",appId:d.appId,containerId:d.containerId,moduleId:d.moduleId,patch:{x:d.targetX}})
+        bookPlacementProposed(d.targetX)
+    }
+    function topModule(m){
+        var v=materialModule(m)
+        // The solver's ready proposal has passed occupied rack bounds.
+        // Invalid/unsettled proposals retain committed dependent positions.
+        return m.type==="rack"&&controller.phase==="ready"?View.displayRack(controller,cubbyId,v):v
+    }
     function moveHolder(moduleId,holderId,from,to,recordId){
         if(!mixedInteractive||mode!=="browse")return
         var command={kind:"holderMove",cubbyId:cubbyId,moduleId:moduleId,holderId:holderId,from:from,to:to,recordId:recordId}
@@ -152,7 +279,7 @@ Item {
         return null
     }
     function clearSelection() {
-        selectedModuleId="";selectedHolderId="";selectedCell="";selectedScrollId=""
+        selectedModuleId="";selectedHolderId="";selectedAppId="";selectedCell="";selectedScrollId=""
         pinnedRecord=null;hoveredRecord=null;selectedIds=[];anchor=null;cancelInsertion()
     }
     function saveCamera() {
@@ -165,19 +292,27 @@ Item {
         zoom=c.zoom
         pan=Qt.point(c.x,c.y)
     }
+    // N2a: explicit frontal Shelf selection; upper plan navigation follows N3/N4.
+    readonly property var shelfRoots: Spatial.roots(controller.snapshot)
+    function openShelf(id) {
+        if(!Spatial.enabled(controller.snapshot)||!shelfRoots.includes(id)||live.busy||
+           controller.draft||controller.structuralProposal||pointer||furnitureDrag||bookDrag||prepared)return false
+        if(viewPath.length===1&&viewPath[0]===id)return true
+        saveCamera();viewPath=[id];restoreCamera();clearSelection();return true
+    }
     function openChild(id) {
-        if(live.busy||controller.draft||controller.structuralProposal||!cubby.mods.some(function(m){return m.type==="cubby"&&m.childId===id}))return false
+        if(live.busy||controller.draft||controller.structuralProposal||bookDrag||!cubby.mods.some(function(m){return m.type==="cubby"&&m.childId===id}))return false
         saveCamera();viewPath=viewPath.concat([id]);restoreCamera();clearSelection();return true
     }
     function back() {
-        if(live.busy||controller.draft||controller.structuralProposal||viewPath.length<=1)return false
+        if(live.busy||controller.draft||controller.structuralProposal||bookDrag||viewPath.length<=1)return false
         saveCamera();viewPath=viewPath.slice(0,-1);restoreCamera();clearSelection();return true
     }
     function enterSelected() {
         var m=cubby.mods.find(function(q){return q.id===selectedModuleId})
         return !!m&&m.type==="cubby"&&openChild(m.childId)
     }
-    function setZoom(value) { zoom=Math.max(.5,Math.min(2.5,value));pinnedRecord=null;hoveredRecord=null }
+    function setZoom(value) { if(bookDrag)return;zoom=Math.max(.5,Math.min(2.5,value));pinnedRecord=null;hoveredRecord=null }
     function showRecord(record,point,pin) {
         if(pin){pinnedRecord=pinnedRecord&&pinnedRecord.id===record.id?null:record;selectedScrollId=record.id}
         else hoveredRecord=record
@@ -253,15 +388,16 @@ Item {
         live.abort("Drop canceled · original arrangement restored")
     }
     function abortGesture(){
+        cancelBookDrag()
         pointer=null;pointerActive=false;caseView.dragNear=false
         if(live.busy)live.abort()
         if(furnitureDrag){furnitureDrag=null;controller.cancel()}
     }
     function beginFurniture(id,action,x,y){
-        if(live.busy||controller.structuralProposal||mode!=="arrange"||(controller.draft&&controller.draft.rackId!==id))return
+        if(bookDrag||live.busy||controller.structuralProposal||mode!=="arrange"||(controller.draft&&controller.draft.rackId!==id))return
         forceActiveFocus()
         var rack=controller.draft?controller.draft.proposed:Core.rackAt(controller.snapshot,cubbyId,id)
-        if(!rack)return
+        if(!rack||![rack.x,rack.y,rack.w,rack.h,rack.r].every(Number.isFinite))return
         var point=interior.mapFromItem(scene,x,y)
         furnitureDrag={id:id,action:action,start:{x:point.x,y:point.y},base:{x:rack.x,y:rack.y,w:rack.w,h:rack.h}}
     }
@@ -337,10 +473,11 @@ Item {
     }
     Keys.onPressed:function(event){
         if(event.key===Qt.Key_Escape){abortGesture();cancelInsertion();if(controller.draft||controller.structuralProposal)controller.cancel();clearSelection();event.accepted=true}
+        else if(bookDrag){event.accepted=true}
         else if(event.key===Qt.Key_Menu||(event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier))){
             var m=cubby.mods.find(function(q){return q.id===selectedModuleId})
             var p=m?interior.mapToItem(scene,m.x+m.w/2,m.y+m.h/2):interior.mapToItem(scene,interior.width/2,interior.height/2)
-            if(mode==="arrange"&&!controller.draft&&!controller.structuralProposal&&!live.busy){furnitureContext(p.x,p.y);event.accepted=true}
+            if((mode==="arrange"||browseContext)&&!controller.draft&&!controller.structuralProposal&&!live.busy&&!pointer&&!prepared){furnitureContext(p.x,p.y);event.accepted=true}
         }
         else if(event.modifiers&Qt.ControlModifier){
             if(event.key===Qt.Key_X){cutSelected();event.accepted=true}
@@ -350,15 +487,16 @@ Item {
     }
     Connections {
         target:scene.Window.window
-        function onActiveChanged(){if(scene.Window.window&&!scene.Window.window.active&&scene.pointer)scene.abortGesture()}
+        function onActiveChanged(){if(scene.Window.window&&!scene.Window.window.active&&(scene.pointer||scene.bookDrag))scene.abortGesture()}
     }
     onModeChanged: {abortGesture();clearSelection()}
     Connections {
         target: scene.controller
         function onSnapshotChanged() {
+            scene.cancelBookDrag()
             var next=scene.controller.snapshot,previous=scene.cameraSnapshot
             if(scene.controller.resetting){
-                scene.cameras=View.copyCameras({});scene.viewPath=["root"];scene.restoreCamera();scene.clearSelection()
+                scene.cameras=View.copyCameras({});scene.viewPath=Spatial.enabled(next)?View.reachablePath(next,next.path):["root"];scene.restoreCamera();scene.clearSelection()
             }else if(previous){
                 var activeId=scene.viewPath[scene.viewPath.length-1]
                 scene.cameras=View.reconcileCameras(previous,next,scene.controller.archiveState.history,scene.cameras,
@@ -370,30 +508,68 @@ Item {
                 scene.viewPath=path;scene.restoreCamera();scene.clearSelection()
             }
             if(scene.selectedModuleId&&!scene.cubby.mods.some(function(m){return m.id===scene.selectedModuleId}))scene.clearSelection()
+            if(scene.selectedAppId&&!scene.cubby.mods.some(m=>(m.items||[]).some(e=>e.kind==="app"&&e.appId===scene.selectedAppId)))scene.selectedAppId=""
             scene.pinnedRecord=null;scene.hoveredRecord=null
         }
-        function onDraftChanged(){if(scene.controller.draft){scene.pinnedRecord=null;scene.hoveredRecord=null}}
+        function onDraftChanged(){if(scene.controller.draft){scene.cancelBookDrag();scene.pinnedRecord=null;scene.hoveredRecord=null}}
     }
 
     Rectangle { anchors.fill:parent; color:scene.colors.background }
     Item {
         id: world
         x:scene.camera.x; y:scene.camera.y
-        width:scene.displayCubby.w+2*(Number(scene.displayCubby.b)||11)
-        height:scene.displayCubby.h+2*(Number(scene.displayCubby.b)||11)
+        width:scene.frontEnvelope.w
+        height:scene.frontEnvelope.h
         scale:scene.camera.scale
         transformOrigin:Item.TopLeft
         Rectangle {
             anchors.fill:parent
+            visible:!scene.physicalFront
             radius:2
             color:View.frameColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
             border.color:View.mix(scene.colors.metal,scene.colors.text,.20)
         }
+        // Each Shelf keeps its own frame treatment, bounded to the
+        // physical envelope. The same profile reference can be used in N3.
+        Item {
+            id:frameDetail
+            objectName:"architectural-frame-detail"
+            anchors.fill:parent;visible:scene.architectural&&!scene.physicalFront
+            readonly property string profile:scene.architectural?Spatial.shelfProfile(scene.appearanceSnapshot||scene.controller.snapshot,scene.cubbyId):"cornice"
+            Repeater {
+                model:frameDetail.visible?View.shelfTrim(scene.displayCubby,frameDetail.profile):[]
+                Rectangle {
+                    required property var modelData
+                    x:modelData.x;y:modelData.y;width:modelData.w;height:modelData.h
+                    color:scene.colors[modelData.role]
+                    opacity:modelData.role==="engraving"?.65:1
+                }
+            }
+        }
+        ArchiveProfileFront {
+            objectName:"physical-shelf-frame"
+            anchors.fill:parent
+            visible:scene.physicalFront
+            profileGeometry:scene.physicalFront?scene.frontEnvelope:null
+            family:scene.ornamentFamily(scene.cubbyId)
+            emblemKey:(scene.appearanceCubby.appearance||{}).emblem||""
+            colors:scene.colors
+            frameColor:View.frameColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
+        }
+        // Keep the exact aperture backing opaque while its contents reveal.
+        Rectangle {
+            visible:scene.physicalFront&&scene.roomDetailOpacity<1
+            x:scene.frontEnvelope.aperture.x;y:scene.frontEnvelope.aperture.y
+            width:scene.frontEnvelope.aperture.w;height:scene.frontEnvelope.aperture.h
+            color:View.backingColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
+            border.color:View.mix(scene.colors.metal,scene.colors.panel,.32)
+        }
         Item {
             id: interior
             objectName:"cubby-interior"
-            x:Number(scene.displayCubby.b)||11
-            y:x
+            opacity:scene.roomDetailOpacity
+            x:scene.frontEnvelope.aperture.x
+            y:scene.frontEnvelope.aperture.y
             width:scene.displayCubby.w
             height:scene.displayCubby.h
             clip:true
@@ -401,6 +577,27 @@ Item {
                 anchors.fill:parent
                 color:View.backingColor(scene.appearanceCubby,scene.colors,scene.viewPath.length-1)
                 border.color:View.mix(scene.colors.metal,scene.colors.panel,.32)
+            }
+            ArchiveEngravingField {
+                anchors.fill:parent
+                readonly property var policy:scene.appearanceCubby.appearance||({})
+                visible:!Array.isArray(policy.fields)
+                primaryField:true
+                family:scene.ornamentFamily(scene.cubbyId)
+                colors:scene.colors;emblemKey:policy.emblem||""
+                borderStyle:policy.border||"none";centerStyle:policy.center||"seal"
+            }
+            Repeater {
+                model:scene.appearanceCubby.appearance&&Array.isArray(scene.appearanceCubby.appearance.fields)?scene.appearanceCubby.appearance.fields:[]
+                ArchiveEngravingField {
+                    required property var modelData
+                    objectName:"archive-backing-"+modelData.id
+                    x:modelData.x;y:modelData.y;width:modelData.w;height:modelData.h;opacity:modelData.opacity
+                    readonly property var policy:scene.appearanceCubby.appearance||({})
+                    family:modelData.family||scene.ornamentFamily(scene.cubbyId)
+                    colors:scene.colors;emblemKey:modelData.emblem||policy.emblem||""
+                    borderStyle:modelData.border||policy.border||"none";centerStyle:modelData.center||policy.center||"seal"
+                }
             }
             Item {
                 objectName:"cubby-guide-grid"
@@ -468,11 +665,12 @@ Item {
                                 scene.destinationPressed(id,key)
                             }
                             onScrollPressed: function(record,lx,ly){
+                                if(scene.controller.draft&&scene.controller.draft.rackId!==rack.id)return
                                 scene.selectedModuleId=rack.id;scene.selectedCell=record.cellKey
                                 scene.showRecord(record,mapToItem(scene,lx,ly),true)
                             }
                             onScrollHovered: function(record,lx,ly){
-                                scene.showRecord(record,mapToItem(scene,lx,ly),false)
+                                if(!scene.spatialStyle)scene.showRecord(record,mapToItem(scene,lx,ly),false)
                             }
                         }
                     }
@@ -480,6 +678,7 @@ Item {
                         id:shelfComponent
                         ArchiveShelf {
                             module:scene.materialModule(moduleLoader.modelData)
+                            spatialStyle:scene.spatialStyle
                             colors:scene.colors
                             browse:scene.mode==="browse"
                             selected:scene.selectedModuleId===module.id
@@ -491,12 +690,15 @@ Item {
                     Component {
                         id:mixedShelfComponent
                         B7.B7MixedShelf {
+                            spatialStyle:scene.spatialStyle
                             module:scene.materialModule(moduleLoader.modelData)
                             colors:scene.colors;plaqueHost:interior;gestureHost:scene
+                            apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
                             browse:scene.mode==="browse";interactive:scene.mixedInteractive
                             selected:scene.selectedModuleId===module.id
                             selectedRecordId:scene.selectedScrollId
                             hiddenIds:live.mixedVisuals.hidden
+                            onAppActivated:function(appId){scene.selectApp(module.id,appId)}
                             onActivated:function(recordId){scene.selectMixed(module.id,recordId)}
                             onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
                         }
@@ -517,7 +719,10 @@ Item {
                         ArchiveCubbyFace {
                             module:scene.materialModule(moduleLoader.modelData)
                             child:(scene.appearanceSnapshot||scene.interiorPreviewSnapshot||scene.controller.snapshot).cubbies[module.childId]
-                            colors:scene.colors
+                            colors:scene.childColors(module.childId)
+                            ornamentFamily:scene.ornamentFamily(module.childId)
+                            spatialStyle:scene.spatialStyle
+                            glazingStyle:scene.spatialStyle?Spatial.resolveGlazing(scene.appearanceSnapshot||scene.controller.snapshot,module.childId):"linework"
                             depth:scene.viewPath.length
                             previewMode:scene.cubbyPreviewMode
                             selected:scene.selectedModuleId===module.id
@@ -529,6 +734,34 @@ Item {
                         }
                     }
                 }
+            }
+            // Render eligible module tops with the same supported-object/holder
+            // delegates as boards, not an extra physical board or a second owner.
+            Repeater {
+                model:scene.cubby.mods.filter(m=>{var v=scene.materialModule(m);return v.type!=="shelf"&&Mixed.supportsTop(v)&&(v.items||[]).length})
+                B7.B7MixedShelf {
+                    required property var modelData
+                    module:scene.topModule(modelData)
+                    spatialStyle:scene.spatialStyle
+                    showBoard:false
+                    apps:scene.controller.snapshot.spatial?scene.controller.snapshot.spatial.apps||({}):({})
+                    colors:scene.colors;plaqueHost:interior;gestureHost:scene
+                    browse:scene.mode==="browse";interactive:scene.mixedInteractive
+                    selected:scene.selectedModuleId===module.id
+                    selectedRecordId:scene.selectedScrollId;hiddenIds:live.mixedVisuals.hidden
+                    onActivated:function(recordId){scene.selectMixed(module.id,recordId)}
+                    onAppActivated:function(appId){scene.selectApp(module.id,appId)}
+                    onMoveRequested:function(holderId,from,to,recordId){scene.moveHolder(module.id,holderId,from,to,recordId)}
+                }
+            }
+            Rectangle {
+                objectName:"book-drag-outline"
+                visible:!!scene.bookDrag&&scene.bookDrag.active
+                x:scene.bookDrag?scene.bookDrag.worldX+scene.bookDrag.targetX-21:0
+                y:scene.bookDrag?scene.bookDrag.worldY-160:0
+                width:42;height:160
+                color:"#3040788f";border.color:scene.colors.engraving;border.width:2
+                z:9
             }
             // A mixed destination is already owned by the private draft, but
             // its final symbolic delegate is not published until settling ends.
@@ -580,6 +813,7 @@ Item {
         }
         Rectangle {
             objectName:"cubby-inscription"
+            visible:!scene.physicalFront
             // Fit the actual font metrics, rather than capping every name
             // at 170 local units. Elide only when the frame really is narrow.
             width:Math.max(0,Math.min(parent.width-20,Math.max(88,cubbyLabel.implicitWidth+20)))
@@ -602,6 +836,13 @@ Item {
                 font.bold:true
             }
         }
+        ArchiveShelfInscription {
+            objectName:"physical-shelf-inscription"
+            visible:scene.physicalFront
+            inscription:scene.frontEnvelope.inscription||{x:0,y:0,w:0,h:0}
+            shelfName:scene.displayCubby.name||scene.displayCubby.id
+            colors:scene.colors
+        }
     }
     MouseArea {
         anchors.fill:parent
@@ -609,11 +850,12 @@ Item {
         property point start:Qt.point(0,0)
         property point original:Qt.point(0,0)
         onPressed:function(mouse){start=Qt.point(mouse.x,mouse.y);original=scene.pan;scene.pinnedRecord=null;scene.hoveredRecord=null}
-        onPositionChanged:function(mouse){if(pressed)scene.pan=Qt.point(original.x+mouse.x-start.x,original.y+mouse.y-start.y)}
+        onPositionChanged:function(mouse){if(pressed&&!scene.bookDrag)scene.pan=Qt.point(original.x+mouse.x-start.x,original.y+mouse.y-start.y)}
         onWheel:function(wheel){scene.setZoom(scene.zoom*(wheel.angleDelta.y>0?1.12:1/1.12));wheel.accepted=true}
     }
     ArchiveCase {
         id:caseView
+        opacity:scene.roomDetailOpacity
         colors:scene.colors
         records:live.busy&&!scene.pointerActive?live.caseRecords:scene.committedCaseRecords
         hiddenIds:scene.pointerActive&&live.busy?live.carried.map(function(s){return s.id}):[]
@@ -659,12 +901,49 @@ Item {
             Text {anchors.centerIn:parent;text:live.carried.length;color:scene.colors.text;font.pixelSize:11}
         }
     }
+    // Intercept only a click on a different committed fixture during a B8
+    // rack draft. Same-rack review/handles retain their established input.
+    MouseArea {
+        anchors.fill:parent;z:23
+        visible:scene.spatialStyle&&scene.mode==="arrange"&&!!scene.controller.draft&&!live.busy&&!scene.furnitureDrag&&!scene.bookDrag
+        acceptedButtons:Qt.LeftButton
+        property string candidate:""
+        property point at:Qt.point(0,0)
+        onPressed:function(mouse){
+            var d=scene.controller.draft,id=scene.committedFixtureAt(mouse.x,mouse.y)
+            if(!d||d.cubbyId!==scene.cubbyId||!id||id===d.rackId){candidate="";mouse.accepted=false;return}
+            candidate=id;at=Qt.point(mouse.x,mouse.y)
+        }
+        onClicked:function(mouse){
+            var id=candidate;candidate=""
+            if(id&&Math.abs(mouse.x-at.x)<=6&&Math.abs(mouse.y-at.y)<=6&&scene.committedFixtureAt(mouse.x,mouse.y)===id)
+                scene.rackTargetSwitchRequested(id)
+        }
+        onCanceled:candidate=""
+        onVisibleChanged:if(!visible)candidate=""
+        onWheel:function(wheel){wheel.accepted=false}
+    }
     MouseArea {
         anchors.fill:parent;z:24
-        visible:scene.mode==="arrange"&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy
+        visible:(scene.mode==="arrange"||scene.browseContext)&&!scene.bookDrag&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy&&!scene.pointer&&!scene.prepared
         acceptedButtons:Qt.RightButton
         onClicked:function(mouse){scene.contextAt(mouse.x,mouse.y)}
         onWheel:function(wheel){wheel.accepted=false}
+        // Instantiate the B8-only observer on its own item. A disabled
+        // handler still belongs to its parent's pointer-handler list in Qt.
+        Loader {
+            anchors.fill:parent
+            active:scene.spatialStyle
+            sourceComponent:Item {
+                objectName:"b8-rack-metadata-observer"
+                HoverHandler {
+                    enabled:scene.rackMetadataReady
+                    blocking:false
+                    onHoveredChanged:if(hovered)scene.updateRackMetadata(point.position);else if(scene.spatialStyle)scene.hoveredRecord=null
+                    onPointChanged:if(hovered)scene.updateRackMetadata(point.position)
+                }
+            }
+        }
     }
     // While the inspector is proposing a structural edit, protect committed
     // furniture and Case from pointer input. The inspector is a sibling.
@@ -675,14 +954,30 @@ Item {
         visible:!!scene.controller.structuralProposal
         acceptedButtons:Qt.AllButtons
         property var dragCommand:null
-        onVisibleChanged:if(!visible)dragCommand=null
+        property string selectionTarget:""
+        property string selectionHolder:""
+        property point selectionAt:Qt.point(0,0)
+        property var selectionProposal:null
+        onVisibleChanged:if(!visible){dragCommand=null;selectionTarget="";selectionHolder="";selectionProposal=null}
         property point start:Qt.point(0,0)
         property bool resizing:false
         onPressed:function(mouse){
             var q=scene.controller.structuralProposal
-            if(mouse.button!==Qt.LeftButton||!q||q.command.kind==="delete"||!structuralGhost.visible)return
+            selectionTarget="";selectionHolder="";selectionProposal=null
+            if(mouse.button!==Qt.LeftButton||!q||q.command.kind==="delete")return
             var p=interior.mapFromItem(scene,mouse.x,mouse.y),g=structuralGhost
-            if(p.x<g.x||p.x>g.x+g.width||p.y<g.y||p.y>g.y+g.height)return
+            var inside=g.visible&&p.x>=g.x&&p.x<=g.x+g.width&&p.y>=g.y&&p.y<=g.y+g.height
+            if(scene.spatialStyle&&scene.mode==="arrange"&&["shelf","child","artwork","holderEdit","holderCreate","create","cubby"].includes(q.command.kind)){
+                var id=scene.committedFixtureAt(mouse.x,mouse.y),holder=scene.committedHolderAt(id,mouse.x,mouse.y)
+                var current=q.command.kind==="cubby"?scene.cubby.mods.find(m=>m.type==="cubby"&&m.childId===q.command.cubbyId):null
+                var prior=current?current.id:q.command.moduleId
+                if(id&&(id!==prior||holder&&holder!==q.command.holderId)&&(!inside||!q.ok)){
+                    selectionTarget=id;selectionHolder=holder;selectionAt=Qt.point(mouse.x,mouse.y);selectionProposal=q;return
+                }
+            }
+            if(!inside)return
+            var base=Object.assign({x:g.x,y:g.y,w:g.width,h:g.height},q.command.patch)
+            if(![base.x,base.y,base.w,base.h].every(Number.isFinite))return
             dragCommand=Core.clone(q.command)
             dragCommand.patch=Object.assign({x:g.x,y:g.y,w:g.width,h:g.height},dragCommand.patch)
             start=p
@@ -697,14 +992,21 @@ Item {
             scene.controller.proposeStructure(d)
         }
         onReleased:dragCommand=null
-        onCanceled:dragCommand=null
+        onClicked:function(mouse){
+            var id=selectionTarget,holder=selectionHolder,q=selectionProposal
+            selectionTarget="";selectionHolder="";selectionProposal=null
+            if(id&&q===scene.controller.structuralProposal&&Math.abs(mouse.x-selectionAt.x)<=6&&Math.abs(mouse.y-selectionAt.y)<=6&&scene.committedFixtureAt(mouse.x,mouse.y)===id&&scene.committedHolderAt(id,mouse.x,mouse.y)===holder)
+                scene.fixtureTargetSwitchRequested(id,holder)
+        }
+        onCanceled:{dragCommand=null;selectionTarget="";selectionHolder="";selectionProposal=null}
         onWheel:function(wheel){wheel.accepted=true}
     }
     ArchiveTooltip {
         id:tooltipView
         colors:scene.colors
-        record:scene.pinnedRecord||scene.hoveredRecord
+        record:scene.pointerActive||scene.furnitureDrag||scene.bookDrag||scene.busy||scene.spatialStyle&&scene.metadataBlocked?null:scene.pinnedRecord||scene.hoveredRecord
         expanded:!!scene.pinnedRecord
+        hoverOnly:scene.spatialStyle&&scene.mode==="arrange"
         anchorPoint:scene.tipPoint
     }
 }

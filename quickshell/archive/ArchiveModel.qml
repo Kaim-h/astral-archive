@@ -2,11 +2,18 @@ import QtQuick
 import QtQml.WorkerScript
 import "ArchiveCore.mjs" as Core
 import "ArchiveCheckpoint.mjs" as Checkpoint
+import "ArchiveSpatial.mjs" as Spatial
 
 // Research-only N1 controller. Replace whole values to notify QML bindings.
 // At most one worker request runs; queued edits coalesce to the latest draft.
 Item {
     id: model
+    // Existing B6/B7 study windows do not render the architectural hierarchy.
+    // Only explicitly opted-in test/controllers may import spatial checkpoints.
+    property bool spatialEnabled: false
+    // Existing N2 renderer cannot display v4; isolated contract tests opt in.
+    property bool physicalProfilesEnabled: false
+    property bool independentProfilesEnabled: false
     property var archiveState: Core.session(Core.fixture())
     readonly property var snapshot: archiveState.snapshot
     readonly property var draft: archiveState.draft
@@ -20,25 +27,58 @@ Item {
     // Structural proposals are independent of the rack planner. Callers must
     // refuse live pointer/solver activity before entering a structural edit.
     property var structuralProposal: null
+    property string appearanceSessionTarget:""
+    property string appearanceSessionKind:""
+    readonly property bool appearanceSessionOpen:appearanceSessionTarget!==""
     property string checkpointError: ""
     // Synchronous publication markers for view-only lifecycle consumers.
     property bool resetting:false
     property bool restoringUndo:false
     function proposeStructure(command) {
-        if(draft)return false
+        if(appearanceSessionOpen||draft||(!spatialEnabled&&command&&String(command.kind).indexOf("spatial")===0))return false
+        if(command&&command.kind==="spatialAdoptProfiles"&&!physicalProfilesEnabled)return false
+        if(command&&command.kind==="spatialAdoptIndependentProfiles"&&(!physicalProfilesEnabled||!independentProfilesEnabled))return false
         structuralProposal=Core.previewStructure(archiveState,command)
         return structuralProposal.ok
     }
-    function cancelStructure() { structuralProposal=null }
+    function beginAppearance(containerId) {return openAppearanceProposal(Core.beginAppearance(archiveState,containerId))}
+    function beginRoomAppearance(roomId) {return openAppearanceProposal(Core.beginRoomAppearance(archiveState,roomId))}
+    function beginMapAppearance() {return openAppearanceProposal(Core.beginMapAppearance(archiveState))}
+    function beginMapRoomAppearance(roomId) {return openAppearanceProposal(Core.beginMapRoomAppearance(archiveState,roomId))}
+    function openAppearanceProposal(p) {
+        if(!spatialEnabled||structuralProposal||draft||queued||runningRevision!==-1||!p)return false
+        appearanceSessionTarget=p.appearanceTarget
+        appearanceSessionKind=p.command.kind
+        structuralProposal=p
+        return true
+    }
+    function appearanceTargetCurrent(){
+        return appearanceSessionOpen&&structuralProposal&&structuralProposal.appearanceTarget===appearanceSessionTarget&&
+            structuralProposal.command.kind===appearanceSessionKind&&
+            (appearanceSessionKind==="spatialMapAppearance"?"@chart":appearanceSessionKind==="spatialRoomAppearance"||appearanceSessionKind==="spatialMapRoomAppearance"?structuralProposal.command.roomId:structuralProposal.command.containerId)===appearanceSessionTarget
+    }
+    function updateAppearance(key,value) {
+        if(!appearanceTargetCurrent())return false
+        var next=Core.updateAppearance(archiveState,structuralProposal,key,value)
+        if(!next)return false
+        structuralProposal=next
+        return !next.error
+    }
+    function cancelStructure() { structuralProposal=null;appearanceSessionTarget="";appearanceSessionKind="" }
     function editMixed(command) {
         if(draft||structuralProposal||!command||command.kind!=="holderMove")return false
         archiveState=Core.editStructure(archiveState,command)
         return !archiveState.error
     }
-    function applyStructure() {
-        if(!structuralProposal)return false
-        archiveState=Core.applyStructure(archiveState,structuralProposal)
-        if(!archiveState.error)structuralProposal=null
+    function applyStructure(implicitBrowse) {
+        if(appearanceSessionOpen&&!appearanceTargetCurrent())return false
+        if(!structuralProposal||(!spatialEnabled&&String(structuralProposal.command.kind).indexOf("spatial")===0))return false
+        if(!physicalProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptProfiles"||Spatial.physicalProfiles(structuralProposal.snapshot)))return false
+        if(!independentProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptIndependentProfiles"||Spatial.independentProfiles(structuralProposal.snapshot)))return false
+        if(implicitBrowse===true&&!spatialEnabled)return false
+        archiveState=implicitBrowse===true?Core.finishBrowseStructure(archiveState,structuralProposal):
+            appearanceSessionOpen?Core.finishAppearance(archiveState,structuralProposal):Core.applyStructure(archiveState,structuralProposal)
+        if(!archiveState.error)cancelStructure()
         return !archiveState.error
     }
     function exportCheckpoint(view) {
@@ -60,20 +100,30 @@ Item {
 
     function reset(value) {
         // Do not reuse revision numbers across resets while a worker may reply.
+        if(Spatial.enabled(value)&&!spatialEnabled)throw Error("Spatial checkpoint requires an opted-in controller")
+        if(Spatial.physicalProfiles(value)&&!physicalProfilesEnabled)throw Error("Physical profile checkpoint requires compatible renderer or isolated geometry controller")
+        if(Spatial.independentProfiles(value)&&!independentProfilesEnabled)throw Error("Independent profile checkpoint requires compatible controller")
         var fresh = Core.session(value)
         fresh.revision = archiveState.revision + 1
         queued = null
         debounce.stop()
-        structuralProposal=null
+        cancelStructure()
         resetting=true
         try{archiveState=fresh}finally{resetting=false}
     }
     function stage(cubbyId, rackId, patch, decisions) {
-        if(structuralProposal)return
+        if(structuralProposal)return false
+        if(spatialEnabled&&draft&&(draft.cubbyId!==cubbyId||draft.rackId!==rackId))return false
         archiveState = Core.stage(archiveState, cubbyId, rackId, patch, decisions)
         queued = Core.request(archiveState)
         if (queued) debounce.restart()
         else debounce.stop()
+        return true
+    }
+    function finishRackSelection() {
+        if(!spatialEnabled||structuralProposal||!draft||queued||runningRevision!==-1)return false
+        archiveState=Core.finishRackSelection(archiveState)
+        return !archiveState.error&&!draft
     }
     function choose(id, destination) {
         if (!draft) return
@@ -83,9 +133,9 @@ Item {
         stage(draft.cubbyId, draft.rackId, {}, choices)
     }
     function approveRadius(approved) { archiveState = Core.approveRadius(archiveState, approved) }
-    function apply() { archiveState = Core.apply(archiveState); return !archiveState.error }
+    function apply() { if(appearanceSessionOpen)return false;archiveState = Core.apply(archiveState); return !archiveState.error }
     function cancel() {
-        structuralProposal=null
+        cancelStructure()
         queued = null
         debounce.stop()
         archiveState = Core.cancel(archiveState)

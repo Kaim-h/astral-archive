@@ -25,6 +25,10 @@ Both historical bodies retain the original prose and sequence except rebased rel
 - [B6 research chronology](../B6_RESEARCH_STATUS_2026-11-23.md), [browser/native comparison](../B6_NATIVE_BROWSER_COMPARISON_2026-11-24.md), [B7 entry matrix](../B7_ENTRY_CRITERIA_AND_TEST_MATRIX.md), [B7 native representations](../B7_NATIVE_REPRESENTATION_WORK.md) and [mixed cubbies](../B7_N2_MIXED_CUBBIES.md).
 - [Second corrective batch](../STABLE_MAIN_BUGFIXES_2.md), [third corrective batch](../STABLE_MAIN_BUGFIXES_3.md), [regression verification](../REGRESSION_VERIFICATION.md), [research index](../../research/README.md), [Archive source guide](../../../quickshell/archive/README.md).
 
+## B8 integrated checkpoint records
+
+- [N1 foundation](../B8_N1_FOUNDATION.md), [N2 Shelves](../B8_N2_NATIVE_SHELVES.md), [N3 Room geometry](../B8_N3_ROOM_GEOMETRY.md), [N4 Map Room](../B8_N4_MAP_ROOM.md), [N5 customization](../B8_N5_CUSTOMIZATION.md), [N6 verification](../B8_N6_VERIFICATION.md). These stage ledgers retain candidate-era wording and negative evidence; final integrated evidence is in [B8 implementation](../B8_INTEGRATED_IMPLEMENTATION.md) and the merged PR #19. Do not resume their historical next steps by default.
+
 ## Maintenance
 
 Keep routine state and active-work documents concise. On topic completion preserve useful evidence in its existing subsystem/correction record or a focused historical record, link it, and refresh the integrated snapshot. Retain exact revision/run references and limits; avoid repeating historical blocks in routine entry points.

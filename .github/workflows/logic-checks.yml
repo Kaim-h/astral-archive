@@ -57,6 +57,10 @@ jobs:
         run: node scripts/check-b7-native.mjs
       - name: B7-N2 generalized ownership and occupied geometry
         run: node scripts/check-b7-n2.mjs
+      - name: B8-N1 spatial foundation contract
+        run: node scripts/check-b8-n1.mjs
+      - name: Measure integrated B8 synthetic projection and solver
+        run: node scripts/check-b8-n6.mjs
       - name: Native Archive B6-N1 pure logic
         run: node scripts/check-archive-n1.mjs
       - name: Native Archive B6-N2 visual adapter and fixture
@@ -231,9 +235,11 @@ jobs:
       - name: Install distribution Qt Quick test runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml qml6-module-qtqml-models qml6-module-qtqml-workerscript qml6-module-qttest qml6-module-qtquick-localstorage libqt6sql6-sqlite libqt6svg6
+          sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml qml6-module-qtqml-models qml6-module-qtqml-workerscript qml6-module-qttest qml6-module-qtquick-localstorage qml6-module-qtquick-shapes libqt6sql6-sqlite libqt6svg6
       - name: Execute actual Qt Quick synthetic Archive tests
         run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN1.qml
+      - name: Execute isolated B8 spatial foundation contract
+        run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8Foundation.qml
       - name: Execute native illustrated Archive scene tests
         run: /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveNativeN2.qml
       - name: Execute native live Archive interaction tests
@@ -263,6 +269,37 @@ jobs:
           test -s archive-b7-native-mixed.png
           test -s archive-b7-native-mixed-presented.png
           test -s archive-b7-native-mixed-compacted.png
+      - name: Execute B8 native Shelf input and rendering smoke
+        run: |
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8Shelf.qml
+          test -s archive-b8-native-shelf.png
+          for theme in evening twilight midnight; do test -s "archive-b8-native-shelf-$theme.png" || exit 1; done
+          for capture in crest crest-field gallery glaze-default glaze-clearer glaze-graded glaze-combined atlas-local atlas-door-focus; do
+            test -s "archive-b8-native-shelf-n5-$capture.png" || exit 1
+          done
+          test -s archive-b8-native-shelf-map-compact-context.png
+          test -s archive-b8-native-shelf-n6-integrated.png
+          test -s archive-b8-native-shelf-n6-dense-room.png
+          test -s archive-b8-native-room-stone.png
+          test -s archive-b8-native-room-stone-perspective.png
+          for capture in plain-plan plain-perspective patterned-plan patterned-perspective; do
+            test -s "archive-b8-native-room-stone-exposed-$capture.png" || exit 1
+          done
+      - name: Execute B8 v6 checkpoint restart (two isolated Qt processes)
+        run: |
+          export XDG_DATA_HOME="$(mktemp -d)"
+          trap 'rm -rf -- "$XDG_DATA_HOME"' EXIT
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8RestartWrite.qml
+          /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8RestartRead.qml
+      - name: Attach B8 native Shelf capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-b8-native-shelf
+          path: |
+            archive-b8-native-shelf*.png
+            archive-b8-native-room-stone*.png
+          retention-days: 21
       - name: Attach derived sculpture assets and provenance
         uses: actions/upload-artifact@v4
         with:

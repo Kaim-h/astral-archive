@@ -87,3 +87,7 @@ Patch 12 supersedes the historical editor-wiring omission above. The B6-N3r1 and
 ## Integrated B7-N2 extension
 
 At original technical main `4366c5cae25d949ea7d21c8c595de8132893d6b4`, the isolated Archive additionally uses `ArchiveCapacity.mjs` for shared capacity preflight, `ArchiveCheckpoint.mjs` for v1/v2 study checkpoints, `representation/B7Ownership.mjs` and `B7Layout.mjs` for mixed ownership and geometry, and native representation components. Core retains the same-ID arrangement commit and Undo boundary. `quickshell/tests/ArchiveB7MixedWindow.qml` runs the mixed study; `ArchiveStudyStorage.qml` provides explicit single-slot synthetic persistence. No production shell import or real file actions. See [current state](../development/CURRENT_STATE.md) and [B7-N2 record](../development/B7_N2_MIXED_CUBBIES.md) for exact evidence. N4 remains mandatory before production integration. See the [inter-development architecture review](ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md) for the pinned source map, lessons and advisory recommendations.
+
+## Integrated B8 extension
+
+The isolated native Archive now includes Map Room → Room → architectural Shelf → recursive Cubby, shared spatial/profile/door authority, appearance sessions and conditional v6 checkpoints. See the [current source and contract map](../development/B8_INTEGRATED_IMPLEMENTATION.md). No production shell import or actual filesystem operations; historical N4 target validation remains mandatory.

@@ -20,7 +20,7 @@ I establish the creative vision, design requirements and development priorities,
 
 The public main branch contains the desktop shell and isolated native Archive studies, including simulated scroll physics, mixed furnished cubbies, Scroll Case transport and synthetic checkpoint Save/Load. The Archive is not yet connected to the production shell or real filesystem operations.
 
-The B8 Shelf, Room and Map Room design is integrated as a specification. Its native implementation is in progress in [PR #19](https://github.com/Kaim-h/astral-archive/pull/19); experimental branch features are not released features. The integrated baseline has passed JavaScript, Chromium and offscreen Qt Quick checks; actual target Linux desktop validation remains outstanding.
+The B8 Shelf, Room and Map Room implementation is now integrated through [PR #19](https://github.com/Kaim-h/astral-archive/pull/19), including contextual arrangement, customization and explicit synthetic checkpoint persistence. The reviewed implementation passed JavaScript, Chromium and offscreen Qt Quick verification, including separate v6 checkpoint restart processes. Actual target Linux desktop validation remains outstanding.
 
 [Current implementation](docs/development/CURRENT_STATE.md) · [Active development](docs/development/ACTIVE_WORK.md) · [Roadmap](docs/archive-roadmap.md) · [Development history](docs/development/DEVELOPMENT_HISTORY.md) · [Documentation](docs/README.md)
 
@@ -39,7 +39,7 @@ The B8 Shelf, Room and Map Room design is integrated as a specification. Its nat
 
 The Archive is an experimental spatial file manager in development.
 
-Its intended features include:
+The integrated synthetic studies implement spatial navigation, furnished storage, simulated file representations and customization. The broader intended features include:
 
 - Files represented by scrolls, framed artwork, sculptures and other physical objects.
 - Scrolls with simulated physical interactions.
@@ -56,7 +56,7 @@ The spatial interface is intended to complement efficient, keyboard-accessible f
 |---|---|
 | Desktop foundations — launcher, Capsule, utilities, Veranda and Gallery | Integrated source |
 | Archive foundations — scroll physics, file representations and recursive cubbies (B6–B7) | Integrated synthetic study |
-| Spatial Archive — Shelves, Rooms, Map Room and appearance (B8) | In development |
+| Spatial Archive — Shelves, Rooms, Map Room and appearance (B8) | Integrated synthetic study; automated N6a–d verified |
 | Archive refinement — expanded customization, architectural flexibility and interaction polish | Planned |
 | Functional file management — Index, filesystem reconciliation and safe file operations | Planned |
 | Desktop quality of life — notifications, system tray, clipboard and screenshot integration, and session controls | Planned |
