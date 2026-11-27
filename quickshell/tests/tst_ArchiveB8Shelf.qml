@@ -33,6 +33,15 @@ Item {
             mouseClick(item,item.width/2,item.height/2)
             if(trace)study.traceMapNavigation("after pointer "+name)
         }
+        function openMapAction(name){
+            var groups={"map-edit-room":"map-room-actions","map-delete-room":"map-room-actions","map-door-add":"map-opening-actions","map-door-next":"map-opening-actions","map-door-edit":"map-opening-actions","map-door-merge":"map-opening-actions","map-door-delete":"map-opening-actions","root-grid-guide":"root-grid","root-grid-snap":"root-grid","root-grid-interval":"root-grid","map-magnetic":"root-grid"}
+            if(!study.contextOpen)clickNamed("map-context-menu")
+            if(groups[name]){
+                var item=findChild(study,name)
+                if(!item||!item.visible)clickNamed(groups[name])
+            }
+        }
+        function mapAction(name){openMapAction(name);clickNamed(name);if(study.contextOpen)study.closeContext()}
         function test_room_navigation_motion(){
             var ctl=study.controller,scene=study.scene
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
@@ -143,7 +152,12 @@ Item {
                 // Use a visible point after zoom; fit if necessary.
                 if(pt.x<0||pt.x>=map.width||pt.y<0||pt.y>=map.height){clickNamed("map-fit");zoom=map.zoom;center=JSON.stringify(map.center);pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)}
                 compare(map.hit(pt.x,pt.y),empty)
-                mouseDoubleClickSequence(map,pt.x,pt.y,Qt.LeftButton)
+                // Pan starting on a Room must not enter it.
+                mousePress(map,pt.x,pt.y,Qt.LeftButton);mouseMove(map,pt.x+24,pt.y,20,Qt.LeftButton);mouseRelease(map,pt.x+24,pt.y,Qt.LeftButton)
+                verify(map.visible&&!plan.visible)
+                map.setCameraState({zoom:zoom,center:JSON.parse(center)})
+                pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)
+                mouseClick(map,pt.x,pt.y,Qt.LeftButton)
                 tryVerify(function(){return plan.visible&&!map.visible&&!scene.visible})
                 compare(plan.roomId,empty);compare(plan.planData.shelves.length,0)
                 verify(!findChild(study,"toggle-room-plan").enabled)
@@ -157,7 +171,6 @@ Item {
                 clickNamed("map-fit")
                 r=s.spatial.rooms[rootRoom];pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)
                 mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,rootRoom)
-                clickNamed("map-enter-room")
                 tryVerify(function(){return plan.visible&&plan.perspective})
                 compare(plan.roomId,rootRoom)
                 clickNamed("toggle-room-perspective")
@@ -212,14 +225,16 @@ Item {
                 var originalRooms=Object.keys(ctl.snapshot.spatial.rooms)
                 var map=findChild(study,"archive-map-room")
                 clickNamed("open-map-room");tryVerify(function(){return map.visible})
-                var nav=findChild(map,"map-navigation-actions"),fit=findChild(map,"map-fit"),add=findChild(map,"map-add-room")
+                var nav=findChild(map,"map-navigation-actions"),fit=findChild(map,"map-fit")
                 var oldFit=fit.mapToItem(map,fit.width/2,fit.height/2)
-                verify(!add.visible&&!add.enabled)
+                verify(!findChild(map,"map-arrange-actions"))
                 study.switchMode("arrange")
                 compare(fit.mapToItem(map,fit.width/2,fit.height/2),oldFit)
-                verify(add.visible&&add.enabled)
+                verify(!findChild(map,"map-arrange-actions")&&!findChild(map,"map-door-actions"))
+                openMapAction("map-add-room")
+                var add=findChild(study,"map-add-room")
+                verify(add&&add.visible&&add.enabled)
                 var addPoint=add.mapToItem(map,add.width/2,add.height/2)
-                verify(addPoint.y+add.height/2<nav.y+nav.parent.y)
                 try{
                     clickNamed("map-add-room")
                     tryVerify(function(){return !!ctl.structuralProposal},3000,"Add Room click must produce a proposal")
@@ -230,11 +245,11 @@ Item {
                 }
                 compare(JSON.stringify(ctl.snapshot),before)
                 clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
-                clickNamed("map-add-room");clickNamed("proposal-browse")
+                mapAction("map-add-room");clickNamed("proposal-browse")
                 compare(scene.mode,"browse");verify(!ctl.structuralProposal)
                 var id=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!originalRooms.includes(k))
                 verify(!!id);compare(map.selectedRoom,id)
-                study.switchMode("arrange");clickNamed("map-edit-room")
+                study.switchMode("arrange");mapAction("map-edit-room")
                 var input=findChild(study,"map-room-input-w");verify(!!input)
                 input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
                 for(var digit of "10")keyClick(digit)
@@ -267,7 +282,7 @@ Item {
                 clickNamed("structure-apply");verify(!Object.keys(ctl.snapshot.spatial.doors).length)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
                 map.selectedRoom=empty
-                clickNamed("map-delete-room");tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
+                mapAction("map-delete-room");tryVerify(function(){return !!ctl.structuralProposal&&!ctl.structuralProposal.ok})
                 clickNamed("map-room-resolve-doors");clickNamed("structure-apply")
                 verify(!ctl.snapshot.spatial.rooms[empty]);verify(ctl.undo())
                 compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,history)
@@ -284,11 +299,11 @@ Item {
                 var map=findChild(study,"archive-map-room")
                 clickNamed("open-map-room");tryVerify(function(){return map.visible})
                 study.switchMode("arrange");scene.snapEnabled=false;scene.showGrid=false;scene.snapDistance=20
-                clickNamed("map-grid");verify(map.showGrid&&!map.snapEnabled)
-                clickNamed("map-snap");verify(map.showGrid&&map.snapEnabled)
-                clickNamed("map-grid");verify(!map.showGrid&&map.snapEnabled)
-                clickNamed("map-snap-interval");compare(map.snapDistance,25)
-                clickNamed("map-magnetic");verify(!map.magnetic)
+                mapAction("root-grid-guide");verify(map.showGrid&&!map.snapEnabled)
+                mapAction("root-grid-snap");verify(map.showGrid&&map.snapEnabled)
+                mapAction("root-grid-guide");verify(!map.showGrid&&map.snapEnabled)
+                mapAction("root-grid-interval");compare(map.snapDistance,25)
+                mapAction("map-magnetic");verify(!map.magnetic)
                 var empty=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!Object.values(ctl.snapshot.spatial.shelves).some(p=>p.roomId===k))
                 var r=ctl.snapshot.spatial.rooms[empty],pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)
                 mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,empty)
@@ -324,15 +339,27 @@ Item {
                 compare(ctl.snapshot.spatial.rooms[empty].h,r.h-100)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
                 clickNamed("map-overview")
-                clickNamed("map-magnetic");verify(map.magnetic)
-                clickNamed("map-grid");verify(map.showGrid&&map.snapEnabled)
+                mapAction("map-magnetic");verify(map.magnetic)
+                mapAction("root-grid-guide");verify(map.showGrid&&map.snapEnabled)
                 study.parent.width=740;tryVerify(function(){return map.width===740})
                 grabImage(study).save("archive-b8-native-shelf-map-arrange-narrow.png")
+                study.parent.width=360;tryCompare(map,"width",360)
+                var controls=findChild(map,"map-controls")
+                verify(controls.x>=0&&controls.x+controls.width<=map.width)
+                clickNamed("map-context-menu");tryVerify(function(){return study.contextOpen})
+                clickNamed("map-room-actions")
+                var menu=findChild(study,"archive-root-context"),fly=findChild(menu,"root-context-flyout")
+                tryVerify(function(){return fly.visible})
+                verify(fly.x>=0&&fly.x+fly.width<=study.width)
+                grabImage(study).save("archive-b8-native-shelf-map-compact-context.png")
+                keyClick(Qt.Key_Escape);verify(study.contextOpen)
+                keyClick(Qt.Key_Escape);tryVerify(function(){return !study.contextOpen&&map.activeFocus})
+                study.parent.width=740;tryCompare(map,"width",740)
                 compare(ctl.archiveState.history.length,history)
                 var filled=ctl.snapshot.spatial.shelves.root.roomId
                 r=ctl.snapshot.spatial.rooms[filled];pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)
                 mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,filled)
-                verify(!findChild(map,"map-delete-room").enabled)
+                openMapAction("map-delete-room");verify(!findChild(study,"map-delete-room").enabled);study.closeContext()
             }finally{study.mapEnabled=false;study.switchMode("browse");study.parent.width=originalWidth;scene.snapEnabled=oldSnap;scene.showGrid=oldGrid;scene.snapDistance=oldInterval}
         }
         function test_map_door_arrangement(){
@@ -346,7 +373,7 @@ Item {
                 clickNamed("open-map-room");tryVerify(function(){return map.visible})
                 study.switchMode("arrange");scene.snapEnabled=false
                 verify(map.suggestions.length>0)
-                clickNamed("map-door-add");tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                mapAction("map-door-add");tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
                 compare(JSON.stringify(ctl.snapshot),initial)
                 grabImage(study).save("archive-b8-native-shelf-map-door-suggestion.png")
                 clickNamed("structure-apply")
@@ -380,7 +407,7 @@ Item {
                 var contact=JSON.stringify(ctl.snapshot),geo=Spatial.doorGeometry(ctl.snapshot,door.id)
                 pt=map.pointFor(geo.line,(geo.start+geo.end)/2)
                 mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,door.id)
-                clickNamed("map-door-merge");tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
+                mapAction("map-door-merge");tryVerify(function(){return !!ctl.structuralProposal&&ctl.structuralProposal.ok})
                 clickNamed("structure-apply");compare(Object.keys(ctl.snapshot.spatial.doors).length,1)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),contact)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),initial);compare(ctl.archiveState.history.length,history)
@@ -410,7 +437,7 @@ Item {
                 var panel=findChild(map,"map-chart-panel")
                 tryVerify(function(){return map.appearanceOpen&&panel.activeFocus})
                 verify(!handle.visible&&!handle.enabled)
-                verify(!findChild(map,"map-door-delete").enabled&&!findChild(study,"archive-undo").enabled)
+                verify(!findChild(study,"map-context-menu").enabled&&!findChild(study,"archive-undo").enabled)
                 keyClick(Qt.Key_Delete);keyClick(Qt.Key_Backspace);unchanged()
                 // Former endpoint hit location must be inert.
                 mousePress(map,hp.x,hp.y,Qt.LeftButton);mouseMove(map,hp.x,hp.y+40,20,Qt.LeftButton);mouseRelease(map,hp.x,hp.y+40,Qt.LeftButton)
@@ -502,7 +529,8 @@ Item {
                 var base=JSON.stringify(map.cameraState()),room=ctl.snapshot.spatial.rooms[empty],pt=map.pointFor(room.x+room.w/2,room.y+room.h/2)
                 // Fit if the zoomed center is outside the viewport.
                 if(pt.x<0||pt.x>=map.width||pt.y<0||pt.y>=map.height){clickNamed("map-fit");base=JSON.stringify(map.cameraState());pt=map.pointFor(room.x+room.w/2,room.y+room.h/2)}
-                mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,empty)
+                for(var k=0;k<map.dataModel.rooms.length+map.dataModel.doors.length&&map.selectedRoom!==empty;k++)keyClick(Qt.Key_Right)
+                compare(map.selectedRoom,empty);verify(!map.selectedDoor)
                 clickNamed("map-focus");verify(!!map.focusState);compare(JSON.stringify(map.focusState.base),base)
                 var d=Object.values(ctl.snapshot.spatial.doors)[0],g=Spatial.doorGeometry(ctl.snapshot,d.id)
                 map.selectDoor(d.id);clickNamed("map-focus");compare(map.focusState.kind,"door");compare(JSON.stringify(map.focusState.base),base)
@@ -588,7 +616,7 @@ Item {
                 mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,d.id)
                 clickNamed("map-focus");verify(map.focusState.kind==="door")
                 study.switchMode("arrange");scene.snapEnabled=false
-                clickNamed("map-door-edit")
+                mapAction("map-door-edit")
                 var input=findChild(study,"map-door-input-start");verify(!!input)
                 input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
                 verify(!!ctl.snapshot.spatial.doors[d.id]);tryVerify(function(){return !ctl.structuralProposal.ok})
@@ -608,7 +636,7 @@ Item {
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
                 study.switchMode("browse");clickNamed("map-fit")
                 var root=ctl.snapshot.spatial.rooms[hall];pt=map.pointFor(root.x+root.w/2,root.y+root.h/2)
-                mouseClick(map,pt.x,pt.y);clickNamed("map-enter-room")
+                mouseClick(map,pt.x,pt.y)
                 tryVerify(function(){return plan.visible&&plan.activeFocus})
                 compare(plan.roomId,hall);verify(plan.planData.openings.some(o=>o.id===d.id&&o.side==="south"&&o.start===100&&o.end===250))
                 grabImage(study).save("archive-b8-native-shelf-map-horizontal-hall-plan.png")
@@ -616,7 +644,7 @@ Item {
                 grabImage(study).save("archive-b8-native-shelf-map-horizontal-hall-perspective.png")
                 clickNamed("open-map-room");clickNamed("map-fit")
                 root=ctl.snapshot.spatial.rooms[south];pt=map.pointFor(root.x+root.w/2,root.y+root.h/2)
-                mouseClick(map,pt.x,pt.y);clickNamed("map-enter-room");tryVerify(function(){return plan.visible&&!!plan.visibilityRaster})
+                mouseClick(map,pt.x,pt.y);tryVerify(function(){return plan.visible&&!!plan.visibilityRaster})
                 compare(plan.roomId,south);verify(plan.planData.openings.some(o=>o.id===d.id&&o.side==="north"&&o.start===100&&o.end===250))
                 grabImage(study).save("archive-b8-native-shelf-map-horizontal-south-perspective.png")
                 clickNamed("toggle-room-perspective")
@@ -1618,7 +1646,7 @@ Item {
                 function center(id){var r=ctl.snapshot.spatial.rooms[id];return map.pointFor(r.x+r.w/2,r.y+r.h/2)}
                 var pt=center(hall);mouseClick(map,pt.x,pt.y);compare(map.selectedRoom,hall)
                 verify(!!map.focusState);clickNamed("map-overview")
-                clickNamed("map-edit-room")
+                mapAction("map-edit-room")
                 var widthInput=findChild(study,"map-room-input-w")
                 widthInput.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);keyClick("1");keyClick("0")
                 tryVerify(function(){return ctl.structuralProposal&&!ctl.structuralProposal.ok&&!!ctl.structuralProposal.error})

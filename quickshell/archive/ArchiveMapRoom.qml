@@ -365,7 +365,16 @@ Item {
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.RightButton
         enabled:!map.appearanceOpen&&!map.focusAnimating&&!map.press&&!map.dragging
-        onClicked:function(mouse){var id=map.hit(mouse.x,mouse.y);if(id){map.selectedRoom=id;map.selectedDoor="";map.openAppearance(id)}else map.contextRequested(mouse.x,mouse.y)}
+        onClicked:function(mouse){
+            if(mouse.y<64)return
+            var id=map.hit(mouse.x,mouse.y)
+            if(map.arranging){
+                var door=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y)
+                if(!door||!map.selectDoor(door)){map.selectedDoor="";map.selectedRoom=id}
+                map.contextRequested(mouse.x,mouse.y)
+            }else if(id){map.selectedRoom=id;map.selectedDoor="";map.openAppearance(id)}
+            else map.contextRequested(mouse.x,mouse.y)
+        }
     }
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.LeftButton|Qt.MiddleButton
@@ -379,7 +388,7 @@ Item {
                 var id=map.hit(mouse.x,mouse.y);if(id){map.startGesture(id,"move",mouse.x,mouse.y);return}
                 map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale,blankArrange:true};return
             }
-            map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale}
+            map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale,browseRoom:mouse.button===Qt.LeftButton&&!map.arranging?map.hit(mouse.x,mouse.y):""}
         }
         onPositionChanged:function(mouse){
             if(map.gesture){map.updateGesture(mouse.x,mouse.y);return}
@@ -394,15 +403,16 @@ Item {
             var p=map.press;map.press=null
             if(!p||map.appearanceOpen||map.moved||Math.hypot(mouse.x-p.x,mouse.y-p.y)>=4)return
             if(p.suggestion){map.directDoorCreate(p.suggestion);return}
-            if(p.blankArrange){map.selectedRoom="";map.selectedDoor="";map.restoreOverview()}
+            if(p.blankArrange){map.selectedRoom="";map.selectedDoor="";map.restoreOverview();return}
+            if(!map.arranging&&mouse.button===Qt.LeftButton&&mouse.y>=64&&!map.focusAnimating){
+                var door=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y)
+                if(door&&map.selectDoor(door))return
+                var id=map.hit(mouse.x,mouse.y)
+                map.selectedDoor="";map.selectedRoom=id
+                if(id&&id===p.browseRoom)map.enterRoom(id)
+            }
         }
         onCanceled:map.cancelGesture()
-        onClicked:function(mouse){if(!map.appearanceOpen&&!map.focusAnimating&&!map.arranging&&mouse.button===Qt.LeftButton&&!map.moved&&mouse.y>=64){var d=View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y);if(!d||!map.selectDoor(d)){map.selectedDoor="";map.selectedRoom=map.hit(mouse.x,mouse.y)}}}
-        onDoubleClicked:function(mouse){
-            if(map.appearanceOpen||map.focusAnimating||map.arranging||mouse.button!==Qt.LeftButton||map.moved||mouse.y<64)return
-            var id=map.hit(mouse.x,mouse.y)
-            if(id){map.press=null;map.selectedRoom=id;map.enterRoom(id)}
-        }
         onWheel:function(wheel){if(!map.appearanceOpen&&!map.press&&!map.dragging){map.zoomAt(map.zoom*Math.pow(1.15,wheel.angleDelta.y/120),wheel.x,wheel.y)}wheel.accepted=true}
     }
     Repeater {
@@ -529,48 +539,24 @@ Item {
             ArchiveButton {objectName:"map-chart-cancel";colors:map.colors;label:"Cancel";onClicked:map.closeAppearance(true)}
         }
     }
-    // Explicit, non-overlapping hit rectangles. Do not reposition the
-    // navigation row when Arrange reveals its additional controls.
+    // Only camera/navigation controls persist. Editing uses the host's
+    // target-aware context menu, retaining precision proposal signals.
     Item {
         id:mapControls
         objectName:"map-controls"
         anchors.bottom:parent.bottom;anchors.bottomMargin:8
         anchors.horizontalCenter:parent.horizontalCenter
-        width:458;height:116
+        width:Math.min(328,Math.max(0,parent.width-16));height:26
         enabled:!map.dragging&&!map.panning&&!map.appearanceOpen&&!map.focusAnimating
-        Item {
-            objectName:"map-door-actions"
-            width:336;x:61;height:26;y:0;visible:map.arranging;enabled:map.arranging
-            ArchiveButton {objectName:"map-door-add";colors:map.colors;label:"Add opening";x:0;width:80;enabled:!!map.suggestedOpening;onClicked:map.addDoor(map.suggestedOpening.patch)}
-            ArchiveButton {objectName:"map-door-next";colors:map.colors;label:map.suggestions.length?String(map.suggestionIndex+1)+"/"+map.suggestions.length:"No gap";hint:"Next clear opening suggestion";x:86;width:58;enabled:map.suggestions.length>1;onClicked:{map.selectedDoor="";map.suggestionIndex=(map.suggestionIndex+1)%map.suggestions.length}}
-            ArchiveButton {objectName:"map-door-edit";colors:map.colors;label:"Size";x:150;width:52;enabled:!!map.selectedOpening;onClicked:map.editDoor(map.selectedDoor,{})}
-            ArchiveButton {objectName:"map-door-merge";colors:map.colors;label:"Merge";x:208;width:60;enabled:map.mergeChoices.length>0;onClicked:map.mergeDoor(map.selectedDoor,map.mergeChoices[0])}
-            ArchiveButton {objectName:"map-door-delete";colors:map.colors;label:"Delete";x:274;width:62;enabled:!!map.selectedOpening;onClicked:map.removeSelectedDoor()}
-        }
-        Item {
-            objectName:"map-arrange-actions"
-            width:336;x:61;height:26;y:30;visible:map.arranging;enabled:map.arranging
-            ArchiveButton {objectName:"map-add-room";colors:map.colors;label:"Add Room";x:0;width:108;onClicked:map.addRoom()}
-            ArchiveButton {objectName:"map-edit-room";colors:map.colors;label:"Dimensions…";x:114;width:108;enabled:!!map.selectedBox;onClicked:map.editRoom(map.selectedRoom,{})}
-            ArchiveButton {objectName:"map-delete-room";colors:map.colors;label:"Remove Room";x:228;width:108;enabled:!!map.selectedBox&&!map.selectedBox.shelves.length;onClicked:map.deleteRoom(map.selectedRoom)}
-        }
-        Item {
-            objectName:"map-arrange-grid-actions"
-            width:336;x:61;height:26;y:60;visible:map.arranging;enabled:map.arranging
-            ArchiveButton {objectName:"map-grid";colors:map.colors;label:"Grid";x:0;width:108;active:map.showGrid;onClicked:map.toggleGrid()}
-            ArchiveButton {objectName:"map-snap";colors:map.colors;label:"Snap";x:114;width:55;active:map.snapEnabled;onClicked:map.toggleSnap()}
-            ArchiveButton {objectName:"map-snap-interval";colors:map.colors;label:String(map.snapDistance);hint:"Cycle snap and grid interval";x:175;width:47;onClicked:map.cycleSnapDistance()}
-            ArchiveButton {objectName:"map-magnetic";colors:map.colors;label:"Wall magnet";x:228;width:108;active:map.magnetic;onClicked:map.magnetic=!map.magnetic}
-        }
-        Item {
+        Row {
             objectName:"map-navigation-actions"
-            width:parent.width;height:26;y:90
-            ArchiveButton {objectName:"map-fit";colors:map.colors;label:"Fit map";x:0;width:74;onClicked:map.fit()}
-            ArchiveButton {objectName:"map-zoom-out";colors:map.colors;label:"−";x:80;width:36;onClicked:map.zoomAt(map.zoom/1.15,map.width/2,map.height/2)}
-            ArchiveButton {objectName:"map-zoom-in";colors:map.colors;label:"+";x:122;width:36;onClicked:map.zoomAt(map.zoom*1.15,map.width/2,map.height/2)}
-            ArchiveButton {objectName:"map-enter-room";colors:map.colors;label:"Enter Room";x:164;width:106;enabled:!!map.selectedRoom&&!map.arranging;onClicked:map.enterRoom(map.selectedRoom)}
-            ArchiveButton {objectName:"map-focus";colors:map.colors;label:"Focus";x:276;width:76;enabled:!!map.selectedRoom||!!map.selectedDoor;onClicked:map.focusSelection()}
-            ArchiveButton {objectName:"map-overview";colors:map.colors;label:"Overview";x:358;width:100;enabled:!!map.focusState;onClicked:map.restoreOverview()}
+            anchors.fill:parent;spacing:4
+            ArchiveButton {objectName:"map-fit";colors:map.colors;label:"Fit";hint:"Fit map";width:(parent.width-20)*.14;onClicked:map.fit()}
+            ArchiveButton {objectName:"map-zoom-out";colors:map.colors;label:"−";hint:"Zoom out";width:(parent.width-20)*.10;onClicked:map.zoomAt(map.zoom/1.15,map.width/2,map.height/2)}
+            ArchiveButton {objectName:"map-zoom-in";colors:map.colors;label:"+";hint:"Zoom in";width:(parent.width-20)*.10;onClicked:map.zoomAt(map.zoom*1.15,map.width/2,map.height/2)}
+            ArchiveButton {objectName:"map-enter-room";colors:map.colors;label:"Enter";hint:"Enter Room";width:(parent.width-20)*.20;enabled:!!map.selectedRoom&&!map.arranging;onClicked:map.enterRoom(map.selectedRoom)}
+            ArchiveButton {objectName:"map-focus";colors:map.colors;label:"Focus";width:(parent.width-20)*.20;enabled:!!map.selectedRoom||!!map.selectedDoor;onClicked:map.focusSelection()}
+            ArchiveButton {objectName:"map-overview";colors:map.colors;label:"Overview";width:(parent.width-20)*.26;enabled:!!map.focusState;onClicked:map.restoreOverview()}
         }
     }
 }

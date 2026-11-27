@@ -485,7 +485,21 @@ Rectangle {
             {id:"root-grid-snap",label:sceneView.snapEnabled?"Snap: on":"Snap: off"},
             {id:"root-grid-interval",label:"Interval: "+sceneView.snapDistance}]}
         var undo={id:"root-undo",label:"Undo",enabled:archive.archiveState.history.length>0}
-        if(rootContext==="map")return [app,{id:"root-add-room",label:"Add Room…"},grid,{id:"root-fit-map",label:"Fit map"},undo]
+        if(rootContext==="map"){
+            if(sceneView.mode!=="arrange")return [app,{id:"root-add-room",label:"Add Room…"},grid,{id:"root-fit-map",label:"Fit map"},undo]
+            grid.items.push({id:"map-magnetic",label:mapView.magnetic?"Wall magnet: on":"Wall magnet: off"})
+            return [app,{id:"map-add-room",label:"Add Room…"},
+                {id:"map-room-actions",label:"Selected Room…",enabled:!!mapView.selectedBox,items:[
+                    {id:"map-room-appearance",label:"Room appearance…"},
+                    {id:"map-edit-room",label:"Dimensions…"},
+                    {id:"map-delete-room",label:"Remove Room",enabled:!!mapView.selectedBox&&!mapView.selectedBox.shelves.length}]},
+                {id:"map-opening-actions",label:"Openings…",items:[
+                    {id:"map-door-add",label:"Add opening…",enabled:!!mapView.suggestedOpening},
+                    {id:"map-door-next",label:mapView.suggestions.length?"Next suggestion ("+(mapView.suggestionIndex+1)+"/"+mapView.suggestions.length+")":"No clear gap",enabled:mapView.suggestions.length>1},
+                    {id:"map-door-edit",label:"Opening dimensions…",enabled:!!mapView.selectedOpening},
+                    {id:"map-door-merge",label:"Merge opening…",enabled:mapView.mergeChoices.length>0},
+                    {id:"map-door-delete",label:"Delete opening…",enabled:!!mapView.selectedOpening}]},grid,{id:"root-fit-map",label:"Fit map"},undo]
+        }
         var structural=[{id:"root-shelf-dimensions",label:Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"?"Shelf dimensions…":"Cubby dimensions…"},
             {id:"root-add-furniture",label:"Add furniture…",items:[{id:"root-add-shelf",label:"Support board"},{id:"root-add-rack",label:"Rack"},{id:"root-add-cubby",label:"Nested Cubby"},{id:"root-add-artwork",label:"Artwork mount"}]},grid]
         return sceneView.mode==="arrange"?structural.concat([app,undo]):[app].concat(structural,[undo])
@@ -495,6 +509,7 @@ Rectangle {
         if(action==="root-grid-guide"){sceneView.showGrid=!sceneView.showGrid;return}
         if(action==="root-grid-snap"){sceneView.snapEnabled=!sceneView.snapEnabled;return}
         if(action==="root-grid-interval"){var intervals=[5,10,20,25,50,100];sceneView.snapDistance=intervals[(intervals.indexOf(sceneView.snapDistance)+1)%intervals.length];return}
+        if(action==="map-magnetic"){mapView.magnetic=!mapView.magnetic;return}
         var mapAtPoint=action==="root-add-room"?mapView.mapFromItem(study,contextPoint.x,contextPoint.y):null
         closeContext()
         if(action==="shelf-appearance"){startShelfAppearance();return}
@@ -502,6 +517,15 @@ Rectangle {
         if(action==="root-fit-map"){mapView.fit();return}
         if(action==="root-undo"){archive.undo();focusActiveLayer();return}
         if(sceneView.mode!=="arrange"&&!switchMode("arrange"))return
+        if(action==="map-add-room"){mapView.addRoom();return}
+        if(action==="map-room-appearance"&&mapView.selectedBox){mapView.openAppearance(mapView.selectedRoom);return}
+        if(action==="map-edit-room"&&mapView.selectedBox){mapView.editRoom(mapView.selectedRoom,{});return}
+        if(action==="map-delete-room"&&mapView.selectedBox&&!mapView.selectedBox.shelves.length){mapView.deleteRoom(mapView.selectedRoom);return}
+        if(action==="map-door-add"&&mapView.suggestedOpening){mapView.addDoor(mapView.suggestedOpening.patch);return}
+        if(action==="map-door-next"&&mapView.suggestions.length>1){mapView.selectedDoor="";mapView.suggestionIndex=(mapView.suggestionIndex+1)%mapView.suggestions.length;return}
+        if(action==="map-door-edit"&&mapView.selectedOpening){mapView.editDoor(mapView.selectedDoor,{});return}
+        if(action==="map-door-merge"&&mapView.mergeChoices.length){mapView.mergeDoor(mapView.selectedDoor,mapView.mergeChoices[0]);return}
+        if(action==="map-door-delete"){mapView.removeSelectedDoor();return}
         if(action==="root-shelf-dimensions"){if(Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf")startRoomShelfEdit(sceneView.cubbyId,{},true);else{sceneView.clearSelection();startCubbyEdit()}return}
         if(action==="root-add-room"){var point=View.mapAt(mapView.camera,mapAtPoint.x,mapAtPoint.y),draft=View.mapRoomDraftAt(mapView.dataModel,point,sceneView.snapEnabled,sceneView.snapDistance);if(!draft)return;startMapRoomEdit("spatialRoomCreate","",draft);if(archive.structuralProposal&&archive.structuralProposal.ok&&confirmStructure())mapView.focusSelection();return}
         if(action.indexOf("root-add-")===0){startFixture(action.slice(9));if(archive.structuralProposal)structurePanel.forceActiveFocus()}
