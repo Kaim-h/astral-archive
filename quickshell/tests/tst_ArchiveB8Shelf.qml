@@ -1506,6 +1506,72 @@ Item {
             clickNamed("proposal-browse");compare(scene.message,"No changes");verify(ctl.undo())
             compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
         }
+        function test_n5_holder_and_cubby_numeric_handoff(){
+            var ctl=study.controller,scene=study.scene,sample=Sample.fixture()
+            var state=Core.editStructure(Core.session(sample),{kind:"holderCreate",cubbyId:"root",moduleId:"mixed-board",patch:{x:600,w:130,count:3}})
+            verify(!state.error,state.error);ctl.reset(state.snapshot)
+            var m=ctl.snapshot.cubbies.root.mods.find(q=>q.id==="mixed-board"),second=m.items.find(q=>q.kind==="holder"&&q.id!=="mixed-upright")
+            verify(!!second)
+            var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
+            study.switchMode("arrange");scene.selectedModuleId=m.id;scene.selectedHolderId="mixed-upright"
+            clickNamed("arrange-menu");clickNamed("edit-holder")
+            var input=findChild(study,"fixture-input-x");verify(!!input)
+            function type(value){input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);for(var digit of String(value))keyClick(digit)}
+            type("");tryVerify(function(){return ctl.structuralProposal&&!ctl.structuralProposal.ok&&!!ctl.structuralProposal.error})
+            var board=scene.moduleItem(m.id),pt=board.mapToItem(scene,second.x+second.w/2,board.supportY-10)
+            compare(scene.committedFixtureAt(pt.x,pt.y),m.id);compare(scene.committedHolderAt(m.id,pt.x,pt.y),second.id)
+            // Keep both holders clear of the right inspector while using
+            // actual hit routing on the second holder.
+            var panel=findChild(study,"structure-panel"),screen=scene.mapToItem(study,pt.x,pt.y)
+            verify(screen.x<panel.x||screen.x>=panel.x+panel.width||screen.y<panel.y||screen.y>=panel.y+panel.height)
+            mouseClick(scene,pt.x,pt.y);compare(ctl.structuralProposal.command.holderId,"mixed-upright");compare(input.text,"")
+            compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
+            type(410);tryVerify(function(){return ctl.structuralProposal.ok})
+            var expected=JSON.stringify(ctl.structuralProposal.snapshot)
+            mouseClick(scene,pt.x,pt.y)
+            tryVerify(function(){return ctl.structuralProposal&&ctl.structuralProposal.command.holderId===second.id})
+            compare(JSON.stringify(ctl.snapshot),expected);compare(ctl.archiveState.revision,rev+1)
+            clickNamed("structure-cancel");verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+            scene.selectedModuleId="cubby-child";scene.selectedHolderId=""
+            clickNamed("arrange-menu");clickNamed("edit-cubby-interior")
+            input=findChild(study,"cubby-input-w");verify(!!input)
+            var original=ctl.snapshot.cubbies.child.w
+            type("");tryVerify(function(){return ctl.structuralProposal&&!ctl.structuralProposal.ok&&!!ctl.structuralProposal.error})
+            verify(!findChild(study,"cubby-plus-w").enabled&&!findChild(study,"cubby-minus-w").enabled)
+            clickNamed("proposal-browse");compare(scene.mode,"arrange");compare(input.text,"");compare(JSON.stringify(ctl.snapshot),before)
+            type(original+10);tryVerify(function(){return ctl.structuralProposal.ok})
+            expected=JSON.stringify(ctl.structuralProposal.snapshot)
+            clickNamed("proposal-browse");compare(scene.mode,"browse");compare(JSON.stringify(ctl.snapshot),expected)
+            verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+        }
+        function test_n5_local_atlas_checkpoint(){
+            var ctl=study.controller,oldStore=study.checkpointStore,payload=null
+            study.checkpointStore={read:function(){return payload},write:function(v){payload=v}}
+            study.mapEnabled=true
+            try{
+                ctl.reset(Sample.roomFixture());clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision,map=findChild(study,"archive-map-room")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                var id=ctl.snapshot.spatial.shelves.root.roomId,r=ctl.snapshot.spatial.rooms[id],pt=map.pointFor(r.x+r.w/2,r.y+r.h/2)
+                verify(pt.x>=0&&pt.x<map.width&&pt.y>=64&&pt.y<map.height)
+                mouseClick(map,pt.x,pt.y,Qt.RightButton)
+                tryVerify(function(){return map.appearanceOpen&&map.localAppearance})
+                compare(ctl.structuralProposal.command.roomId,id)
+                var input=findChild(map,"map-chart-subtitle");mouseClick(input,input.width/2,input.height/2);verify(input.activeFocus)
+                keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);keyClick("N");keyClick("5")
+                tryVerify(function(){return ctl.structuralProposal&&ctl.structuralProposal.ok&&ctl.structuralProposal.command.patch.subtitle==="N5"})
+                compare(JSON.stringify(ctl.snapshot),before);verify(!study.checkpointReady);verify(!study.saveCheckpoint())
+                clickNamed("map-frame-inset");clickNamed("map-chart-close")
+                tryVerify(function(){return !map.appearanceOpen&&map.activeFocus})
+                compare(ctl.snapshot.spatial.rooms[id].mapAppearance.subtitle,"N5");compare(ctl.snapshot.spatial.rooms[id].mapAppearance.frame,"inset")
+                compare(ctl.archiveState.revision,rev+1)
+                var after=JSON.stringify(ctl.snapshot)
+                verify(study.saveCheckpoint());var saved=payload;compare(JSON.parse(saved).version,6)
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                payload=saved;verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                tryVerify(function(){return map.visible&&map.activeFocus});compare(JSON.stringify(ctl.snapshot),after)
+            }finally{ctl.cancel();study.mapEnabled=false;study.checkpointStore=oldStore;study.switchMode("browse")}
+        }
         function test_n5_rack_numeric_target_switch(){
             var ctl=study.controller,scene=study.scene,m=Core.rackAt(ctl.snapshot,"root","rack-1")
             var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history)
