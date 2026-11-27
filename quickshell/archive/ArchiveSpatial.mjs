@@ -213,8 +213,9 @@ export function edit(s,cmd,allocate){
   patch(r,p,independentProfiles(s)?['name','x','y','w','h','appearance','wallHeight']:['name','x','y','w','h','appearance']);a.rooms[k]=r;
  }else if(cmd.kind==='spatialRoomEdit'){
   need(own(a.rooms,cmd.roomId),'Room no longer exists');
+  const captured=Doors.captureRoomDoors(s,cmd.roomId,footprint);
   patch(a.rooms[cmd.roomId],p,independentProfiles(s)?['name','x','y','w','h','appearance','wallHeight']:['name','x','y','w','h','appearance']);
-  Doors.resolveLost(s,cmd.removeDoors,footprint);
+  Doors.resolveRoomChange(s,captured,cmd.removeDoors,footprint);
  }else if(cmd.kind==='spatialRoomDelete'){
   need(own(a.rooms,cmd.roomId)&&Object.keys(a.rooms).length>1,'Keep at least one Room');
   need(!Object.values(a.shelves).some(v=>v.roomId===cmd.roomId),'Remove or relocate Shelves first');

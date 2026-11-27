@@ -264,6 +264,10 @@ export function run(){
  eq(Core.undo(separated).snapshot,moveDoor.snapshot,'separation Undo');
  const preserved=apply(moveDoor,{kind:'spatialRoomEdit',roomId:east,patch:{y:30}});
  eq(Spatial.doorGeometry(preserved.snapshot,d1).start,60,'shared world opening preserved when second room slides');
+ const reconciledOpening=apply(moveDoor,{kind:'spatialRoomEdit',roomId:east,patch:{y:130}});
+ eq(Spatial.doorGeometry(reconciledOpening.snapshot,d1).start,130,'opening shifts to nearest clear shared interval');
+ eq(Spatial.doorGeometry(reconciledOpening.snapshot,d1).end,190,'opening retains width');
+ eq(Core.undo(reconciledOpening).snapshot,moveDoor.snapshot,'door reconciliation exact Undo');
  const noDoor=apply(preserved,{kind:'spatialDoorDelete',doorId:d1});
  eq(noDoor.snapshot.cubbies,preserved.snapshot.cubbies,'door removal leaves contents');
  eq(Core.undo(noDoor).snapshot,preserved.snapshot,'door delete Undo');
@@ -1127,6 +1131,9 @@ export function run(){
   const contact=apply(other,{kind:'spatialDoorEdit',doorId:d.id,patch:{end:700}});
   const otherId=Object.keys(contact.snapshot.spatial.doors).find(k=>k!==d.id);
   eq(View.mapDoorMergeChoices(contact.snapshot,d.id),[otherId],'only contacting same pair');
+  const direct=apply(other,{kind:'spatialDoorMerge',doorId:d.id,patch:{otherId,end:700}});
+  eq(Object.keys(direct.snapshot.spatial.doors).length,1,'atomic contact gesture merge');eq(Core.undo(direct).snapshot,other.snapshot,'atomic gesture Undo');
+  refuse(other,{kind:'spatialDoorMerge',doorId:d.id,patch:{otherId,start:850,end:950}});
   const merge=apply(contact,{kind:'spatialDoorMerge',doorId:d.id,patch:{otherId}});
   eq(Core.undo(merge).snapshot,contact.snapshot,'shared merge exact Undo');
  }

@@ -427,9 +427,10 @@ export function mapRoomLostDoors(s,cmd){
     if(cmd.kind==='spatialRoomEdit'&&!mapRoomOutline(s,cmd))return [];
     if(cmd.kind==='spatialRoomDelete'&&Object.values(s.spatial.shelves).some(p=>p.roomId===cmd.roomId))return [];
     const copy=Core.clone(s);
-    if(cmd.kind==='spatialRoomDelete')delete copy.spatial.rooms[cmd.roomId];
-    else Object.assign(copy.spatial.rooms[cmd.roomId],cmd.patch);
-    return Doors.invalidated(copy,Spatial.footprint);
+    if(cmd.kind==='spatialRoomDelete'){delete copy.spatial.rooms[cmd.roomId];return Doors.invalidated(copy,Spatial.footprint);}
+    const captured=Doors.captureRoomDoors(copy,cmd.roomId,Spatial.footprint);
+    Object.assign(copy.spatial.rooms[cmd.roomId],cmd.patch);
+    return Doors.reconcileRoomDoors(copy,captured,Spatial.footprint);
 }
 export function mapRoomGesture(data,id,kind,frame,x,y){
     const r=data&&data.rooms.find(v=>v.id===id),start=mapAt(frame,x,y);
@@ -525,6 +526,11 @@ export function mapDoorHit(data,frame,x,y,tolerance=10){
         if(z<=dist){best=d.id;dist=z;}
     }
     return best||'';
+}
+export function mapDoorGestureMerge(s,id,patch){
+    const d=s.spatial&&s.spatial.doors&&s.spatial.doors[id],g=mapDoorOutline(s,id,patch);if(!d||!g)return '';
+    const same=(a,b)=>a.roomId===b.roomId&&a.side===b.side;
+    return Object.values(s.spatial.doors).filter(other=>other.id!==id&&(same(d.a,other.a)&&same(d.b,other.b)||same(d.a,other.b)&&same(d.b,other.a))).filter(other=>{const q=Spatial.doorGeometry(s,other.id);return g.start===q.end||g.end===q.start;}).map(v=>v.id).sort()[0]||'';
 }
 export function mapDoorMergeChoices(s,id){
     const d=s.spatial&&s.spatial.doors&&s.spatial.doors[id];if(!d)return [];

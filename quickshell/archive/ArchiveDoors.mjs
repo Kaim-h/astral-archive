@@ -115,6 +115,35 @@ export function invalidated(s,footprint){
  for(const d of Object.values(s.spatial.doors||{})){try{geometry(s,d,footprint)}catch(e){lost.push(d.id);}}
  return lost.sort();
 }
+// Capture authoritative world intervals before a Room edit. Keep openings
+// at their old world position if possible, otherwise find the nearest clear
+// interval of the same width. Only explicitly approved losses may disappear.
+export function captureRoomDoors(s,roomId,footprint){
+ return Object.values(s.spatial.doors||{}).filter(d=>d.a.roomId===roomId||d.b.roomId===roomId).map(d=>({door:d,geometry:geometry(s,d,footprint)}));
+}
+export function reconcileRoomDoors(s,captured,footprint){
+ if(!captured.length)return [];
+ const original=s.spatial.doors,affected=new Set(captured.map(v=>v.door.id)),working={};
+ for(const id of Object.keys(original))if(!affected.has(id))working[id]=original[id];
+ const work=Object.assign({},s,{spatial:Object.assign({},s.spatial,{doors:working})}),lost=[];
+ for(const entry of captured.slice().sort((a,b)=>a.geometry.start-b.geometry.start||a.door.id.localeCompare(b.door.id))){
+  const d=entry.door,g=entry.geometry,w=g.end-g.start;
+  try{
+   const a=edge(work,d.a),spans=clearSpans(work,d.a,d.b,footprint);
+   const candidates=spans.filter(q=>q.end-q.start>=w).map(q=>Math.max(q.start,Math.min(q.end-w,g.start))).sort((a,b)=>Math.abs(a-g.start)-Math.abs(b-g.start)||a-b);
+   if(!candidates.length){lost.push(d.id);continue;}
+   const start=candidates[0]-a.start,next=Object.assign({},d,{start,end:start+w});
+   geometry(work,next,footprint);working[d.id]=next;
+  }catch(e){lost.push(d.id);}
+ }
+ // Preserve key order and unaffected records, including exact no-op edits.
+ const next={};for(const id of Object.keys(original))if(own(working,id))next[id]=working[id];
+ s.spatial.doors=next;return lost.sort();
+}
+export function resolveRoomChange(s,captured,ids,footprint){
+ const lost=reconcileRoomDoors(s,captured,footprint);
+ need(lost.length?Array.isArray(ids)&&JSON.stringify(ids.slice().sort())===JSON.stringify(lost):ids===undefined||Array.isArray(ids)&&!ids.length,lost.length?'Resolve separated or obstructed doors explicitly: '+lost.join(', '):'No openings require removal');
+}
 export function resolveLost(s,ids,footprint){
  const lost=invalidated(s,footprint);
  if(!lost.length){need(ids===undefined||Array.isArray(ids)&&!ids.length,'No openings require removal');return;}
@@ -136,9 +165,16 @@ export function edit(s,cmd,p,allocate,footprint){
  }else if(cmd.kind==='spatialDoorDelete'){
   need(own(doors,cmd.doorId)&&keys(p,[]),'Unknown door or property');delete doors[cmd.doorId];
  }else if(cmd.kind==='spatialDoorMerge'){
-  need(own(doors,cmd.doorId)&&keys(p,['otherId'])&&typeof p.otherId==='string'&&own(doors,p.otherId)&&p.otherId!==cmd.doorId,'Choose two distinct doors');
+  need(own(doors,cmd.doorId)&&keys(p,['otherId','start','end'])&&typeof p.otherId==='string'&&own(doors,p.otherId)&&p.otherId!==cmd.doorId,'Choose two distinct doors');
   const a=doors[cmd.doorId],b=doors[p.otherId];
   need(samePair(a,b),'Only doors on the same pair of edges may merge');
+  // A contact gesture can include its bounded move/resize in this same
+  // transaction. It cannot jump a blocker or overlap the second opening.
+  if(own(p,'start')||own(p,'end')){
+   const span=doorEditSpan(s,a,footprint),origin=edge(s,a.a).start,start=own(p,'start')?p.start:a.start,end=own(p,'end')?p.end:a.end;
+   need(span&&Number.isInteger(start)&&Number.isInteger(end)&&end>start&&start+origin>=span.start&&end+origin<=span.end,'Merge gesture leaves its contiguous clear span');
+   a.start=start;a.end=end;
+  }
   const ga=geometry(s,a,footprint),gb=geometry(s,b,footprint);
   need(ga.start<=gb.end&&gb.start<=ga.end,'Doors must touch or overlap');
   const origin=edge(s,a.a).start;
