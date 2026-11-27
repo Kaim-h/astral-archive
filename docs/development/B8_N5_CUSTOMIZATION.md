@@ -108,3 +108,5 @@ Reserve valid existing world openings before relocating obstructed neighbors; ex
 - N5d corrective run 46053825793: offline/browser passed, native Shelf 41/42, floor proposal remained unchanged after click. Replace the primary nine-floor expanding list with stable two-column direct choices, preserving explicit selection and exact native proposal assertion; no retry or relaxation. Other deliberate choices retain the shared explicit row geometry. Integrated candidate also supplies required roomShelf identity in the v6 view test fixture.
 
 - N5h supplemental actual-input regression candidate: same-support holder target switch retains incomplete input then commits exactly one valid edit; Cubby interior empty numeric field disables stepping and blocks Browse until corrected; Room-local atlas inscription/frame is preview-only until Done, then saves as v6 and reloads exactly after Undo. Native CI required before acceptance.
+
+- N5h compact native regression: 360×460 stacked root flyout, bounded geometry, keyboard navigation and two-stage Escape/focus restoration; captures the actual menu and verifies no document revision. Native verification pending.

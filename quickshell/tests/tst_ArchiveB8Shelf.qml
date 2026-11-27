@@ -1658,6 +1658,26 @@ Item {
             clickNamed("structure-close");verify(!ctl.structuralProposal)
             compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
         }
+        function test_n5_compact_root_context(){
+            var ctl=study.controller,scene=study.scene,root=study.parent,w=root.width,h=root.height
+            var before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision
+            try{
+                root.width=360;root.height=460
+                tryCompare(study,"width",360);tryCompare(study,"height",460)
+                verify(study.openRootContext("shelf",4,36))
+                var menu=findChild(study,"archive-root-context"),fly=findChild(menu,"root-context-flyout")
+                tryVerify(function(){return menu.visible&&menu.activeFocus})
+                compare(menu.childSide,"stack")
+                keyClick(Qt.Key_Home);keyClick(Qt.Key_Down);keyClick(Qt.Key_Down)
+                keyClick(Qt.Key_Right);tryVerify(function(){return fly.visible&&fly.activeFocus})
+                verify(fly.x>=0&&fly.x+fly.width<=study.width&&fly.y>=0&&fly.y+fly.height<=study.height)
+                keyClick(Qt.Key_End);keyClick(Qt.Key_Home)
+                grabImage(study).save("archive-b8-native-shelf-n5-compact-menu.png")
+                keyClick(Qt.Key_Escape);tryVerify(function(){return menu.visible&&!fly.visible})
+                keyClick(Qt.Key_Escape);tryVerify(function(){return !menu.visible&&scene.activeFocus})
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
+            }finally{study.closeContext();root.width=w;root.height=h}
+        }
         function test_n5_root_contexts(){
             var ctl=study.controller,scene=study.scene,before=JSON.stringify(ctl.snapshot),revision=ctl.archiveState.revision
             var menu=findChild(study,"archive-root-context"),panel=findChild(menu,"root-context-panel"),fly=findChild(menu,"root-context-flyout")
