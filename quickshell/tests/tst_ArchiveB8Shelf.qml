@@ -34,7 +34,7 @@ Item {
             if(trace)study.traceMapNavigation("after pointer "+name)
         }
         function openMapAction(name){
-            var groups={"map-edit-room":"map-room-actions","map-delete-room":"map-room-actions","map-door-add":"map-opening-actions","map-door-next":"map-opening-actions","map-door-edit":"map-opening-actions","map-door-merge":"map-opening-actions","map-door-delete":"map-opening-actions","root-grid-guide":"root-grid","root-grid-snap":"root-grid","root-grid-interval":"root-grid","map-magnetic":"root-grid"}
+            var groups={"map-add-room":"map-create-actions","map-edit-room":"map-room-actions","map-delete-room":"map-room-actions","map-door-add":"map-opening-actions","map-door-next":"map-opening-actions","map-door-edit":"map-opening-actions","map-door-merge":"map-opening-actions","map-door-delete":"map-opening-actions","root-grid-guide":"root-grid","root-grid-snap":"root-grid","root-grid-interval":"root-grid","map-magnetic":"root-grid"}
             if(!study.contextOpen)clickNamed("map-context-menu")
             if(groups[name]){
                 var item=findChild(study,name)
@@ -49,7 +49,7 @@ Item {
             var roomId=ctl.snapshot.spatial.shelves.root.roomId
             verify(ctl.proposeStructure({kind:"spatialRoomEdit",roomId:roomId,patch:{w:1800,h:2000}}));verify(ctl.applyStructure())
             verify(ctl.proposeStructure({kind:"spatialShelfEdit",containerId:"root",patch:{w:1450,h:1100,depth:185,orientation:90}}));verify(ctl.applyStructure())
-            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest",family:"Astral",emblem:"armillary"}}));verify(ctl.applyStructure())
+            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{profile:"crest",family:"Astral",emblem:"armillary",center:"axis"}}));verify(ctl.applyStructure())
             var crest=findChild(scene,"physical-crest-mark"),frame=findChild(scene,"physical-shelf-frame")
             tryVerify(function(){return crest&&crest.visible&&crest.status===Image.Ready})
             compare(crest.family,"Astral");compare(crest.emblemKey,"armillary")
@@ -57,7 +57,14 @@ Item {
             compare(crest.width,bounds.w)
             verify(bounds.x>=0&&bounds.x+bounds.w<=scene.frontEnvelope.w&&bounds.y>=0&&bounds.y+bounds.h<=scene.frontEnvelope.inscription.y)
             var crestSource=crest.asset
+            tryCompare(findChild(scene,"archive-backing-ornament").parent,"centerStyle","axis")
             grabImage(study).save("archive-b8-native-shelf-n5-crest.png")
+            // A deliberately bounded field in the upper backing makes the
+            // span composition inspectable without changing physical geometry.
+            verify(ctl.proposeStructure({kind:"spatialAppearance",containerId:"root",patch:{fields:[{id:"field-1",x:20,y:15,w:280,h:180,opacity:1,family:"Astral",emblem:"armillary",border:"rails",center:"span"}]}}));verify(ctl.applyStructure())
+            var field=null
+            tryVerify(function(){field=findChild(scene,"archive-backing-field-1");return field&&field.visible&&field.centerStyle==="span"})
+            grabImage(study).save("archive-b8-native-shelf-n5-crest-field.png")
             var before=JSON.stringify(ctl.snapshot),history=ctl.archiveState.history.length
             scene.zoom=1.15;scene.pan=Qt.point(12,-9)
             clickNamed("toggle-room-plan")
@@ -633,6 +640,8 @@ Item {
                 mouseClick(map,pt.x,pt.y);compare(map.selectedDoor,d.id)
                 clickNamed("map-focus");verify(map.focusState.kind==="door")
                 study.switchMode("arrange");scene.snapEnabled=false
+                tryVerify(function(){return findChild(map,"map-door-start-handle").visible&&findChild(map,"map-door-end-handle").visible})
+                grabImage(study).save("archive-b8-native-shelf-n5-atlas-door-focus.png")
                 mapAction("map-door-edit")
                 var input=findChild(study,"map-door-input-start");verify(!!input)
                 input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
@@ -1613,6 +1622,12 @@ Item {
                 clickNamed("map-frame-inset");clickNamed("map-chart-close")
                 tryVerify(function(){return !map.appearanceOpen&&map.activeFocus})
                 compare(ctl.snapshot.spatial.rooms[id].mapAppearance.subtitle,"N5");compare(ctl.snapshot.spatial.rooms[id].mapAppearance.frame,"inset")
+                clickNamed("map-focus")
+                tryVerify(function(){return map.focusState&&map.focusState.kind==="room"&&map.focusState.id===id})
+                var local=map.dataModel.rooms.find(r=>r.id===id)
+                compare(local.mapStyle.subtitle,"N5");compare(local.mapStyle.frame,"inset")
+                grabImage(study).save("archive-b8-native-shelf-n5-atlas-local.png")
+                clickNamed("map-overview")
                 compare(ctl.archiveState.revision,rev+1)
                 var after=JSON.stringify(ctl.snapshot)
                 verify(study.saveCheckpoint());var saved=payload;compare(JSON.parse(saved).version,6)
@@ -1861,10 +1876,15 @@ Item {
             compare(JSON.stringify(ctl.snapshot),before)
             var plan=findChild(study,"archive-room-plan")
             tryVerify(function(){return plan.surfacePolicy.floor==="bond"})
+            // The actual floor pointer assertion above remains unchanged.
+            // Choose a representative wall and border through the same live
+            // revision-bound appearance session for comparative captures.
+            verify(ctl.updateAppearance("wall","masonry"));verify(ctl.updateAppearance("wallMarks",true));verify(ctl.updateAppearance("floorBorder",true))
+            tryVerify(function(){return plan.surfacePolicy.wall==="masonry"&&plan.surfacePolicy.wallMarks&&plan.surfacePolicy.floorBorder})
             clickNamed("structure-apply");compare(ctl.archiveState.revision,rev+1)
             grabImage(study).save("archive-b8-native-room-stone.png")
             clickNamed("toggle-room-perspective")
-            tryVerify(function(){return study.roomPerspective&&plan.visible&&plan.surfacePolicy.floor==="bond"})
+            tryVerify(function(){return study.roomPerspective&&plan.visible&&!!plan.visibilityRaster&&plan.surfacePolicy.floor==="bond"&&plan.surfacePolicy.wall==="masonry"})
             grabImage(study).save("archive-b8-native-room-stone-perspective.png")
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
@@ -1874,6 +1894,7 @@ Item {
             clickNamed("appearance-tab-emblems");clickNamed("appearance-emblem-armillary")
             var mark=findChild(scene,"archive-backing-ornament")
             tryCompare(mark,"emblemKey","armillary");tryCompare(mark,"status",Image.Ready)
+            grabImage(study).save("archive-b8-native-shelf-n5-gallery.png")
             clickNamed("appearance-tab-materials");clickNamed("appearance-frame-choice");clickNamed("appearance-frame-metal")
             clickNamed("appearance-tab-backing");clickNamed("appearance-border-choice");clickNamed("appearance-border-rails")
             clickNamed("appearance-field-add")
@@ -1884,12 +1905,24 @@ Item {
             compare(JSON.stringify(ctl.snapshot),before)
             grabImage(study).save("archive-b8-native-shelf-n5-expanded.png")
             clickNamed("structure-close");verify(!ctl.structuralProposal);compare(ctl.archiveState.revision,rev+1)
+            compare(ctl.snapshot.cubbies.root.appearance.glazingDefault,"moderate")
+            grabImage(study).save("archive-b8-native-shelf-n5-glaze-default.png")
             var saved=ctl.exportCheckpoint({path:["root"],theme:1,cameras:{}})
             compare(JSON.parse(saved).version,6)
             mouseClick(child,child.width/2,child.height/2,Qt.RightButton)
             tryVerify(function(){return ctl.appearanceSessionOpen&&ctl.structuralProposal.command.containerId==="child"})
             clickNamed("appearance-glazing-choice");clickNamed("appearance-glazing-clearer")
             tryCompare(child,"glazingStyle","clearer")
+            compare(ctl.structuralProposal.command.patch.glazing,"clearer")
+            grabImage(study).save("archive-b8-native-shelf-n5-glaze-clearer.png")
+            for(var style of ["graded","combined"]){
+                clickNamed("appearance-glazing-choice");clickNamed("appearance-glazing-"+style)
+                tryCompare(child,"glazingStyle",style)
+                compare(ctl.structuralProposal.command.patch.glazing,style)
+                compare(ctl.snapshot.cubbies.root.appearance.glazingDefault,"moderate")
+                compare(ctl.archiveState.revision,rev+1)
+                grabImage(study).save("archive-b8-native-shelf-n5-glaze-"+style+".png")
+            }
             keyClick(Qt.Key_Escape);tryVerify(function(){return !ctl.structuralProposal})
             tryCompare(child,"glazingStyle","moderate")
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)

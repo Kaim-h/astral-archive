@@ -388,7 +388,7 @@ Item {
                 var id=map.hit(mouse.x,mouse.y);if(id){map.startGesture(id,"move",mouse.x,mouse.y);return}
                 map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale,blankArrange:true};return
             }
-            map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale,browseRoom:mouse.button===Qt.LeftButton&&!map.arranging?map.hit(mouse.x,mouse.y):""}
+            map.press={x:mouse.x,y:mouse.y,cx:map.camera.cx,cy:map.camera.cy,scale:map.camera.scale,browseRoom:mouse.button===Qt.LeftButton&&!map.arranging&&!View.mapDoorHit(map.dataModel,map.camera,mouse.x,mouse.y)?map.hit(mouse.x,mouse.y):""}
         }
         onPositionChanged:function(mouse){
             if(map.gesture){map.updateGesture(mouse.x,mouse.y);return}

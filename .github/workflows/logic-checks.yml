@@ -272,12 +272,20 @@ jobs:
           /usr/lib/qt6/bin/qmltestrunner -input quickshell/tests/tst_ArchiveB8Shelf.qml
           test -s archive-b8-native-shelf.png
           for theme in evening twilight midnight; do test -s "archive-b8-native-shelf-$theme.png" || exit 1; done
+          for capture in crest crest-field gallery glaze-default glaze-clearer glaze-graded glaze-combined atlas-local atlas-door-focus; do
+            test -s "archive-b8-native-shelf-n5-$capture.png" || exit 1
+          done
+          test -s archive-b8-native-shelf-map-compact-context.png
+          test -s archive-b8-native-room-stone.png
+          test -s archive-b8-native-room-stone-perspective.png
       - name: Attach B8 native Shelf capture
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: archive-b8-native-shelf
-          path: archive-b8-native-shelf*.png
+          path: |
+            archive-b8-native-shelf*.png
+            archive-b8-native-room-stone*.png
           retention-days: 21
       - name: Attach derived sculpture assets and provenance
         uses: actions/upload-artifact@v4

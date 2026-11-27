@@ -489,7 +489,9 @@ Rectangle {
         if(rootContext==="map"){
             if(sceneView.mode!=="arrange")return [app,{id:"root-add-room",label:"Add Room…"},grid,{id:"root-fit-map",label:"Fit map"},undo]
             grid.items.push({id:"map-magnetic",label:mapView.magnetic?"Wall magnet: on":"Wall magnet: off"})
-            return [app,{id:"map-add-room",label:"Add Room…"},
+            return [app,{id:"map-create-actions",label:"Add Room…",items:[
+                    {id:"root-add-room",label:"Add at menu location"},
+                    {id:"map-add-room",label:"Room dimensions…"}]},
                 {id:"map-room-actions",label:"Selected Room…",enabled:!!mapView.selectedBox,items:[
                     {id:"map-room-appearance",label:"Room appearance…"},
                     {id:"map-edit-room",label:"Dimensions…"},
