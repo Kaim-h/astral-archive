@@ -40,7 +40,12 @@ FocusScope {
     function focusRow(repeater,start,step){
         for(var i=0;i<repeater.count;i++){
             var at=((start+i*step)%repeater.count+repeater.count)%repeater.count,item=repeater.itemAt(at)
-            if(item&&item.enabled){item.forceActiveFocus();return true}
+            if(item&&item.enabled){
+                item.forceActiveFocus();var scroll=repeater===rootRepeater?rootScroll:childScroll
+                if(item.y<scroll.contentY)scroll.contentY=item.y
+                else if(item.y+item.height>scroll.contentY+scroll.height)scroll.contentY=Math.max(0,item.y+item.height-scroll.height)
+                return true
+            }
         }
         return false
     }
@@ -63,6 +68,8 @@ FocusScope {
         if(event.key===Qt.Key_Up||event.key===Qt.Key_Down||event.key===Qt.Key_Tab||event.key===Qt.Key_Backtab){
             var step=event.key===Qt.Key_Up||event.key===Qt.Key_Backtab||(event.key===Qt.Key_Tab&&(event.modifiers&Qt.ShiftModifier))?-1:1
             focusRow(rep,index+step,step);event.accepted=true
+        }else if(event.key===Qt.Key_Home||event.key===Qt.Key_End){
+            focusRow(rep,event.key===Qt.Key_Home?0:rep.count-1,event.key===Qt.Key_Home?1:-1);event.accepted=true
         }else if(event.key===Qt.Key_Left||event.key===Qt.Key_Right){
             if(inChild)closeChild(true)
             else if(index>=0&&entries[index].items)openChild(index,true)

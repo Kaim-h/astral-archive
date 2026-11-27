@@ -598,25 +598,30 @@ Rectangle {
         if(!resolveRackSelection())return false
         return openFixtureEditor(id)
     }
-    function openFixtureEditor(id){
+    function openFixtureEditor(id,holderId){
         var m=sceneView.cubby.mods.find(q=>q.id===id)
         if(!m||!structureReady||upperView)return false
         sceneView.clearSelection();sceneView.selectedModuleId=id
-        if(m.type==="rack")openRackInspector()
+        if(holderId&&Mixed.supportsTop(m)&&(m.items||[]).some(h=>h.kind==="holder"&&h.id===holderId)){sceneView.selectedHolderId=holderId;startHolder("holderEdit")}
+        else if(m.type==="rack")openRackInspector()
         else if(m.type==="shelf")startShelfEdit()
         else if(m.type==="cubby")startChildEdit()
         else if(m.type==="artwork")startArtworkEdit()
         if(archive.structuralProposal)structurePanel.forceActiveFocus()
         return true
     }
-    function switchFixtureTarget(id){
+    function switchFixtureTarget(id,holderId){
         var q=archive.structuralProposal
-        if(!spatialEnabled||upperView||sceneView.mode!=="arrange"||!q||archive.draft||sceneView.busy||sceneView.furnitureDrag||sceneView.bookDrag||
-           q.command.cubbyId!==sceneView.cubbyId||q.command.moduleId===id||
-           !["shelf","child","artwork","holderEdit","holderCreate","create"].includes(q.command.kind)||
-           !sceneView.cubby.mods.some(m=>m.id===id))return false
+        if(!spatialEnabled||upperView||sceneView.mode!=="arrange"||!q||archive.draft||sceneView.busy||sceneView.furnitureDrag||sceneView.bookDrag)return false
+        var cmd=q.command
+        if(!["shelf","child","artwork","holderEdit","holderCreate","create","cubby"].includes(cmd.kind))return false
+        var current=cmd.kind==="cubby"?sceneView.cubby.mods.find(m=>m.type==="cubby"&&m.childId===cmd.cubbyId):null
+        if(cmd.cubbyId!==sceneView.cubbyId&&!current)return false
+        var m=sceneView.cubby.mods.find(m=>m.id===id)
+        if(!m||(current?current.id:cmd.moduleId)===id&&(!holderId||holderId===cmd.holderId))return false
+        if(holderId&&(!Mixed.supportsTop(m)||!(m.items||[]).some(h=>h.kind==="holder"&&h.id===holderId)))return false
         if(!confirmStructure(true))return false
-        return openFixtureEditor(id)
+        return openFixtureEditor(id,holderId)
     }
     function chooseCell(key) {
         if(!pickId||!activeIssue)return
@@ -872,7 +877,14 @@ Rectangle {
         var cmd=Core.clone(q.command)
         if(key==="name")cmd.patch.name=value
         else {
-            cmd.patch=Core.cubbyDimensionPatch(cmd.patch,key,value,cubbyRatio>0?cubbyRatio:null)
+            if(spatialEnabled){
+                var raw=Object.assign({},fixtureNumericText),n=typeof value==="number"?value:/^[0-9]+$/.test(value)?Number(value):null
+                n=Number.isSafeInteger(n)?n:null
+                if(n===null)cmd.patch[key]=null
+                else cmd.patch=Core.cubbyDimensionPatch(cmd.patch,key,n,cubbyRatio>0?cubbyRatio:null)
+                raw[key]={text:String(value),value:cmd.patch[key]}
+                fixtureNumericTarget=numericTargetKey(cmd);fixtureNumericText=raw
+            }else cmd.patch=Core.cubbyDimensionPatch(cmd.patch,key,value,cubbyRatio>0?cubbyRatio:null)
             // A new size must receive a new explicit suggestion request.
             if(key==="w"||key==="h")delete cmd.rearrange
         }
@@ -1125,7 +1137,7 @@ Rectangle {
         onShelfAppearanceRequested:study.startShelfAppearance()
         onContainerAppearanceRequested:function(id){study.startShelfAppearance(id,"glazing")}
         onRackTargetSwitchRequested:function(id){study.switchRackTarget(id)}
-        onFixtureTargetSwitchRequested:function(id){study.switchFixtureTarget(id)}
+        onFixtureTargetSwitchRequested:function(id,holderId){study.switchFixtureTarget(id,holderId)}
         onSelectedModuleIdChanged:if(!archive.draft)study.rackNumericText={}
         onBookPlacementProposed:function(position){study.bookPositionText=String(position);structurePanel.forceActiveFocus()}
         onDestinationPressed:function(rackId,key){if(archive.draft&&rackId===archive.draft.rackId)study.chooseCell(key)}
@@ -1971,6 +1983,7 @@ Rectangle {
                             Text {width:55;text:parent.modelData.name;color:study.colors.engraving;font.pixelSize:11;anchors.verticalCenter:parent.verticalCenter}
                             Archive.ArchiveButton {
                                 objectName:"cubby-minus-"+parent.modelData.key
+                                enabled:!study.spatialEnabled||!!structurePanel.cmd&&Number.isFinite(structurePanel.cmd.patch[parent.modelData.key])
                                 colors:study.colors;label:"−"
                                 onClicked:study.editCubbyValue(parent.modelData.key,structurePanel.cmd.patch[parent.modelData.key]-parent.modelData.step)
                             }
@@ -1980,16 +1993,17 @@ Rectangle {
                                     id:dimensionInput
                                     objectName:"cubby-input-"+parent.parent.modelData.key
                                     anchors.fill:parent;anchors.margins:5
-                                    text:structurePanel.cubbyEdit?String(structurePanel.cmd.patch[parent.parent.modelData.key]!==undefined?structurePanel.cmd.patch[parent.parent.modelData.key]:archive.snapshot.cubbies[structurePanel.cmd.cubbyId][parent.parent.modelData.key]||11):""
+                                    text:structurePanel.cubbyEdit?(study.spatialEnabled?study.fixtureNumberText(parent.parent.modelData.key):String(structurePanel.cmd.patch[parent.parent.modelData.key]!==undefined?structurePanel.cmd.patch[parent.parent.modelData.key]:archive.snapshot.cubbies[structurePanel.cmd.cubbyId][parent.parent.modelData.key]||11)):""
                                     color:study.colors.text;font.pixelSize:11;maximumLength:4;selectByMouse:true
                                     validator:IntValidator {bottom:0;top:9999}
                                     Accessible.name:"Interior "+parent.parent.modelData.name
-                                    onTextEdited:study.editCubbyValue(parent.parent.modelData.key,text.length?Number(text):0)
-                                    onAccepted:study.editCubbyValue(parent.parent.modelData.key,text.length?Number(text):0)
+                                    onTextEdited:study.editCubbyValue(parent.parent.modelData.key,study.spatialEnabled?text:text.length?Number(text):0)
+                                    onAccepted:study.editCubbyValue(parent.parent.modelData.key,study.spatialEnabled?text:text.length?Number(text):0)
                                 }
                             }
                             Archive.ArchiveButton {
                                 objectName:"cubby-plus-"+parent.modelData.key
+                                enabled:!study.spatialEnabled||!!structurePanel.cmd&&Number.isFinite(structurePanel.cmd.patch[parent.modelData.key])
                                 colors:study.colors;label:"+"
                                 onClicked:study.editCubbyValue(parent.modelData.key,structurePanel.cmd.patch[parent.modelData.key]+parent.modelData.step)
                             }

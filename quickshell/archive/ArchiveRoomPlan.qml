@@ -90,6 +90,15 @@ Item {
         target:plan.Window.window
         function onActiveChanged(){if(plan.Window.window&&!plan.Window.window.active)plan.cancelGesture()}
     }
+    activeFocusOnTab:true
+    Keys.onPressed:function(event){
+        if(gesture||!enabled||researchProjection)return
+        if(event.key===Qt.Key_Menu||event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier)){customizeRoom();event.accepted=true;return}
+        if(event.key===Qt.Key_Return||event.key===Qt.Key_Space){if(selectedShelf&&!arranging){inspectShelf(selectedShelf);event.accepted=true}return}
+        if(!planData||![Qt.Key_Left,Qt.Key_Right,Qt.Key_Up,Qt.Key_Down].includes(event.key))return
+        var ids=planData.shelves.map(s=>s.id),i=ids.indexOf(selectedShelf),step=event.key===Qt.Key_Left||event.key===Qt.Key_Up?-1:1
+        if(ids.length){selectedShelf=ids[(i<0?(step===1?0:ids.length-1):i+step+ids.length)%ids.length];event.accepted=true}
+    }
     Keys.onEscapePressed:function(event){if(gesture){cancelGesture();event.accepted=true}}
     Rectangle {anchors.fill:parent;color:plan.colors.background}
     Text {
@@ -222,6 +231,7 @@ Item {
         acceptedButtons:Qt.LeftButton|Qt.RightButton
         onPressed:function(mouse){
             if(mouse.button!==Qt.LeftButton)return
+            plan.forceActiveFocus()
             var id=plan.hit(mouse.x,mouse.y)
             if(plan.arranging){plan.selectedShelf=id;if(id)plan.startGesture(id,"move",mouse.x,mouse.y)}
         }

@@ -122,7 +122,12 @@ Item {
         return at.x>=0&&at.x<=world.width&&at.y>=0&&at.y<=world.height?cubbyId:""
     }
     signal rackTargetSwitchRequested(string moduleId)
-    signal fixtureTargetSwitchRequested(string moduleId)
+    signal fixtureTargetSwitchRequested(string moduleId,string holderId)
+    function committedHolderAt(id,x,y){
+        var m=cubby.mods.find(q=>q.id===id),p=interior.mapFromItem(scene,x,y)
+        if(!m||!Mixed.supportsTop(m))return ""
+        var h=Mixed.holderAt(m,{x:p.x-m.x,y:p.y-m.y});return h?h.id:""
+    }
     function committedFixtureAt(x,y){
         if(caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return ""
         var p=interior.mapFromItem(scene,x,y)
@@ -907,21 +912,24 @@ Item {
         acceptedButtons:Qt.AllButtons
         property var dragCommand:null
         property string selectionTarget:""
+        property string selectionHolder:""
         property point selectionAt:Qt.point(0,0)
         property var selectionProposal:null
-        onVisibleChanged:if(!visible){dragCommand=null;selectionTarget="";selectionProposal=null}
+        onVisibleChanged:if(!visible){dragCommand=null;selectionTarget="";selectionHolder="";selectionProposal=null}
         property point start:Qt.point(0,0)
         property bool resizing:false
         onPressed:function(mouse){
             var q=scene.controller.structuralProposal
-            selectionTarget="";selectionProposal=null
+            selectionTarget="";selectionHolder="";selectionProposal=null
             if(mouse.button!==Qt.LeftButton||!q||q.command.kind==="delete")return
             var p=interior.mapFromItem(scene,mouse.x,mouse.y),g=structuralGhost
             var inside=g.visible&&p.x>=g.x&&p.x<=g.x+g.width&&p.y>=g.y&&p.y<=g.y+g.height
-            if(scene.spatialStyle&&scene.mode==="arrange"&&["shelf","child","artwork","holderEdit","holderCreate","create"].includes(q.command.kind)&&q.command.cubbyId===scene.cubbyId){
-                var id=scene.committedFixtureAt(mouse.x,mouse.y)
-                if(id&&id!==q.command.moduleId&&(!inside||!q.ok)){
-                    selectionTarget=id;selectionAt=Qt.point(mouse.x,mouse.y);selectionProposal=q;return
+            if(scene.spatialStyle&&scene.mode==="arrange"&&["shelf","child","artwork","holderEdit","holderCreate","create","cubby"].includes(q.command.kind)){
+                var id=scene.committedFixtureAt(mouse.x,mouse.y),holder=scene.committedHolderAt(id,mouse.x,mouse.y)
+                var current=q.command.kind==="cubby"?scene.cubby.mods.find(m=>m.type==="cubby"&&m.childId===q.command.cubbyId):null
+                var prior=current?current.id:q.command.moduleId
+                if(id&&(id!==prior||holder&&holder!==q.command.holderId)&&(!inside||!q.ok)){
+                    selectionTarget=id;selectionHolder=holder;selectionAt=Qt.point(mouse.x,mouse.y);selectionProposal=q;return
                 }
             }
             if(!inside)return
@@ -942,18 +950,18 @@ Item {
         }
         onReleased:dragCommand=null
         onClicked:function(mouse){
-            var id=selectionTarget,q=selectionProposal
-            selectionTarget="";selectionProposal=null
-            if(id&&q===scene.controller.structuralProposal&&Math.abs(mouse.x-selectionAt.x)<=6&&Math.abs(mouse.y-selectionAt.y)<=6&&scene.committedFixtureAt(mouse.x,mouse.y)===id)
-                scene.fixtureTargetSwitchRequested(id)
+            var id=selectionTarget,holder=selectionHolder,q=selectionProposal
+            selectionTarget="";selectionHolder="";selectionProposal=null
+            if(id&&q===scene.controller.structuralProposal&&Math.abs(mouse.x-selectionAt.x)<=6&&Math.abs(mouse.y-selectionAt.y)<=6&&scene.committedFixtureAt(mouse.x,mouse.y)===id&&scene.committedHolderAt(id,mouse.x,mouse.y)===holder)
+                scene.fixtureTargetSwitchRequested(id,holder)
         }
-        onCanceled:{dragCommand=null;selectionTarget="";selectionProposal=null}
+        onCanceled:{dragCommand=null;selectionTarget="";selectionHolder="";selectionProposal=null}
         onWheel:function(wheel){wheel.accepted=true}
     }
     ArchiveTooltip {
         id:tooltipView
         colors:scene.colors
-        record:scene.pinnedRecord||scene.hoveredRecord
+        record:scene.pointerActive||scene.furnitureDrag||scene.bookDrag||scene.busy?null:scene.pinnedRecord||scene.hoveredRecord
         expanded:!!scene.pinnedRecord
         anchorPoint:scene.tipPoint
     }

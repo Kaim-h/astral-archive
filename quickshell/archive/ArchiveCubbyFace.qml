@@ -19,6 +19,12 @@ Item {
     property string previewMode:"veiled"
     readonly property var inventory:previewMode==="inventory"?View.cubbyPreviewSummary(child):null
     signal activated(string moduleId, string childId)
+    activeFocusOnTab:spatialStyle
+    Accessible.role:Accessible.Button
+    Accessible.name:child.name||"Sub-cubby"
+    Accessible.onPressAction:activated(module.id,module.childId)
+    Keys.onReturnPressed:function(event){face.activated(face.module.id,face.module.childId);event.accepted=true}
+    Keys.onSpacePressed:function(event){face.activated(face.module.id,face.module.childId);event.accepted=true}
     objectName: "cubby-" + module.id
     x: module.x
     y: module.y
@@ -29,8 +35,8 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: View.frameColor(face.child,face.colors,face.depth)
-        border.color: face.selected?face.colors.engraving:View.mix(face.colors.metal,face.colors.text,.16)
-        border.width: face.selected?2:1
+        border.color: face.selected||face.activeFocus?face.colors.engraving:View.mix(face.colors.metal,face.colors.text,.16)
+        border.width: face.selected||face.activeFocus?2:1
         radius: 2
     }
     Rectangle {

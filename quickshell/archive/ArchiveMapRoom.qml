@@ -197,7 +197,15 @@ Item {
     Connections {target:map.Window.window;function onActiveChanged(){if(map.Window.window&&!map.Window.window.active)map.cancelGesture()}}
     Keys.onEscapePressed:function(event){if(appearanceOpen){closeAppearance(true);event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(focusState){restoreOverview();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
     Keys.onDeletePressed:function(event){if(appearanceOpen||activeFocus&&removeSelectedDoor())event.accepted=true}
+    activeFocusOnTab:true
     Keys.onPressed:function(event){
+        if(!appearanceOpen&&!press&&!dragging&&enabled){
+            if((event.key===Qt.Key_Return||event.key===Qt.Key_Space)&&selectedRoom&&!selectedDoor){if(arranging)focusSelection();else enterRoom(selectedRoom);event.accepted=true;return}
+            if(dataModel&&[Qt.Key_Left,Qt.Key_Right,Qt.Key_Up,Qt.Key_Down].includes(event.key)){
+                var ids=dataModel.rooms.map(r=>({kind:"room",id:r.id})).concat(dataModel.doors.map(d=>({kind:"door",id:d.id}))),index=ids.findIndex(v=>v.id===(selectedDoor||selectedRoom)),step=event.key===Qt.Key_Left||event.key===Qt.Key_Up?-1:1
+                if(ids.length){var v=ids[(index<0?(step===1?0:ids.length-1):index+step+ids.length)%ids.length];if(v.kind==="door")selectDoor(v.id);else {selectedDoor="";selectedRoom=v.id}event.accepted=true;return}
+            }
+        }
         if(event.key===Qt.Key_Backspace&&(appearanceOpen||activeFocus&&removeSelectedDoor()))event.accepted=true
         else if((event.key===Qt.Key_Menu||event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier))&&!appearanceOpen&&!press&&!dragging){
             contextRequested(width/2,height/2);event.accepted=true
