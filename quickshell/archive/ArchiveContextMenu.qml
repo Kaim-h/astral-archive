@@ -14,6 +14,22 @@ FocusScope {
     readonly property string childSide:rootBox.x+rootBox.width+childBox.width+6<=width-4?"right":
         rootBox.x-childBox.width-6>=4?"left":"stack"
     readonly property var rootIds:entries.map(e=>e.id)
+    readonly property real rowStride:30
+    readonly property real rootHeaderHeight:20
+    // Root rows have explicit hit geometry, independent of Column polish.
+    // Reopening at a different edge must not briefly expose old row bounds.
+    function prepareOpen(){
+        rootScroll.resetPosition()
+        childScroll.resetPosition()
+        forceActiveFocus()
+        focusRow(rootRepeater,0,1)
+    }
+    function hoverRoot(index){
+        var item=rootRepeater.itemAt(index)
+        if(!visible||!item||!item.enabled)return
+        if(entries[index].items){if(childIndex!==index)openChild(index,false)}
+        else if(childIndex>=0)closeChild(false)
+    }
     signal chosen(string action)
     signal dismissed()
     function closeChild(restore){
@@ -29,8 +45,9 @@ FocusScope {
         return false
     }
     function openChild(index,focusIt){
-        if(!visible||!entries[index]||!entries[index].items||!rootRepeater.itemAt(index).enabled)return
-        childIndex=index
+        var item=rootRepeater.itemAt(index)
+        if(!visible||!entries[index]||!entries[index].items||!item||!item.enabled)return
+        if(childIndex!==index){childIndex=index;childScroll.resetPosition()}
         if(focusIt)Qt.callLater(function(){if(menu.visible&&menu.childIndex===index)menu.focusRow(childRepeater,0,1)})
     }
     function activate(entry,index){
@@ -58,8 +75,8 @@ FocusScope {
         if(visible){
             // Own the very first keyboard event, even before the repeater
             // or positioner has completed its deferred layout.
-            forceActiveFocus()
-            if(!focusRow(rootRepeater,0,1))Qt.callLater(function(){if(menu.visible&&menu.activeFocus&&!childBox.activeFocus)menu.focusRow(rootRepeater,0,1)})
+            prepareOpen()
+            if(!rootRepeater.itemAt(0))Qt.callLater(function(){if(menu.visible&&menu.activeFocus&&!childBox.activeFocus)menu.focusRow(rootRepeater,0,1)})
         }
     }
     MouseArea {
@@ -72,18 +89,18 @@ FocusScope {
         id:rootBox
         objectName:"root-context-panel"
         width:Math.max(0,Math.min(218,menu.width-8))
-        height:Math.max(0,Math.min(menu.height-8,rootRows.implicitHeight+12))
+        height:Math.max(0,Math.min(menu.height-8,rootRows.height+12))
         x:Math.max(4,Math.min(menu.width-width-4,menu.anchorPoint.x))
         y:Math.max(4,Math.min(menu.height-height-4,menu.anchorPoint.y))
         radius:6;color:View.mix(menu.colors.background,menu.colors.panel,.94);border.color:menu.colors.metal
         MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons;onWheel:function(wheel){wheel.accepted=true}}
         ArchiveInspectorScroll {
             id:rootScroll
-            anchors.fill:parent;anchors.margins:6;contentHeight:rootRows.implicitHeight
-            Column {
+            anchors.fill:parent;anchors.margins:6;contentHeight:rootRows.height
+            Item {
                 id:rootRows
-                width:rootScroll.width;spacing:4
-                Text {text:menu.heading;color:menu.colors.engraving;font.pixelSize:11}
+                width:rootScroll.width;height:menu.rootHeaderHeight+menu.entries.length*menu.rowStride-4
+                Text {text:menu.heading;color:menu.colors.engraving;font.pixelSize:11;height:16;verticalAlignment:Text.AlignVCenter}
                 Repeater {
                     id:rootRepeater
                     model:menu.entries
@@ -91,13 +108,28 @@ FocusScope {
                         required property var modelData
                         required property int index
                         objectName:modelData.id
-                        width:rootRows.width;colors:menu.colors
+                        x:0;y:menu.rootHeaderHeight+index*menu.rowStride
+                        width:rootRows.width;height:26;colors:menu.colors
                         label:modelData.label+(modelData.items?(menu.childSide==="left"?"  ‹":menu.childSide==="right"?"  ›":"  ⌄"):"")
                         hint:modelData.label
                         enabled:modelData.enabled!==false
                         active:activeFocus||menu.childIndex===index
                         onClicked:menu.activate(modelData,index)
-                        HoverHandler {onHoveredChanged:if(hovered&&parent.enabled){if(parent.modelData.items)menu.openChild(parent.index,false);else menu.closeChild(false)}}
+                        readonly property bool pointerHovered:rootHover.hovered
+                        HoverHandler {
+                            id:rootHover
+                            enabled:menu.visible&&parent.enabled
+                            onHoveredChanged:if(hovered)menu.hoverRoot(parent.index)
+                            // A translated/reopened menu can keep a pointer
+                            // inside a delegate without a fresh enter edge.
+                            // A real subsequent pointer movement still opens it.
+                            property point lastScenePoint:Qt.point(-1,-1)
+                            onPointChanged:{
+                                var at=point.scenePosition
+                                if(hovered&&(at.x!==lastScenePoint.x||at.y!==lastScenePoint.y))menu.hoverRoot(parent.index)
+                                lastScenePoint=at
+                            }
+                        }
                     }
                 }
             }
@@ -108,7 +140,7 @@ FocusScope {
         objectName:"root-context-flyout"
         visible:menu.childIndex>=0
         width:Math.max(0,Math.min(206,menu.width-8))
-        height:Math.max(0,Math.min(menu.height-8,childRows.implicitHeight+12))
+        height:Math.max(0,Math.min(menu.height-8,childRows.height+12))
         x:Math.max(4,Math.min(menu.width-width-4,menu.childSide==="right"?rootBox.x+rootBox.width+6:menu.childSide==="left"?rootBox.x-width-6:rootBox.x))
         readonly property var anchorRow:menu.childIndex>=0?rootRepeater.itemAt(menu.childIndex):null
         readonly property real rowY:anchorRow?anchorRow.mapToItem(menu,0,0).y:rootBox.y
@@ -119,15 +151,17 @@ FocusScope {
         }
         ArchiveInspectorScroll {
             id:childScroll
-            anchors.fill:parent;anchors.margins:6;contentHeight:childRows.implicitHeight
-            Column {
-                id:childRows;width:childScroll.width;spacing:4
+            anchors.fill:parent;anchors.margins:6;contentHeight:childRows.height
+            Item {
+                id:childRows;width:childScroll.width;height:Math.max(0,menu.childEntries.length*menu.rowStride-4)
                 Repeater {
                     id:childRepeater;model:menu.childEntries
                     ArchiveButton {
                         required property var modelData
+                        required property int index
                         objectName:modelData.id
-                        width:childRows.width;colors:menu.colors
+                        x:0;y:index*menu.rowStride
+                        width:childRows.width;height:26;colors:menu.colors
                         label:modelData.label;hint:modelData.label;enabled:modelData.enabled!==false
                         active:activeFocus
                         onClicked:menu.chosen(modelData.id)

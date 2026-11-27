@@ -1486,6 +1486,31 @@ Item {
             tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")},3000,study.structureApplyError+" / "+ctl.errorText)
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
+        function test_n5_fixture_numeric_target_switch(){
+            var ctl=study.controller,scene=study.scene,m=ctl.snapshot.cubbies.root.mods.find(q=>q.id==="mixed-board")
+            var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
+            study.switchMode("arrange");scene.selectedModuleId=m.id
+            clickNamed("arrange-menu");clickNamed("edit-shelf")
+            var input=findChild(study,"fixture-input-x");verify(!!input)
+            function type(value){input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);for(var digit of String(value))keyClick(digit)}
+            type(9999);tryVerify(function(){return ctl.structuralProposal&&!ctl.structuralProposal.ok&&!!ctl.structuralProposal.error})
+            var art=scene.moduleItem("mixed-art");verify(!!art)
+            var pt=art.mapToItem(scene,art.width/2,art.height/2),panel=findChild(study,"structure-panel")
+            compare(scene.committedFixtureAt(pt.x,pt.y),"mixed-art")
+            var screen=scene.mapToItem(study,pt.x,pt.y)
+            verify(screen.x<panel.x||screen.x>=panel.x+panel.width||screen.y<panel.y||screen.y>=panel.y+panel.height)
+            mouseClick(scene,pt.x,pt.y)
+            compare(scene.selectedModuleId,m.id);compare(ctl.structuralProposal.command.moduleId,m.id);compare(input.text,"9999")
+            compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history);compare(ctl.archiveState.revision,rev)
+            type(m.x+10);tryVerify(function(){return ctl.structuralProposal.ok})
+            var expected=JSON.stringify(ctl.structuralProposal.snapshot)
+            mouseClick(scene,pt.x,pt.y)
+            tryVerify(function(){return ctl.structuralProposal&&ctl.structuralProposal.command.moduleId==="mixed-art"})
+            compare(scene.selectedModuleId,"mixed-art");compare(JSON.stringify(ctl.snapshot),expected);compare(ctl.archiveState.revision,rev+1)
+            compare(ctl.structuralProposal.error,"");verify(!ctl.structuralProposal.ok)
+            clickNamed("proposal-browse");compare(scene.message,"No changes");verify(ctl.undo())
+            compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+        }
         function test_n5_rack_numeric_target_switch(){
             var ctl=study.controller,scene=study.scene,m=Core.rackAt(ctl.snapshot,"root","rack-1")
             var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history)
@@ -1595,8 +1620,28 @@ Item {
             keyClick(Qt.Key_Escape);tryVerify(function(){return !menu.visible&&scene.activeFocus})
             verify(study.openRootContext("shelf",study.width-10,40))
             tryVerify(function(){return menu.visible&&panel.x+panel.width<=study.width})
-            add=findChild(menu,"root-add-furniture");mouseMove(add,add.width/2,add.height/2)
-            tryVerify(function(){return fly.visible&&menu.childSide==="left"})
+            // Observe settled, distinct hit geometry before sending exactly
+            // one real hover entry. Do not retry or replace it with a click.
+            add=findChild(menu,"root-add-furniture")
+            dimensions=findChild(menu,"root-shelf-dimensions")
+            var last="",hit=null
+            tryVerify(function(){
+                if(!add||!dimensions||!add.visible||!dimensions.visible)return false
+                hit=add.mapToItem(study,add.width/2,add.height/2)
+                var point=dimensions.mapToItem(study,dimensions.width/2,dimensions.height/2)
+                var next=[hit.x,hit.y,point.x,point.y,add.width,add.height,panel.x,panel.y].join("|")
+                var ok=next===last&&hit.x>panel.x&&hit.x<panel.x+panel.width&&hit.y>panel.y&&hit.y<panel.y+panel.height&&point.y<hit.y
+                last=next;return ok
+            },3000,"Stable right-edge root hit geometry")
+            mouseMove(dimensions,dimensions.width/2,dimensions.height/2)
+            tryVerify(function(){return dimensions.pointerHovered&&!fly.visible})
+            mouseMove(add,add.width/2,add.height/2)
+            try{
+                tryVerify(function(){return fly.visible&&menu.childSide==="left"},3000,"Left hover opens child")
+            }finally{
+                console.log("B8 root flyout diagnostic",JSON.stringify({root:[panel.x,panel.y,panel.width,panel.height],child:[fly.x,fly.y,fly.width,fly.height,fly.visible],side:menu.childSide,hover:add.pointerHovered,index:menu.childIndex,hit:[hit.x,hit.y],focus:menu.activeFocus}))
+                if(!fly.visible||menu.childSide!=="left")grabImage(study).save("archive-b8-native-shelf-menu-hover-failure.png")
+            }
             verify(fly.x>=0&&fly.x+fly.width<=panel.x)
             keyClick(Qt.Key_Escape);tryVerify(function(){return menu.visible&&!fly.visible})
             keyClick(Qt.Key_Escape);tryVerify(function(){return !menu.visible&&scene.activeFocus})

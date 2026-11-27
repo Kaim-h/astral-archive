@@ -114,6 +114,7 @@ Item {
     signal furnitureContext(real sceneX,real sceneY)
     signal shelfAppearanceRequested()
     signal rackTargetSwitchRequested(string moduleId)
+    signal fixtureTargetSwitchRequested(string moduleId)
     function committedFixtureAt(x,y){
         if(caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return ""
         var p=interior.mapFromItem(scene,x,y)
@@ -877,14 +878,27 @@ Item {
         visible:!!scene.controller.structuralProposal
         acceptedButtons:Qt.AllButtons
         property var dragCommand:null
-        onVisibleChanged:if(!visible)dragCommand=null
+        property string selectionTarget:""
+        property point selectionAt:Qt.point(0,0)
+        property var selectionProposal:null
+        onVisibleChanged:if(!visible){dragCommand=null;selectionTarget="";selectionProposal=null}
         property point start:Qt.point(0,0)
         property bool resizing:false
         onPressed:function(mouse){
             var q=scene.controller.structuralProposal
-            if(mouse.button!==Qt.LeftButton||!q||q.command.kind==="delete"||!structuralGhost.visible)return
+            selectionTarget="";selectionProposal=null
+            if(mouse.button!==Qt.LeftButton||!q||q.command.kind==="delete")return
             var p=interior.mapFromItem(scene,mouse.x,mouse.y),g=structuralGhost
-            if(p.x<g.x||p.x>g.x+g.width||p.y<g.y||p.y>g.y+g.height)return
+            var inside=g.visible&&p.x>=g.x&&p.x<=g.x+g.width&&p.y>=g.y&&p.y<=g.y+g.height
+            if(scene.spatialStyle&&scene.mode==="arrange"&&["shelf","child","artwork","holderEdit","holderCreate","create"].includes(q.command.kind)&&q.command.cubbyId===scene.cubbyId){
+                var id=scene.committedFixtureAt(mouse.x,mouse.y)
+                if(id&&id!==q.command.moduleId&&(!inside||!q.ok)){
+                    selectionTarget=id;selectionAt=Qt.point(mouse.x,mouse.y);selectionProposal=q;return
+                }
+            }
+            if(!inside)return
+            var base=Object.assign({x:g.x,y:g.y,w:g.width,h:g.height},q.command.patch)
+            if(![base.x,base.y,base.w,base.h].every(Number.isFinite))return
             dragCommand=Core.clone(q.command)
             dragCommand.patch=Object.assign({x:g.x,y:g.y,w:g.width,h:g.height},dragCommand.patch)
             start=p
@@ -899,7 +913,13 @@ Item {
             scene.controller.proposeStructure(d)
         }
         onReleased:dragCommand=null
-        onCanceled:dragCommand=null
+        onClicked:function(mouse){
+            var id=selectionTarget,q=selectionProposal
+            selectionTarget="";selectionProposal=null
+            if(id&&q===scene.controller.structuralProposal&&Math.abs(mouse.x-selectionAt.x)<=6&&Math.abs(mouse.y-selectionAt.y)<=6&&scene.committedFixtureAt(mouse.x,mouse.y)===id)
+                scene.fixtureTargetSwitchRequested(id)
+        }
+        onCanceled:{dragCommand=null;selectionTarget="";selectionProposal=null}
         onWheel:function(wheel){wheel.accepted=true}
     }
     ArchiveTooltip {

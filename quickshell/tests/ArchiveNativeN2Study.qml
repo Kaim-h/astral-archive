@@ -469,7 +469,7 @@ Rectangle {
     function openRootContext(kind,x,y){
         if(!rootMenuReady||kind==="map"&&!showMap||kind==="shelf"&&(upperView||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf"))return false
         rootContext=kind;contextPoint=Qt.point(x,y);contextOpen=true
-        rootMenu.forceActiveFocus()
+        rootMenu.prepareOpen()
         return true
     }
     readonly property var rootActions:{
@@ -531,6 +531,7 @@ Rectangle {
         }
         function onStructuralProposalChanged(){
             study.structureApplyError=""
+            study.reconcileFixtureText()
             if(study.materialPanel!==""&&!study.materialProposal)study.closeMaterials()
         }
         function onDraftChanged(){
@@ -588,6 +589,11 @@ Rectangle {
         if(!spatialEnabled||upperView||sceneView.mode!=="arrange"||!d||!m||id===d.rackId||
            d.cubbyId!==sceneView.cubbyId||sceneView.busy||sceneView.furnitureDrag||sceneView.bookDrag)return false
         if(!resolveRackSelection())return false
+        return openFixtureEditor(id)
+    }
+    function openFixtureEditor(id){
+        var m=sceneView.cubby.mods.find(q=>q.id===id)
+        if(!m||!structureReady||upperView)return false
         sceneView.clearSelection();sceneView.selectedModuleId=id
         if(m.type==="rack")openRackInspector()
         else if(m.type==="shelf")startShelfEdit()
@@ -595,6 +601,15 @@ Rectangle {
         else if(m.type==="artwork")startArtworkEdit()
         if(archive.structuralProposal)structurePanel.forceActiveFocus()
         return true
+    }
+    function switchFixtureTarget(id){
+        var q=archive.structuralProposal
+        if(!spatialEnabled||upperView||sceneView.mode!=="arrange"||!q||archive.draft||sceneView.busy||sceneView.furnitureDrag||sceneView.bookDrag||
+           q.command.cubbyId!==sceneView.cubbyId||q.command.moduleId===id||
+           !["shelf","child","artwork","holderEdit","holderCreate","create"].includes(q.command.kind)||
+           !sceneView.cubby.mods.some(m=>m.id===id))return false
+        if(!confirmStructure(true))return false
+        return openFixtureEditor(id)
     }
     function chooseCell(key) {
         if(!pickId||!activeIssue)return
@@ -807,7 +822,10 @@ Rectangle {
     function startShelfEdit() {
         if(!structureReady||!selectedFixture||selectedFixture.type!=="shelf")return
         var m=selectedFixture
-        archive.proposeStructure({kind:"shelf",cubbyId:sceneView.cubbyId,moduleId:m.id,patch:{x:m.x,y:m.y,w:m.w,color:m.color||null}})
+        var patch={x:m.x,y:m.y,w:m.w}
+        // An unchanged dimensions editor must not materialize a null color.
+        if(!spatialEnabled)patch.color=m.color||null
+        archive.proposeStructure({kind:"shelf",cubbyId:sceneView.cubbyId,moduleId:m.id,patch:patch})
     }
     function startChildEdit(){
         if(!structureReady||!selectedFixture||selectedFixture.type!=="cubby")return
@@ -859,9 +877,40 @@ Rectangle {
         if(!structureReady||!selectedFixture)return
         archive.proposeStructure({kind:"delete",cubbyId:sceneView.cubbyId,moduleId:selectedFixture.id})
     }
+    property var fixtureNumericText:({})
+    property string fixtureNumericTarget:""
+    function numericTargetKey(cmd){
+        return cmd?[cmd.kind,cmd.type||"",cmd.cubbyId||"",cmd.moduleId||"",cmd.holderId||""].join("|"):""
+    }
+    function reconcileFixtureText(){
+        var q=archive.structuralProposal,cmd=q?q.command:null,target=numericTargetKey(cmd)
+        if(fixtureNumericTarget!==target){fixtureNumericTarget=target;fixtureNumericText={};return}
+        var raw=Object.assign({},fixtureNumericText),changed=false
+        for(var key of Object.keys(raw))if(!cmd||!cmd.patch||raw[key].value!==cmd.patch[key]){delete raw[key];changed=true}
+        if(changed)fixtureNumericText=raw
+    }
+    function fixtureNumberText(key){
+        var q=archive.structuralProposal,raw=fixtureNumericText[key]
+        if(raw&&q&&fixtureNumericTarget===numericTargetKey(q.command))return raw.text
+        var value=q&&q.command.patch?q.command.patch[key]:undefined
+        return value===undefined||value===null?"":String(value)
+    }
+    function setFixtureNumber(key,value){
+        var q=archive.structuralProposal
+        if(!spatialEnabled||!q||!["shelf","child","artwork","create","holderCreate","holderEdit"].includes(q.command.kind)||
+           !["x","y","w","h","count"].includes(key))return
+        var cmd=Core.clone(q.command),n=/^-?[0-9]+$/.test(value)?Number(value):null
+        cmd.patch[key]=Number.isSafeInteger(n)?n:null
+        if(cmd.kind==="shelf")delete cmd.rearrange
+        var raw=Object.assign({},fixtureNumericText);raw[key]={text:value,value:cmd.patch[key]}
+        fixtureNumericTarget=numericTargetKey(cmd);fixtureNumericText=raw
+        archive.proposeStructure(cmd)
+    }
     function structuralStep(key,delta) {
         if(!archive.structuralProposal||!archive.structuralProposal.command.patch)return
         var q=Core.clone(archive.structuralProposal.command)
+        if(spatialEnabled&&!Number.isFinite(q.patch[key]))return
+        if(spatialEnabled){var raw=Object.assign({},fixtureNumericText);delete raw[key];fixtureNumericText=raw}
         var holder=["holderCreate","holderEdit"].includes(q.kind),art=q.kind==="artwork"||q.type==="artwork"
         var min=key==="count"?1:key==="w"?(holder?90:art?40:120):key==="h"?(art?40:15):0
         var next=q.patch[key]+(key==="count"?Math.sign(delta):delta)
@@ -1055,6 +1104,7 @@ Rectangle {
         onFurnitureContext:function(x,y){study.openContext(x,y)}
         onShelfAppearanceRequested:study.startShelfAppearance()
         onRackTargetSwitchRequested:function(id){study.switchRackTarget(id)}
+        onFixtureTargetSwitchRequested:function(id){study.switchFixtureTarget(id)}
         onSelectedModuleIdChanged:if(!archive.draft)study.rackNumericText={}
         onBookPlacementProposed:function(position){study.bookPositionText=String(position);structurePanel.forceActiveFocus()}
         onDestinationPressed:function(rackId,key){if(archive.draft&&rackId===archive.draft.rackId)study.chooseCell(key)}
@@ -1614,6 +1664,10 @@ Rectangle {
         readonly property var lostMapDoors:mapRoomCommand?View.mapRoomLostDoors(archive.snapshot,cmd):[]
         readonly property bool spatialConfirmation:mapDoorCommand||mapRoomCommand||!!cmd&&[ "spatialShelfEdit","spatialShelfTurn","spatialAdoptProfiles","spatialAdoptIndependentProfiles","spatialAppPlace","spatialAppUnplace","spatialSupport","spatialShelfDelete","spatialAppearance" ].includes(cmd.kind)
         readonly property bool artworkEdit:!!cmd&&(cmd.kind==="artwork"||cmd.type==="artwork")
+        // Keyed by the editor kind, not each proposal object: typing must
+        // not rebuild the active TextInput on every numeric preview.
+        readonly property string fixtureFieldKind:!cmd?"":holderEdit?"holder":
+            ["shelf","child","artwork","create"].includes(cmd.kind)?(cmd.kind==="shelf"||cmd.type==="shelf"?"board":"fixture"):""
         readonly property bool suggested:cubbyEdit&&cmd.rearrange===true
         readonly property bool suggestionAvailable:cubbyEdit&&!!proposal&&
             (suggested||proposal.error.indexOf("Furniture needs at least ")===0)
@@ -1903,14 +1957,26 @@ Rectangle {
                     Archive.ArchiveButton {objectName:"book-plus";colors:study.colors;label:"+";onClicked:study.stepBook(10)}
                 }
                 Repeater {
-                    model:contentStructure.cmd&&!structurePanel.removing&&!structurePanel.cubbyEdit&&!structurePanel.bookEdit&&!structurePanel.bookRemove&&!structurePanel.supportEdit&&!structurePanel.shelfAppearance&&!structurePanel.roomShelfEdit&&!structurePanel.mapRoomCommand&&!structurePanel.mapDoorCommand&&!structurePanel.shelfTurn&&!structurePanel.adopting?(structurePanel.holderEdit?["x","w","count"]:contentStructure.cmd.type==="shelf"||contentStructure.cmd.kind==="shelf"?["x","y","w"]:["x","y","w","h"]):[]
+                    model:structurePanel.fixtureFieldKind==="holder"?["x","w","count"]:structurePanel.fixtureFieldKind==="board"?["x","y","w"]:structurePanel.fixtureFieldKind==="fixture"?["x","y","w","h"]:[]
                     Row {
                         required property string modelData
                         spacing:5
                         Text {width:55;color:study.colors.engraving;text:parent.modelData==="count"?"Slots":parent.modelData==="w"?"Width":parent.modelData==="h"?"Height":parent.modelData.toUpperCase();anchors.verticalCenter:parent.verticalCenter}
-                        Archive.ArchiveButton {objectName:"structure-minus-"+parent.modelData;colors:study.colors;label:"−";onClicked:study.structuralStep(parent.modelData,sceneView.snapEnabled?-sceneView.snapDistance:-10)}
-                        Text {width:45;color:study.colors.text;text:contentStructure.cmd&&contentStructure.cmd.patch&&contentStructure.cmd.patch[parent.modelData]!==undefined?String(contentStructure.cmd.patch[parent.modelData]):"";anchors.verticalCenter:parent.verticalCenter;horizontalAlignment:Text.AlignHCenter}
-                        Archive.ArchiveButton {objectName:"structure-plus-"+parent.modelData;colors:study.colors;label:"+";onClicked:study.structuralStep(parent.modelData,sceneView.snapEnabled?sceneView.snapDistance:10)}
+                        Archive.ArchiveButton {objectName:"structure-minus-"+parent.modelData;colors:study.colors;label:"−";enabled:!study.spatialEnabled||!!contentStructure.cmd&&Number.isFinite(contentStructure.cmd.patch[parent.modelData]);onClicked:study.structuralStep(parent.modelData,sceneView.snapEnabled?-sceneView.snapDistance:-10)}
+                        Text {visible:!study.spatialEnabled;width:45;color:study.colors.text;text:contentStructure.cmd&&contentStructure.cmd.patch&&contentStructure.cmd.patch[parent.modelData]!==undefined?String(contentStructure.cmd.patch[parent.modelData]):"";anchors.verticalCenter:parent.verticalCenter;horizontalAlignment:Text.AlignHCenter}
+                        Rectangle {
+                            visible:study.spatialEnabled;width:70;height:26;radius:4;color:study.colors.background;border.color:study.colors.metal
+                            TextInput {
+                                objectName:"fixture-input-"+parent.parent.modelData
+                                anchors.fill:parent;anchors.margins:4;clip:true
+                                text:study.fixtureNumberText(parent.parent.modelData)
+                                color:study.colors.text;font.pixelSize:11;maximumLength:16;selectByMouse:true
+                                Accessible.name:"Exact fixture "+parent.parent.modelData
+                                onTextEdited:study.setFixtureNumber(parent.parent.modelData,text)
+                                Keys.onEscapePressed:study.cancelStructurePanel()
+                            }
+                        }
+                        Archive.ArchiveButton {objectName:"structure-plus-"+parent.modelData;colors:study.colors;label:"+";enabled:!study.spatialEnabled||!!contentStructure.cmd&&Number.isFinite(contentStructure.cmd.patch[parent.modelData]);onClicked:study.structuralStep(parent.modelData,sceneView.snapEnabled?sceneView.snapDistance:10)}
                     }
                 }
                 Row {

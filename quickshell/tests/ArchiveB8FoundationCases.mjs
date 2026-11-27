@@ -1307,5 +1307,31 @@ export function run(){
   eq(reflow.draft.phase,'ready','shape change ready but explicit');refuse(reflow,'ready shape change still explicit');
   const altered=Core.clone(reviewed);altered.draft.result.meta[Object.keys(altered.draft.result.meta)[0]].color='#ffffff';refuse(altered,'altered cell metadata');
  }
+ {
+  // All target switches use the reviewed ordinary-edit replay policy.
+  const state=Core.session(ShelfSample.fixture()),s=state.snapshot,board=s.cubbies.root.mods.find(m=>m.id==='mixed-board');
+  for(const cmd of [
+   {kind:'shelf',cubbyId:'root',moduleId:board.id,patch:{x:board.x+10}},
+   {kind:'child',cubbyId:'root',moduleId:'cubby-child',patch:{}},
+   {kind:'artwork',cubbyId:'root',moduleId:'mixed-art',patch:{profile:'slim'}},
+   {kind:'holderEdit',cubbyId:'root',moduleId:board.id,holderId:'mixed-upright',patch:{count:4}}
+  ]){
+   const q=Core.previewStructure(state,cmd);
+   eq(q.error,'','ordinary fixture preview '+cmd.kind);
+   const n=Core.finishBrowseStructure(state,q);eq(n.error,'','ordinary fixture resolution '+cmd.kind);
+   eq(n.snapshot,q.snapshot,'exact fixture preview '+cmd.kind);
+   eq(Core.owners(n.snapshot).map(e=>e.id).sort(),Core.owners(s).map(e=>e.id).sort(),'fixture owners retained '+cmd.kind);
+   eq(n.history.length,q.ok?1:0,'fixture Undo count '+cmd.kind);
+   if(q.ok)eq(Core.undo(n).snapshot,s,'exact fixture Undo '+cmd.kind);
+  }
+  for(const cmd of [
+   {kind:'shelf',cubbyId:'root',moduleId:board.id,patch:{x:null}},
+   {kind:'holderEdit',cubbyId:'root',moduleId:board.id,holderId:'mixed-upright',patch:{count:1}}
+  ]){
+   const q=Core.previewStructure(state,cmd),n=Core.finishBrowseStructure(state,q);
+   yes(q.error,'invalid fixture preview '+cmd.kind);yes(n.error,'invalid fixture resolution refused '+cmd.kind);
+   eq(n.snapshot,s,'invalid fixture snapshot exact');eq(n.history,state.history,'invalid fixture history exact');eq(n.revision,state.revision,'invalid fixture revision exact');
+  }
+ }
  return checks;
 }
