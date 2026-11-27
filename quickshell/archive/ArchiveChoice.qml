@@ -9,6 +9,7 @@ Column {
     property string title:""
     property bool expanded:false
     signal selected(var value)
+    function selectValue(v){expanded=false;selected(v)}
     spacing:3
     function labelFor(){
         var item=options.find(e=>e.key===value)
@@ -29,7 +30,7 @@ Column {
             objectName:choice.prefix+"-"+(modelData.key===null?"default":String(modelData.key))
             width:choice.width;colors:choice.colors;label:modelData.label
             active:choice.value===modelData.key
-            onClicked:{choice.expanded=false;choice.selected(modelData.key)}
+            onClicked:choice.selectValue(modelData.key)
         }
     }
 }
