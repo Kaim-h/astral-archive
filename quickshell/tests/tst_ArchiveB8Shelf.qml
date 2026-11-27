@@ -1777,6 +1777,7 @@ Item {
             var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
             for(var mode of ["browse","arrange"]){
                 verify(study.switchMode(mode));compare(scene.mode,mode)
+                tryVerify(function(){var observer=findChild(scene,"b8-rack-metadata-observer");return !!observer&&observer.visible})
                 var p=null,last=""
                 // Read the actual post-switch hit geometry. A mode can
                 // relayout the host; do not reuse an earlier scene point.

@@ -14,6 +14,9 @@ Item {
         name:"ArchiveNativeN2"
         when:windowShown
         SignalSpy { id:childActivation; signalName:"activated" }
+        SignalSpy { id:childPress; signalName:"pressed" }
+        SignalSpy { id:childRelease; signalName:"released" }
+        SignalSpy { id:childCancel; signalName:"canceled" }
         function init() {
             study.controller.reset(View.fixture())
             study.scene.viewPath=["root"]
@@ -71,6 +74,7 @@ Item {
             var scene=study.scene
             scene.mode="browse"
             verify(!scene.spatialStyle)
+            compare(findChild(scene,"b8-rack-metadata-observer"),null)
             // The legacy Flow still sizes the header from implicitHeight.
             // Delegate existence does not establish the final mapped hit point.
             var previous=null,last="",first="",settled=""
@@ -96,13 +100,20 @@ Item {
             childActivation.target=child
             childActivation.clear()
             verify(childActivation.valid)
+            var faceInput=findChild(child,"cubby-face-input")
+            verify(!!faceInput)
+            for(var spy of [childPress,childRelease,childCancel]){
+                spy.target=faceInput;spy.clear();verify(spy.valid)
+            }
             console.log("legacy Browse child before click",JSON.stringify({first:first,settled:settled,mode:scene.mode,
                 path:scene.viewPath,caseExpanded:scene.caseDock.expanded,busy:scene.busy,
                 draft:!!scene.controller.draft,proposal:!!scene.controller.structuralProposal,bookDrag:!!scene.bookDrag}))
             // One actual click, no retry or alternate navigation path.
             mouseClick(child,child.width/2,child.height/2)
             console.log("legacy Browse child after click",JSON.stringify({path:scene.viewPath,
-                activationCount:childActivation.valid?childActivation.count:null,busy:scene.busy,
+                activationCount:childActivation.valid?childActivation.count:null,
+                presses:childPress.valid?childPress.count:null,releases:childRelease.valid?childRelease.count:null,
+                cancels:childCancel.valid?childCancel.count:null,busy:scene.busy,
                 selected:scene.selectedModuleId,caseExpanded:scene.caseDock.expanded}))
             compare(scene.cubbyId,"child")
             compare(JSON.stringify(study.controller.snapshot),before)

@@ -925,17 +925,23 @@ Item {
         anchors.fill:parent;z:24
         visible:(scene.mode==="arrange"||scene.browseContext)&&!scene.bookDrag&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy&&!scene.pointer&&!scene.prepared
         acceptedButtons:Qt.RightButton
-        // HoverHandler observes the top context surface without taking a
-        // button grab or blocking the Case's own hover handlers.
-        HoverHandler {
-            id:rackMetadataHover
-            enabled:scene.rackMetadataReady
-            blocking:false
-            onHoveredChanged:if(hovered)scene.updateRackMetadata(point.position);else if(scene.spatialStyle)scene.hoveredRecord=null
-            onPointChanged:if(hovered)scene.updateRackMetadata(point.position)
-        }
         onClicked:function(mouse){scene.contextAt(mouse.x,mouse.y)}
         onWheel:function(wheel){wheel.accepted=false}
+        // Instantiate the B8-only observer on its own item. A disabled
+        // handler still belongs to its parent's pointer-handler list in Qt.
+        Loader {
+            anchors.fill:parent
+            active:scene.spatialStyle
+            sourceComponent:Item {
+                objectName:"b8-rack-metadata-observer"
+                HoverHandler {
+                    enabled:scene.rackMetadataReady
+                    blocking:false
+                    onHoveredChanged:if(hovered)scene.updateRackMetadata(point.position);else if(scene.spatialStyle)scene.hoveredRecord=null
+                    onPointChanged:if(hovered)scene.updateRackMetadata(point.position)
+                }
+            }
+        }
     }
     // While the inspector is proposing a structural edit, protect committed
     // furniture and Case from pointer input. The inspector is a sibling.

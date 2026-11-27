@@ -153,6 +153,7 @@ Item {
         }
     }
     MouseArea {
+        objectName:"cubby-face-input"
         anchors.fill: parent
         cursorShape: face.browse?Qt.PointingHandCursor:Qt.ArrowCursor
         onClicked: face.activated(face.module.id,face.module.childId)
