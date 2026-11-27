@@ -1352,8 +1352,8 @@ export function run(){
   const saved=Checkpoint.encode(next,view);eq(JSON.parse(saved).version,6,'extended appearance v6 writer');eq(Checkpoint.decode(saved).snapshot,next.snapshot,'v6 exact roundtrip');
   eq(Checkpoint.encode(Core.undo(next),view),Checkpoint.encode(state,view),'Undo restores old writer bytes');
   const bad=JSON.parse(saved);bad.version=3;let refused=false;try{Checkpoint.decode(JSON.stringify(bad))}catch(e){refused=true}yes(refused,'cannot mislabel expanded metadata v3');
-  bad.version=6;bad.snapshot.cubbies.root.appearance.fields.push({...f,id:'field-2',x:100});refused=false;try{Checkpoint.decode(JSON.stringify(bad))}catch(e){refused=true}yes(refused,'overlapping fields rejected on decode');
-  const invalid=Core.updateAppearance(state,q,'fields',[f,{...f,id:'field-2'}]);yes(invalid.error,'overlap refused');eq(Core.finishAppearance(state,invalid).snapshot,s,'overlap cannot publish');
+  bad.version=6;bad.snapshot.cubbies.root.appearance.fields.push(Object.assign({},f,{id:'field-2',x:100}));refused=false;try{Checkpoint.decode(JSON.stringify(bad))}catch(e){refused=true}yes(refused,'overlapping fields rejected on decode');
+  const invalid=Core.updateAppearance(state,q,'fields',[f,Object.assign({},f,{id:'field-2'})]);yes(invalid.error,'overlap refused');eq(Core.finishAppearance(state,invalid).snapshot,s,'overlap cannot publish');
   const corrected=Core.updateAppearance(state,invalid,'fields',[f]);eq(corrected.snapshot,q.snapshot,'corrected fields exact');
   const suggested=Appearance.suggestField([f],s.cubbies.root.w,s.cubbies.root.h);yes(!!suggested,'free field suggestion');
   yes(!Appearance.containerError({fields:[f,suggested]},s.cubbies.root,true),'suggestion nonoverlap');

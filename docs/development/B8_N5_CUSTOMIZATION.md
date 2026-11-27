@@ -62,3 +62,7 @@ Read exact S11r1 catalogue, primary grammar, backing composition and glazing and
 ### N5c.1a — Qt JavaScript compatibility correction
 
 [CI 46051049093](https://github.com/Kaim-h/astral-archive/actions/runs/46051049093) at `234b815a1b2d48f07ced614e07c1732bac2ed790`: Node passed; native Qt 6.4.2 aborted in first suite because Array.flat is absent in its JavaScript engine. Replace both catalogue ID initialization and shared count assertion with supported reduce/concat. No validator or test weakening; preserve failed evidence. Fresh native run required before advancing dependent controls.
+
+### N5c.1b — Qt regression specimen syntax
+
+[CI 46051193068](https://github.com/Kaim-h/astral-archive/actions/runs/46051193068) at `efc4f8bb546852cf518c98c19ae646b97f7eef34`: Node passed, native first suite 6/0/0; shared foundation compilation rejected object-spread syntax in the two newly added malformed field specimens. Use Object.assign to construct the same data. Keep all assertions and prior failure evidence. No runtime validation change.
