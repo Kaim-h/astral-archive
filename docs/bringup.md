@@ -130,3 +130,14 @@ If a link above has moved, search the property name on the Quickshell docs site.
 ### B8-N3 selected policy target-native acceptance (provisional)
 
 Before production integration, on actual Fedora/Hyprland/Quickshell session verify combined frame/wall proportions (24 reference, 1339.2 absolute), title and wall readability, narrow/wide/tall casework, fractional DPR/scaling, empty/populated/tall-outlier Rooms, aligned door visibility, actual hit and floor inverse at boundaries, move/resize/turn and blocked edits, navigation entry/return/interruption and real presented frame pacing (both projections), compositor deactivation and pointer cancellation. Verify global projection preference restart/checkpoint restore, default 2D on absent/legacy view, reset and failed-load behavior, v3/v4 old geometry and explicit v5 adoption/refusal/Undo/recovery. Measure responsiveness, resource use and idle/hidden cost separately from CI/JS callback proxies. No target pass inferred from offscreen Qt/browser checks; adjust provisional policies only through explicit compatible versioned changes. Preserve existing manual recovery and production gate.
+
+### Integrated B8 target release checklist (unperformed)
+
+Automated N6a–d passed in Node/browser/offscreen Qt; [integrated evidence](development/B8_INTEGRATED_IMPLEMENTATION.md) is not actual target acceptance. Use disposable synthetic state and manual launch, retain KDE/TTY recovery and no autostart. In addition to the N3 selected-policy and desktop N4 checks above:
+
+- [ ] Verify actual Fedora/Hyprland/Quickshell versions, imports and renderer; contrast/legibility, accessibility and ergonomics across all themes, narrow/wide and fractional DPR.
+- [ ] Repeat mixed-button and edge routing, hover/drag/right-click/Case/modal isolation, deactivation/cancellation, keyboard focus and reduced motion; measure actual presented transitions and input-to-presented frames.
+- [ ] Measure dense cold/warm map/Room/render and varied occupied-cell/reflow/door obstruction complexity, sustained idle/hidden behavior and process CPU/GPU/RAM/power. Do not equate runner timings or array bytes with these measures.
+- [ ] Exercise standalone v6 restart, separate preference-store restart and precedence, manual Save replacing a corrupt row without test pre-repair, representative older-format compatibility, isolated disk/permission faults and crash recovery. Never inject faults into real user files; record unsafe/unperformed cases explicitly.
+
+All checks remain outstanding until actual target evidence is recorded and assessed. Preserve accepted native approximations and separately deferred aesthetics; no production Archive enablement from this checklist alone.

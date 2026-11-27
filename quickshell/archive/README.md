@@ -1,10 +1,14 @@
 # Archive native studies
 
-## Integrated baseline and verification status
+## Current integrated B8 study
+
+PR #19 integrated isolated B8 N1–N5 and automated N6a–d. The [source map, checkpoint contract and verification guide](../../docs/development/B8_INTEGRATED_IMPLEMENTATION.md) is the current entry point. From the repository root, run `node scripts/check-b8-n1.mjs` for the shared contract and `node scripts/check-b8-n6.mjs` for descriptive synthetic measurements; the existing workflow runs actual offscreen Qt Shelf and isolated v6 restart writer/reader tests. No production shell import, real filesystem operation or actual target validation. The following earlier baseline and development notes are historical.
+
+## Historical baseline and verification status
 
 The preserved technical baseline is historical main `4366c5cae25d949ea7d21c8c595de8132893d6b4` (November 24, 2026). Historical PR #16 (B7-N2) merged at `17fecd7cf3161ecd324645ffb4608541b404d818`; historical PR #15 (independent stable-main fixes) subsequently merged at the baseline. B7-N2 is implemented as an isolated synthetic study, not a production filesystem interface. Its four agreed checkpoints were completed at tested implementation `e04c1e4bbb1b52f32fd91ee22336d23f3f2c1cf7`. Historical CI run 45479039959 passed offline-js, browser-cubby-studies and native-archive-qt for that implementation. Later integration changed independent desktop shell/service source and tests. The integrated public baseline `38f218a5bae7d2ad0a37315d5fda6ab0a9d9a0bf` subsequently passed [CI 45533627218, attempt 2](https://github.com/Kaim-h/astral-archive/actions/runs/45533627218/attempts/2) (all three jobs, including mixed scene/transaction and separate checkpoint restart tests). See [current state](../../docs/development/CURRENT_STATE.md) for scope; this is not target desktop verification.
 
-N4 target-environment validation remains mandatory before production integration. Native desktop validation remains outstanding. Real filesystem indexing/actions, production Archive shell wiring, complete Map Room/Shelf architecture and derivative packaging remain later work. Do not infer a validated production Archive from synthetic studies.
+N4 target-environment validation remains mandatory before production integration. Native desktop validation remains outstanding. At this earlier baseline, Map Room/Shelf architecture was still future work; it is now integrated in the isolated B8 study. Real filesystem indexing/actions, production wiring and derivative packaging remain later work. Do not infer a validated production Archive from synthetic studies.
 
 The sections below are retained historical checkpoints, not current assignments or live PR state. All old PR, CI, artifact and commit identifiers are historical provenance. The current public baseline has passed the checks above. Ordinary development remains paused until explicitly authorized.
 

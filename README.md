@@ -8,11 +8,21 @@ The aim is to create an immersive desktop without sacrificing the practicality o
 
 Built with Quickshell, Qt Quick/QML and JavaScript, Astral Archive integrates with Hyprland and existing Linux services rather than replacing the compositor.
 
-## Development
+## Development approach
 
 Astral Archive is a non-commercial personal project developed extensively using generative AI. Much of its implementation, artwork, documentation and testing is produced by AI agents under my direction.
 
 I establish the creative vision, design requirements and development priorities, coordinate the agents, review their work and make the final decisions on what gets integrated.
+
+## Current development status
+
+**Active development — pre-release. Not ready for general installation or daily use.**
+
+The public main branch contains the desktop shell and isolated native Archive studies, including simulated scroll physics, mixed furnished cubbies, Scroll Case transport and synthetic checkpoint Save/Load. The Archive is not yet connected to the production shell or real filesystem operations.
+
+The B8 Shelf, Room and Map Room implementation is now integrated through [PR #19](https://github.com/Kaim-h/astral-archive/pull/19), including contextual arrangement, customization and explicit synthetic checkpoint persistence. The reviewed implementation passed JavaScript, Chromium and offscreen Qt Quick verification, including separate v6 checkpoint restart processes. Actual target Linux desktop validation remains outstanding.
+
+[Current implementation](docs/development/CURRENT_STATE.md) · [Active development](docs/development/ACTIVE_WORK.md) · [Roadmap](docs/archive-roadmap.md) · [Development history](docs/development/DEVELOPMENT_HISTORY.md) · [Documentation](docs/README.md)
 
 ## Features
 
@@ -29,7 +39,7 @@ I establish the creative vision, design requirements and development priorities,
 
 The Archive is an experimental spatial file manager in development.
 
-Its intended features include:
+The integrated synthetic studies implement spatial navigation, furnished storage, simulated file representations and customization. The broader intended features include:
 
 - Files represented by scrolls, framed artwork, sculptures and other physical objects.
 - Scrolls with simulated physical interactions.
@@ -40,26 +50,25 @@ Its intended features include:
 
 The spatial interface is intended to complement efficient, keyboard-accessible file management rather than replace it.
 
-## Implementation status
+## Development timeline
 
-The desktop shell includes the illustrated launcher, Archive Capsule, utility controls, Veranda wallpaper selector and Celestial Gallery.
+| Milestone | Status |
+|---|---|
+| Desktop foundations — launcher, Capsule, utilities, Veranda and Gallery | Integrated source |
+| Archive foundations — scroll physics, file representations and recursive cubbies (B6–B7) | Integrated synthetic study |
+| Spatial Archive — Shelves, Rooms, Map Room and appearance (B8) | Integrated synthetic study; automated N6a–d verified |
+| Archive refinement — expanded customization, architectural flexibility and interaction polish | Planned |
+| Functional file management — Index, filesystem reconciliation and safe file operations | Planned |
+| Desktop quality of life — notifications, system tray, clipboard and screenshot integration, and session controls | Planned |
+| Desktop integration and distribution — target validation, accessibility, performance and installation | Planned |
 
-The separate Archive study currently includes native geometry and interaction foundations, symbolic file representations and mixed furnished cubbies. It includes universal Scroll Case transport and explicit synthetic checkpoint Save/Load, and is not imported by the production shell.
+This is a broad milestone overview, not a release schedule or fixed implementation order. Target desktop validation is required before production enablement. See the [roadmap](docs/archive-roadmap.md) for dependencies and [active development](docs/development/ACTIVE_WORK.md) for current work.
 
-Archive records and file operations remain synthetic. It is not yet a production file manager.
+## Project documentation
 
-The integrated public baseline has passed offline JavaScript, browser and offscreen Qt Quick checks. Native desktop validation remains outstanding.
-
-**This project is still in development and is not yet ready for general installation or daily use.**
-
-For more detailed information:
-
-- [Current implementation state](docs/development/CURRENT_STATE.md)
-- [Archive development roadmap](docs/archive-roadmap.md)
 - [Design language](docs/product/VISION_AND_DESIGN_LANGUAGE.md)
 - [Native Linux bring-up guide](docs/bringup.md)
-- [Documentation index](docs/README.md)
-- [Archive architecture review](docs/architecture/ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md) — technical background and advisory recommendations.
+- [Archive architecture review](docs/architecture/ARCHIVE_INTERDEVELOPMENT_REVIEW_2026-11-24.md) — historical technical background and advisory recommendations.
 
 ## Contributing
 

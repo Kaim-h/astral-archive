@@ -6,6 +6,8 @@ Current source establishes implementation, accepted product requirements establi
 
 - [Contribution requirements](../CONTRIBUTING.md) — engineering, design, verification, documentation and review.
 - [Contributor entry point](../AGENTS.md) — startup instructions.
+- [PR documentation standard](development/PR_DOCUMENTATION_STANDARD.md) — mandatory readable descriptions, templates, verification and closeout continuity.
+- [Issue management proposal](development/ISSUE_MANAGEMENT_STANDARD.md) — proposed backlog, issue templates and Bugfinder transition; adoption and migration separately authorized.
 - [Topic workflow](development/TOPIC_WORKFLOW_AND_HANDOFF.md) — branch continuity, checkpoints and review.
 - [Regression verification](development/REGRESSION_VERIFICATION.md) — asynchronous input, rendered output, identity domains, external contracts, geometry and CI evidence.
 - [Asset guidance](assets.md) — redistribution and local-resource boundaries.
@@ -14,18 +16,20 @@ Current source establishes implementation, accepted product requirements establi
 
 ## Technical index
 
+- [B8 documentation consolidation record](development/B8_DOCUMENTATION_CONSOLIDATION.md) — post-integration reconciliation and remaining gates.
 - [Current state](development/CURRENT_STATE.md) and [active work](development/ACTIVE_WORK.md) — integrated implementation and active topics.
-- [Development history and relocation map](development/history/README.md) — completed milestones, decisions and exact checkpoint evidence; retrieve on demand.
+- [Development history](development/DEVELOPMENT_HISTORY.md) — readable retrospective of major milestones and public PRs.
+- [Engineering history and relocation map](development/history/README.md) — detailed decisions and exact checkpoint evidence; retrieve on demand.
 - [Roadmap](archive-roadmap.md) — milestones and dependencies.
 - [Architecture](architecture.md) and [component map](architecture/COMPONENT_MAP.md).
 - [Design decisions](design-decisions.md) and [product specifications](product/) — intended behavior and design boundaries.
 - [Development guide](development.md), [environment](development/ENVIRONMENT.md) and [native bring-up](bringup.md) — dependencies, safe launch and verification.
 - [Archive native studies](../quickshell/archive/README.md), [mixed cubbies](development/B7_N2_MIXED_CUBBIES.md) and [representation assets](product/REPRESENTATION_ASSETS.md).
 - [Capsule](capsule.md), [utility shelf](utility-shelf.md), [Veranda](veranda-of-vistas.md), [Gallery](celestial-gallery-qml.md) and [Gallery customization](gallery-customization.md).
-- [B8 spatial Archive contract](product/B8_SPATIAL_ARCHIVE.md), [feature reference matrix](research/prototypes/2026-11-24/b8/S20_REFERENCE_MATRIX.md) and [implementation handoff](development/B8_IMPLEMENTATION_HANDOFF.md) — design closeout, pending owner integration.
+- [B8 spatial Archive contract](product/B8_SPATIAL_ARCHIVE.md), [feature reference matrix](research/prototypes/2026-11-24/b8/S20_REFERENCE_MATRIX.md) and [implementation handoff](development/B8_IMPLEMENTATION_HANDOFF.md) — integrated design baseline; [integrated native implementation and evidence](development/B8_INTEGRATED_IMPLEMENTATION.md) records the accepted synthetic scope.
 - [Research index](research/README.md) — standalone studies, accepted baselines and historical evidence.
 
-Historical status entries are not live assignments. Public baseline integration and its offline, browser and offscreen Qt verification are complete at the revision recorded in [current state](development/CURRENT_STATE.md). See [active work](development/ACTIVE_WORK.md) for continuing public PRs and outstanding checks. N4 remains outstanding; ordinary development remains paused until explicitly authorized.
+Historical status entries are not live assignments. Public baseline integration and its offline, browser and offscreen Qt verification are complete at the revision recorded in [current state](development/CURRENT_STATE.md). See [active work](development/ACTIVE_WORK.md) for continuing public PRs and outstanding checks. Actual target desktop validation remains outstanding. Ordinary development requires explicit owner authorization.
 
 ## Status vocabulary
 

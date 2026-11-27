@@ -1,6 +1,6 @@
 # Historical development records
 
-Load only when relevant. [Current state](../CURRENT_STATE.md) and [active work](../ACTIVE_WORK.md) are routine snapshots. Historical evidence, rejected alternatives and superseded next steps are not live assignments or current verification. Accepted requirements remain in [product specifications](../../product/), [design decisions](../../design-decisions.md) and subsystem contracts.
+For a readable retrospective of major phases and public PRs, see [development history](../DEVELOPMENT_HISTORY.md). Load these detailed records only when relevant. [Current state](../CURRENT_STATE.md) and [active work](../ACTIVE_WORK.md) are routine snapshots. Historical evidence, rejected alternatives and superseded next steps are not live assignments or current verification. Accepted requirements remain in [product specifications](../../product/), [design decisions](../../design-decisions.md) and subsystem contracts.
 
 ## Relocation map — November 25, 2026
 
@@ -24,6 +24,10 @@ Both historical bodies retain the original prose and sequence except rebased rel
 - [Batch 13 to B7 work](ACTIVE_WORK_BATCH13_TO_B7.md) and [Batch 13 to N3 state](CURRENT_STATE_BATCH13_TO_N3.md) — existing earlier records.
 - [B6 research chronology](../B6_RESEARCH_STATUS_2026-11-23.md), [browser/native comparison](../B6_NATIVE_BROWSER_COMPARISON_2026-11-24.md), [B7 entry matrix](../B7_ENTRY_CRITERIA_AND_TEST_MATRIX.md), [B7 native representations](../B7_NATIVE_REPRESENTATION_WORK.md) and [mixed cubbies](../B7_N2_MIXED_CUBBIES.md).
 - [Second corrective batch](../STABLE_MAIN_BUGFIXES_2.md), [third corrective batch](../STABLE_MAIN_BUGFIXES_3.md), [regression verification](../REGRESSION_VERIFICATION.md), [research index](../../research/README.md), [Archive source guide](../../../quickshell/archive/README.md).
+
+## B8 integrated checkpoint records
+
+- [N1 foundation](../B8_N1_FOUNDATION.md), [N2 Shelves](../B8_N2_NATIVE_SHELVES.md), [N3 Room geometry](../B8_N3_ROOM_GEOMETRY.md), [N4 Map Room](../B8_N4_MAP_ROOM.md), [N5 customization](../B8_N5_CUSTOMIZATION.md), [N6 verification](../B8_N6_VERIFICATION.md). These stage ledgers retain candidate-era wording and negative evidence; final integrated evidence is in [B8 implementation](../B8_INTEGRATED_IMPLEMENTATION.md) and the merged PR #19. Do not resume their historical next steps by default.
 
 ## Maintenance
 
