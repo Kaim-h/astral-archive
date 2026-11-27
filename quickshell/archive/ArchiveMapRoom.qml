@@ -68,6 +68,7 @@ Item {
         }
     }
     signal enterRoom(string id)
+    signal contextRequested(real mapX,real mapY)
     signal addRoom()
     signal editRoom(string id,var patch)
     signal deleteRoom(string id)
@@ -155,7 +156,12 @@ Item {
     Connections {target:map.Window.window;function onActiveChanged(){if(map.Window.window&&!map.Window.window.active)map.cancelGesture()}}
     Keys.onEscapePressed:function(event){if(appearanceOpen){closeAppearance();event.accepted=true}else if(gesture||press){cancelGesture();event.accepted=true}else if(focusState){restoreOverview();event.accepted=true}else if(selectedDoor){selectedDoor="";event.accepted=true}}
     Keys.onDeletePressed:function(event){if(appearanceOpen||activeFocus&&removeSelectedDoor())event.accepted=true}
-    Keys.onPressed:function(event){if(event.key===Qt.Key_Backspace&&(appearanceOpen||activeFocus&&removeSelectedDoor()))event.accepted=true}
+    Keys.onPressed:function(event){
+        if(event.key===Qt.Key_Backspace&&(appearanceOpen||activeFocus&&removeSelectedDoor()))event.accepted=true
+        else if((event.key===Qt.Key_Menu||event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier))&&!appearanceOpen&&!press&&!dragging){
+            contextRequested(width/2,height/2);event.accepted=true
+        }
+    }
     Rectangle {anchors.fill:parent;color:map.colors.background}
     Canvas {
         id:art
@@ -292,6 +298,11 @@ Item {
             source:map.camera&&Math.min(modelData.w,modelData.h)*map.camera.scale>=100?View.ornamentAsset(modelData.family,map.roomColors(modelData).name):""
             fillMode:Image.PreserveAspectFit;asynchronous:false
         }
+    }
+    MouseArea {
+        anchors.fill:parent;acceptedButtons:Qt.RightButton
+        enabled:!map.appearanceOpen&&!map.press&&!map.dragging
+        onClicked:function(mouse){map.contextRequested(mouse.x,mouse.y)}
     }
     MouseArea {
         anchors.fill:parent;acceptedButtons:Qt.LeftButton|Qt.MiddleButton

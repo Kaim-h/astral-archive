@@ -254,8 +254,8 @@ Rectangle {
         archive.proposeStructure(cmd)
     }
     property var roomEditText:({})
-    function startRoomShelfEdit(id,patch){
-        if(!viewSwitchReady||roomPlan.dragging||!roomPlan.arranging)return
+    function startRoomShelfEdit(id,patch,fromShelf){
+        if(!viewSwitchReady||roomPlan.dragging||(fromShelf===true?(!structureReady||upperView):!roomPlan.arranging))return
         var p=archive.snapshot.spatial.shelves[id],c=archive.snapshot.cubbies[id],raw={}
         if(!p||!c)return
         for(var key of ["x","y","w","h","depth"])raw[key]=String(patch[key]!==undefined?patch[key]:key==="w"||key==="h"?c[key]:p[key])
@@ -375,7 +375,7 @@ Rectangle {
     }
     readonly property var materialPreferences: materialSnapshot.materials||{scheme:"balanced",roleEdits:{}}
     function openMaterials(kind){
-        if(!structureReady)return
+        if(!structureReady&&!appearanceReady)return
         materialTarget=sceneView.selectedModuleId
         closeContext()
         materialNotice=""
@@ -446,12 +446,51 @@ Rectangle {
         sceneView.forceActiveFocus()
     }
     property bool contextOpen:false
+    property string rootContext:""
     property point contextPoint:Qt.point(0,0)
-    function closeContext(){contextOpen=false;bookPicker=false;bookTarget=null;sceneView.forceActiveFocus()}
+    readonly property bool rootMenuReady:viewSwitchReady&&!checkpointLoadPending&&!mapView.appearanceOpen&&!mapView.press&&!roomPlan.dragging&&!(mapView.panning||mapView.dragging)&&materialPanel===""
+    function closeContext(){contextOpen=false;rootContext="";bookPicker=false;bookTarget=null;focusActiveLayer()}
+    function openRootContext(kind,x,y){
+        if(!rootMenuReady||kind==="map"&&!showMap||kind==="shelf"&&(upperView||!spatialEnabled||Spatial.kind(archive.snapshot,sceneView.cubbyId)!=="shelf"))return false
+        rootContext=kind;contextPoint=Qt.point(x,y);contextOpen=true
+        return true
+    }
+    readonly property var rootActions:{
+        var app={id:rootContext==="map"?"map-context-appearance":"shelf-appearance",label:"Appearance…"}
+        var grid={id:"root-grid",label:"Grid and snapping…",items:[
+            {id:"root-grid-guide",label:sceneView.showGrid?"Grid: visible":"Grid: hidden"},
+            {id:"root-grid-snap",label:sceneView.snapEnabled?"Snap: on":"Snap: off"},
+            {id:"root-grid-interval",label:"Interval: "+sceneView.snapDistance}]}
+        var undo={id:"root-undo",label:"Undo",enabled:archive.archiveState.history.length>0}
+        if(rootContext==="map")return [app,{id:"root-add-room",label:"Add Room…"},grid,{id:"root-fit-map",label:"Fit map"},undo]
+        var structural=[{id:"root-shelf-dimensions",label:"Shelf dimensions…"},
+            {id:"root-add-furniture",label:"Add furniture…",items:[{id:"root-add-shelf",label:"Support board"},{id:"root-add-rack",label:"Rack"},{id:"root-add-cubby",label:"Nested Cubby"},{id:"root-add-artwork",label:"Artwork mount"}]},grid]
+        return sceneView.mode==="arrange"?structural.concat([app,undo]):[app].concat(structural,[undo])
+    }
+    function runRootAction(action){
+        if(!contextOpen||!rootContext)return
+        if(action==="root-grid-guide"){sceneView.showGrid=!sceneView.showGrid;return}
+        if(action==="root-grid-snap"){sceneView.snapEnabled=!sceneView.snapEnabled;return}
+        if(action==="root-grid-interval"){var intervals=[5,10,20,25,50,100];sceneView.snapDistance=intervals[(intervals.indexOf(sceneView.snapDistance)+1)%intervals.length];return}
+        closeContext()
+        if(action==="shelf-appearance"){startShelfAppearance();return}
+        if(action==="map-context-appearance"){mapView.openAppearance();return}
+        if(action==="root-fit-map"){mapView.fit();return}
+        if(action==="root-undo"){archive.undo();focusActiveLayer();return}
+        if(sceneView.mode!=="arrange"&&!switchMode("arrange"))return
+        if(action==="root-shelf-dimensions"){startRoomShelfEdit(sceneView.cubbyId,{},true);return}
+        if(action==="root-add-room"){startMapRoomEdit("spatialRoomCreate","",{});return}
+        if(action.indexOf("root-add-")===0){startFixture(action.slice(9));if(archive.structuralProposal)structurePanel.forceActiveFocus()}
+    }
     function openContext(x,y){
         if(archive.appearanceSessionOpen)return
+        var at=sceneView.mapToItem(study,x,y)
+        if(spatialEnabled&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"&&(sceneView.mode==="browse"||!selectedFixture)){
+            openRootContext("shelf",at.x,at.y);return
+        }
+        if(sceneView.mode!=="arrange")return
         closeMaterials();rackInspector=false;bookPicker=false;bookPage=0
-        contextPoint=sceneView.mapToItem(study,x,y)
+        rootContext="";contextPoint=at
         contextOpen=true
         // Explicitly polish the positioner before exposing its hit targets.
         contextRows.forceLayout()
@@ -465,7 +504,7 @@ Rectangle {
         function onSnapshotChanged(){
             var interrupted=study.mapNavigating
             study.abortRoomNavigation();study.abortMapNavigation()
-            if(archive.resetting){study.roomPlanOpen=false;study.roomPerspective=false;study.resetMapView();if(study.mapEnabled)study.focusActiveLayer()}
+            if(archive.resetting){study.closeContext();study.roomPlanOpen=false;study.roomPerspective=false;study.resetMapView();study.focusActiveLayer()}
             if(!Spatial.physicalProfiles(archive.snapshot)){study.roomPlanOpen=false;study.resetMapView();if(study.mapEnabled)study.focusActiveLayer()}
             else if(study.activeRoomId&&!Object.prototype.hasOwnProperty.call(archive.snapshot.spatial.rooms,study.activeRoomId)){
                 study.activeRoomId=""
@@ -861,12 +900,14 @@ Rectangle {
                 objectName:"archive-layer-tool-slot"
                 readonly property bool arrangeShown:sceneView.mode==="arrange"&&!study.upperView
                 readonly property bool browseShown:sceneView.mode==="browse"&&!study.upperView&&study.spatialEnabled&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"
-                readonly property bool layerShown:arrangeShown||browseShown
+                readonly property bool mapShown:study.showMap
+                readonly property bool layerShown:arrangeShown||browseShown||mapShown
                 width:arrangeTool.width;height:arrangeTool.height
                 visible:study.mapEnabled||layerShown
                 enabled:layerShown
                 Archive.ArchiveButton {id:arrangeTool;objectName:"arrange-menu";colors:study.colors;label:"Arrange menu";visible:parent.arrangeShown;enabled:parent.arrangeShown&&study.structureReady;onClicked:study.openContext(12,12)}
-                Archive.ArchiveButton {objectName:"browse-appearance";anchors.fill:parent;colors:study.colors;label:"Appearance";visible:parent.browseShown;enabled:parent.browseShown&&study.appearanceReady;onClicked:study.startShelfAppearance()}
+                Archive.ArchiveButton {objectName:"browse-menu";anchors.fill:parent;colors:study.colors;label:"Shelf menu";visible:parent.browseShown;enabled:parent.browseShown&&study.rootMenuReady;onClicked:{var at=mapToItem(study,0,height+4);study.openRootContext("shelf",at.x,at.y)}}
+                Archive.ArchiveButton {objectName:"map-context-menu";anchors.fill:parent;colors:study.colors;label:"Map menu";visible:parent.mapShown;enabled:parent.mapShown&&study.rootMenuReady;onClicked:{var at=mapToItem(study,0,height+4);study.openRootContext("map",at.x,at.y)}}
             }
             Archive.ArchiveButton {objectName:"checkpoint-save";colors:study.colors;label:"Save checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady&&!study.checkpointLoadPending;onClicked:study.saveCheckpoint()}
             Archive.ArchiveButton {objectName:"checkpoint-load";colors:study.colors;label:"Load checkpoint";visible:!!study.checkpointStore;enabled:study.checkpointReady;onClicked:study.requestCheckpointLoad()}
@@ -927,6 +968,7 @@ Rectangle {
         anchors.right:parent.right
         eligibleKeys:study.pickId&&study.activeIssue?study.activeIssue.options:[]
         onFurnitureContext:function(x,y){study.openContext(x,y)}
+        onShelfAppearanceRequested:study.startShelfAppearance()
         onBookPlacementProposed:function(position){study.bookPositionText=String(position);structurePanel.forceActiveFocus()}
         onDestinationPressed:function(rackId,key){if(archive.draft&&rackId===archive.draft.rackId)study.chooseCell(key)}
     }
@@ -985,6 +1027,7 @@ Rectangle {
         onMergeDoor:function(id,otherId){study.startMapDoorEdit("spatialDoorMerge",id,{otherId:otherId})}
         onDeleteDoor:function(id){study.startMapDoorEdit("spatialDoorDelete",id,{})}
         onEnterRoom:function(id){study.enterMapRoom(id)}
+        onContextRequested:function(x,y){var at=mapView.mapToItem(study,x,y);study.openRootContext("map",at.x,at.y)}
     }
     Item {
         id:mapNavigationOverlay
@@ -1018,8 +1061,16 @@ Rectangle {
             onClicked:study.finishRoomNavigation()
         }
     }
+    Archive.ArchiveContextMenu {
+        id:rootMenu;objectName:"archive-root-context"
+        anchors.fill:parent;z:40;visible:study.contextOpen&&study.rootContext!==""
+        colors:study.colors;entries:study.rootActions;anchorPoint:study.contextPoint
+        heading:study.rootContext==="map"?"Map Room":"Shelf"
+        onChosen:function(action){study.runRootAction(action)}
+        onDismissed:study.closeContext()
+    }
     MouseArea {
-        anchors.fill:parent;z:39;visible:study.contextOpen
+        anchors.fill:parent;z:39;visible:study.contextOpen&&study.rootContext===""
         acceptedButtons:Qt.AllButtons
         // The backdrop consumes all unhandled presses. Never let a blank
         // menu click reach the underlying rack and clear its selection.
@@ -1029,7 +1080,7 @@ Rectangle {
     }
     Rectangle {
         id:contextMenu;objectName:"furniture-context"
-        visible:study.contextOpen;z:40
+        visible:study.contextOpen&&study.rootContext==="";z:40
         x:Math.max(4,Math.min(study.width-width-4,study.contextPoint.x))
         y:Math.max(4,Math.min(study.height-height-4,study.contextPoint.y))
         width:216;height:Math.min(study.height-8,contextRows.implicitHeight+12);radius:6
@@ -1046,7 +1097,7 @@ Rectangle {
             Archive.ArchiveButton {objectName:"toggle-flat-top";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!!study.selectedFixture&&["rack","cubby"].includes(study.selectedFixture.type);label:study.selectedFixture&&study.selectedFixture.flatTop?"Disable top support":"Enable top support";onClicked:study.toggleTop()}
             Archive.ArchiveButton {objectName:"place-book";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&study.selectedSupport&&!study.bookPicker;label:"Place / move application book…";onClicked:study.beginBookPicker()}
             Archive.ArchiveButton {objectName:"unplace-selected-book";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&study.selectedSupport&&!!sceneView.selectedAppId;label:"Unplace selected book";onClicked:study.startBook(sceneView.selectedAppId,true)}
-            Archive.ArchiveButton {objectName:"shelf-appearance";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!study.selectedFixture&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf";label:"Shelf appearance…";onClicked:study.startShelfAppearance()}
+            Archive.ArchiveButton {objectName:"legacy-shelf-appearance";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!study.selectedFixture&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf";label:"Shelf appearance…";onClicked:study.startShelfAppearance()}
             Archive.ArchiveButton {objectName:"remove-architectural-shelf";colors:study.colors;width:parent.width;visible:study.spatialEnabled&&!study.selectedFixture&&Spatial.kind(archive.snapshot,sceneView.cubbyId)==="shelf"&&sceneView.shelfRoots.length>1;label:"Remove architectural Shelf";onClicked:study.startShelfRemoval()}
             Archive.ArchiveButton {objectName:"edit-rack";colors:study.colors;width:parent.width;label:"Rack size / cell pigment";visible:!!study.selectedRack;onClicked:study.openRackInspector()}
             Archive.ArchiveButton {objectName:"material-local";colors:study.colors;width:parent.width;label:!study.selectedFixture||study.selectedFixture.type==="cubby"?"Cubby colors":"Fixture color";visible:!study.selectedFixture||study.selectedFixture.type!=="artwork";onClicked:study.openMaterials(!study.selectedFixture||study.selectedFixture.type==="cubby"?"cubby":"fixture")}
@@ -1565,6 +1616,18 @@ Rectangle {
                             }
                         }
                     }
+                }
+                Column {
+                    visible:structurePanel.shelfAppearance&&archive.appearanceSessionOpen
+                    width:contentStructure.width;spacing:4
+                    Archive.ArchiveButton {objectName:"root-material-local";colors:study.colors;width:parent.width;label:"Frame and backing colours…";onClicked:if(study.finishShelfAppearance()){sceneView.clearSelection();study.openMaterials("cubby")}}
+                    Archive.ArchiveButton {objectName:"root-material-presets";colors:study.colors;width:parent.width;label:"Furniture materials…";onClicked:if(study.finishShelfAppearance()){sceneView.clearSelection();study.openMaterials("roles")}}
+                }
+                Column {
+                    visible:structurePanel.roomShelfEdit&&!study.upperView
+                    width:contentStructure.width;spacing:4
+                    Archive.ArchiveButton {objectName:"root-interior-size";colors:study.colors;width:parent.width;label:"Interior name and size…";enabled:!!structurePanel.proposal&&!structurePanel.proposal.ok&&!structurePanel.proposal.error;onClicked:{archive.cancelStructure();study.startCubbyEdit()}}
+                    Archive.ArchiveButton {objectName:"root-remove-architectural-shelf";colors:study.colors;width:parent.width;label:"Remove architectural Shelf…";visible:sceneView.shelfRoots.length>1;enabled:!!structurePanel.proposal&&!structurePanel.proposal.ok&&!structurePanel.proposal.error;onClicked:{archive.cancelStructure();study.startShelfRemoval()}}
                 }
                 Column {
                     visible:structurePanel.mapDoorCommand

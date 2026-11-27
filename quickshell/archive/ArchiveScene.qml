@@ -112,6 +112,8 @@ Item {
     readonly property alias worldItem: world
     signal destinationPressed(string rackId,string key)
     signal furnitureContext(real sceneX,real sceneY)
+    signal shelfAppearanceRequested()
+    readonly property bool browseContext:mode==="browse"&&Spatial.kind(controller.snapshot,cubbyId)==="shelf"
     // View-only preference, independent of the arrangement/Undo history.
     property string cubbyPreviewMode:"veiled"
     property bool snapEnabled:false
@@ -119,8 +121,13 @@ Item {
     property int snapDistance:20
     function quantize(v){return Core.snapCoordinate(v,snapDistance,snapEnabled)}
     function contextAt(x,y){
-        if(mode!=="arrange"||live.busy||controller.draft||controller.structuralProposal||furnitureDrag||bookDrag)return
+        if((mode!=="arrange"&&!browseContext)||live.busy||controller.draft||controller.structuralProposal||furnitureDrag||bookDrag||pointer||prepared)return
         var p=interior.mapFromItem(scene,x,y),m=cubby.mods.find(function(q){return Mixed.fixtureRects(q).some(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)})
+        if(browseContext){
+            if(!m&&p.x>=0&&p.x<=cubby.w&&p.y>=0&&p.y<=cubby.h)shelfAppearanceRequested()
+            else furnitureContext(x,y)
+            return
+        }
         clearSelection()
         if(m){
             selectedModuleId=m.id
@@ -421,7 +428,7 @@ Item {
         else if(event.key===Qt.Key_Menu||(event.key===Qt.Key_F10&&(event.modifiers&Qt.ShiftModifier))){
             var m=cubby.mods.find(function(q){return q.id===selectedModuleId})
             var p=m?interior.mapToItem(scene,m.x+m.w/2,m.y+m.h/2):interior.mapToItem(scene,interior.width/2,interior.height/2)
-            if(mode==="arrange"&&!controller.draft&&!controller.structuralProposal&&!live.busy){furnitureContext(p.x,p.y);event.accepted=true}
+            if((mode==="arrange"||browseContext)&&!controller.draft&&!controller.structuralProposal&&!live.busy&&!pointer&&!prepared){furnitureContext(p.x,p.y);event.accepted=true}
         }
         else if(event.modifiers&Qt.ControlModifier){
             if(event.key===Qt.Key_X){cutSelected();event.accepted=true}
@@ -826,7 +833,7 @@ Item {
     }
     MouseArea {
         anchors.fill:parent;z:24
-        visible:scene.mode==="arrange"&&!scene.bookDrag&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy
+        visible:(scene.mode==="arrange"||scene.browseContext)&&!scene.bookDrag&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy&&!scene.pointer&&!scene.prepared
         acceptedButtons:Qt.RightButton
         onClicked:function(mouse){scene.contextAt(mouse.x,mouse.y)}
         onWheel:function(wheel){wheel.accepted=false}
