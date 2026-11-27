@@ -429,6 +429,21 @@ Rectangle {
     readonly property alias scene: sceneView
     property string pickId: ""
     property bool rackInspector:false
+    property var rackNumericText:({})
+    function rackNumber(key){
+        var d=archive.draft
+        return d&&d.rackId===sceneView.selectedModuleId&&d.cubbyId===sceneView.cubbyId?d.proposed[key]:selectedRack?selectedRack[key]:null
+    }
+    function rackFieldText(key){
+        var raw=rackNumericText[key],value=rackNumber(key)
+        return raw?raw.text:value===null||value===undefined?"":String(value)
+    }
+    function setRackNumeric(key,value){
+        if(!spatialEnabled||!["x","y","w","h","r"].includes(key))return
+        var n=/^-?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)$/.test(value)?Number(value):null
+        var patch={};patch[key]=Number.isFinite(n)?n:null
+        edit(patch,key,value)
+    }
     function openRackInspector(){
         if(!selectedRack||!structureReady)return
         // Opening is a distinct action from dismissing the menu. Do not
@@ -441,6 +456,7 @@ Rectangle {
     }
     function closeRackInspector(){
         if(archive.draft)archive.cancel()
+        rackNumericText={}
         rackInspector=false
         pickId=""
         sceneView.forceActiveFocus()
@@ -524,10 +540,16 @@ Rectangle {
                 // not close a newly opened inspector before the first edit.
                 var wasEditing=study.retainedShape!==""
                 study.retainedReview=[];study.retainedShape=""
+                study.rackNumericText={}
                 if(wasEditing)study.rackInspector=false
                 return
             }
             var d=archive.draft,p=d.proposed,shape=[d.rackId,p.w,p.h,p.r].join("|")
+            // A solver reply must never replace incomplete text. A separate
+            // slider/drag change to the same field may supersede that text.
+            var raw=Object.assign({},study.rackNumericText),changed=false
+            for(var key of Object.keys(raw))if(raw[key].value!==p[key]){delete raw[key];changed=true}
+            if(changed)study.rackNumericText=raw
             if(shape!==study.retainedShape){study.retainedReview=[];study.retainedShape=shape}
             if(d.result)study.retainedReview=d.result.review||[]
         }
@@ -539,10 +561,40 @@ Rectangle {
     readonly property var activeIssue: review.length?review[Math.min(reviewIndex,review.length-1)]:null
 
     Archive.ArchiveModel { id:archive; spatialEnabled:study.spatialEnabled; physicalProfilesEnabled:study.physicalProfilesEnabled; independentProfilesEnabled:study.physicalProfilesEnabled; Component.onCompleted: reset(study.initialSnapshot||View.fixture()) }
-    function edit(patch) {
-        if(!selectedRack||sceneView.busy)return
+    function edit(patch,rawKey,rawText) {
+        if(!selectedRack||sceneView.busy||archive.structuralProposal||
+           archive.draft&&(archive.draft.cubbyId!==sceneView.cubbyId||archive.draft.rackId!==selectedRack.id))return
+        if(spatialEnabled){
+            var raw=Object.assign({},rackNumericText)
+            for(var key of Object.keys(patch))delete raw[key]
+            if(rawKey!==undefined)raw[rawKey]={text:rawText,value:patch[rawKey]}
+            rackNumericText=raw
+        }
         pickId="";reviewIndex=0;retainedReview=[]
         archive.stage(sceneView.cubbyId,selectedRack.id,patch)
+    }
+    function resolveRackSelection(){
+        if(!archive.draft)return true
+        var before=archive.archiveState.revision
+        if(!archive.finishRackSelection()){
+            sceneView.message=archive.errorText||"Finish or cancel rack reflow before changing selection"
+            return false
+        }
+        sceneView.message=archive.archiveState.revision===before?"No changes":"Arrangement updated · Undo available"
+        rackNumericText={};return true
+    }
+    function switchRackTarget(id){
+        var d=archive.draft,m=sceneView.cubby.mods.find(q=>q.id===id)
+        if(!spatialEnabled||upperView||sceneView.mode!=="arrange"||!d||!m||id===d.rackId||
+           d.cubbyId!==sceneView.cubbyId||sceneView.busy||sceneView.furnitureDrag||sceneView.bookDrag)return false
+        if(!resolveRackSelection())return false
+        sceneView.clearSelection();sceneView.selectedModuleId=id
+        if(m.type==="rack")openRackInspector()
+        else if(m.type==="shelf")startShelfEdit()
+        else if(m.type==="cubby")startChildEdit()
+        else if(m.type==="artwork")startArtworkEdit()
+        if(archive.structuralProposal)structurePanel.forceActiveFocus()
+        return true
     }
     function chooseCell(key) {
         if(!pickId||!activeIssue)return
@@ -555,7 +607,7 @@ Rectangle {
         if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning||mapView.appearanceOpen)return false
         if(spatialEnabled){
             if(sceneView.pointer||sceneView.prepared||sceneView.furnitureDrag||sceneView.bookDrag||checkpointLoadPending||bookPicker)return false
-            if(archive.draft){sceneView.message="Finish or cancel rack reflow before changing mode";return false}
+            if(archive.draft&&(value!=="browse"||!resolveRackSelection()))return false
             if(archive.appearanceSessionOpen){if(!finishShelfAppearance())return false}
             else if(archive.structuralProposal){
                 if(value!=="browse")return false
@@ -1002,6 +1054,8 @@ Rectangle {
         eligibleKeys:study.pickId&&study.activeIssue?study.activeIssue.options:[]
         onFurnitureContext:function(x,y){study.openContext(x,y)}
         onShelfAppearanceRequested:study.startShelfAppearance()
+        onRackTargetSwitchRequested:function(id){study.switchRackTarget(id)}
+        onSelectedModuleIdChanged:if(!archive.draft)study.rackNumericText={}
         onBookPlacementProposed:function(position){study.bookPositionText=String(position);structurePanel.forceActiveFocus()}
         onDestinationPressed:function(rackId,key){if(archive.draft&&rackId===archive.draft.rackId)study.chooseCell(key)}
     }
@@ -1348,7 +1402,7 @@ Rectangle {
             Archive.ArchiveSlider {
                 id:radiusSlider;objectName:"rack-radius-slider"
                 colors:study.colors;width:rackHeader.width
-                value:archive.draft?archive.draft.proposed.r:study.selectedRack?study.selectedRack.r:64
+                value:archive.draft?(Number.isFinite(archive.draft.proposed.r)?archive.draft.proposed.r:archive.draft.drawable.r):study.selectedRack?study.selectedRack.r:64
                 onMoved:function(nextValue){study.edit({r:nextValue})}
                 Keys.onEscapePressed:study.closeRackInspector()
             }
@@ -1371,6 +1425,30 @@ Rectangle {
                     width:content.width;wrapMode:Text.WordWrap;font.pixelSize:10;color:study.colors.engraving
                     text:"Preview only. Resolve marked cells before applying."
                 }
+                Grid {
+                    id:rackNumericGrid
+                    visible:study.spatialEnabled;columns:2;spacing:4;width:content.width
+                    Repeater {
+                        model:study.spatialEnabled?[{key:"x",label:"X"},{key:"y",label:"Y"},{key:"w",label:"Width"},{key:"h",label:"Height"},{key:"r",label:"Radius"}]:[]
+                        Row {
+                            required property var modelData
+                            width:(rackNumericGrid.width-4)/2;spacing:3
+                            Text {width:43;anchors.verticalCenter:parent.verticalCenter;text:parent.modelData.label;color:study.colors.engraving;font.pixelSize:11}
+                            Rectangle {
+                                width:Math.max(32,parent.width-46);height:25;radius:3;color:study.colors.background;border.color:study.colors.metal
+                                TextInput {
+                                    objectName:"rack-input-"+parent.parent.modelData.key
+                                    anchors.fill:parent;anchors.margins:4;clip:true
+                                    text:study.rackFieldText(parent.parent.modelData.key)
+                                    color:study.colors.text;font.pixelSize:11;maximumLength:16;selectByMouse:true
+                                    Accessible.name:"Exact rack "+parent.parent.modelData.label
+                                    onTextEdited:study.setRackNumeric(parent.parent.modelData.key,text)
+                                    Keys.onEscapePressed:study.closeRackInspector()
+                                }
+                            }
+                        }
+                    }
+                }
                 Repeater {
                     model:[{key:"w",label:"Width",step:10},{key:"h",label:"Height",step:10}]
                     Row {
@@ -1379,7 +1457,8 @@ Rectangle {
                         Text { width:52; text:parent.modelData.label; color:study.colors.engraving; font.pixelSize:11; anchors.verticalCenter:parent.verticalCenter }
                         Archive.ArchiveButton {
                             colors:study.colors; label:"−"
-                            onClicked:{var p={};var d=archive.draft?archive.draft.proposed:study.selectedRack;p[parent.modelData.key]=d[parent.modelData.key]-parent.modelData.step;study.edit(p)}
+                            enabled:Number.isFinite(study.rackNumber(parent.modelData.key))
+                            onClicked:{var p={};p[parent.modelData.key]=study.rackNumber(parent.modelData.key)-parent.modelData.step;study.edit(p)}
                         }
                         Text {
                             width:42; horizontalAlignment:Text.AlignHCenter; anchors.verticalCenter:parent.verticalCenter
@@ -1388,7 +1467,8 @@ Rectangle {
                         }
                         Archive.ArchiveButton {
                             colors:study.colors; label:"+"
-                            onClicked:{var p={};var d=archive.draft?archive.draft.proposed:study.selectedRack;p[parent.modelData.key]=d[parent.modelData.key]+parent.modelData.step;study.edit(p)}
+                            enabled:Number.isFinite(study.rackNumber(parent.modelData.key))
+                            onClicked:{var p={};p[parent.modelData.key]=study.rackNumber(parent.modelData.key)+parent.modelData.step;study.edit(p)}
                         }
                     }
                 }

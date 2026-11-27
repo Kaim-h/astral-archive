@@ -1290,5 +1290,22 @@ export function run(){
   eq(refused.snapshot,before.snapshot,'blocked profile snapshot exact');eq(refused.history,before.history,'blocked profile history exact');eq(refused.revision,before.revision,'blocked profile revision exact');
   const corrected=Core.updateAppearance(state,bad,'profile','crest');eq(Core.finishAppearance(state,corrected),state,'original profile closes unchanged');
  }
+ {
+  const state=Core.session(ShelfSample.fixture()),m=Core.rackAt(state.snapshot,'root','rack-1');
+  function ready(s){return Core.accept(s,Core.solve(Core.request(s)));}
+  function refuse(s,label){const q=Core.finishRackSelection(s);yes(q.error,label);eq(q.snapshot,s.snapshot,label+' snapshot');eq(q.history,s.history,label+' history');eq(q.draft,s.draft,label+' draft');eq(q.revision,s.revision,label+' revision');}
+  const pending=Core.stage(state,'root',m.id,{y:m.y+10});
+  refuse(pending,'pending worker cannot implicitly finish');
+  const reviewed=ready(pending);eq(reviewed.draft.phase,'ready','rigid move ready');
+  const moved=Core.finishRackSelection(reviewed);eq(moved.error,'','rigid move implicit');eq(moved,Core.apply(reviewed),'same validated explicit result');
+  eq(moved.history.length,1,'rigid move one Undo');eq(Core.undo(moved).snapshot,state.snapshot,'rigid move Undo exact');
+  const unchanged=ready(Core.stage(state,'root',m.id,{})),closed=Core.finishRackSelection(unchanged);
+  eq(closed.error,'','no-op closes');eq(closed.draft,null,'no-op clears draft');eq(closed.snapshot,state.snapshot,'no-op exact');eq(closed.history,state.history,'no-op no Undo');
+  refuse(Core.stage(state,'root',m.id,{x:null}),'incomplete number');
+  const other=Object.keys(state.snapshot.spatial.shelves).find(k=>k!=='root'),emptyRack=state.snapshot.cubbies[other].mods.find(q=>q.type==='rack');
+  const reflow=ready(Core.stage(state,other,emptyRack.id,{r:emptyRack.r-1}));
+  eq(reflow.draft.phase,'ready','shape change ready but explicit');refuse(reflow,'ready shape change still explicit');
+  const altered=Core.clone(reviewed);altered.draft.result.meta[Object.keys(altered.draft.result.meta)[0]].color='#ffffff';refuse(altered,'altered cell metadata');
+ }
  return checks;
 }

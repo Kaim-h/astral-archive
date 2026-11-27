@@ -611,6 +611,30 @@ export function apply(s){
  }
  return commit(s,next);
 }
+// A rack's shape/lattice edit always keeps the existing explicit physical
+// review. Only an exact no-op or fully reviewed rigid translation can
+// finish on target selection/Browse. Never treat a ready reflow as consent.
+export function finishRackSelection(s){
+ const d=s.draft,m=d&&rackAt(s.snapshot,d.cubbyId,d.rackId);
+ const refuse=msg=>updateSession(s,{error:msg});
+ if(!Spatial.enabled(s.snapshot)||!d||!m||d.revision!==s.revision)return refuse('No current rack proposal');
+ if(d.phase!=='ready'||!d.result||!d.result.ok)return refuse(d.reason||'Finish the current rack proposal first');
+ if(['w','h','r'].some(k=>d.proposed[k]!==m[k])||Object.keys(d.decisions).length||needsRadiusApproval(s))
+  return refuse('Explicit rack reflow review required · Apply or Cancel');
+ if(parseReflowNumbers(d.proposed)||!rackBounds(s.snapshot.cubbies[d.cubbyId],Object.assign({},m,d.proposed)))
+  return refuse('Rack overlaps or exceeds cubby');
+ const r=d.result,unchanged=d.proposed.x===m.x&&d.proposed.y===m.y;
+ if(r.unchanged!==unchanged||!equalPreview(r.mapped,m.scrollCells||{})||!equalPreview(r.meta,m.cellMeta||{})||
+    !Array.isArray(r.review)||r.review.length||!Array.isArray(r.caseOverflow)||r.caseOverflow.length)
+  return refuse('Rack preview changed; use explicit Apply or Cancel');
+ if(unchanged)return updateSession(s,{draft:null,error:''});
+ const expected=clone(s.snapshot),rack=rackAt(expected,d.cubbyId,d.rackId);
+ rack.x=d.proposed.x;rack.y=d.proposed.y;
+ const next=apply(s);
+ if(next.error)return next;
+ if(!equalPreview(expected,next.snapshot))return refuse('Rack move has dependent changes; review explicitly');
+ return next;
+}
 export function undo(s){
  if(s.draft||!s.history.length)return updateSession(s,{error:'No available Undo'});
  return {snapshot:s.history[s.history.length-1],history:s.history.slice(0,-1),revision:s.revision+1,draft:null,error:''};

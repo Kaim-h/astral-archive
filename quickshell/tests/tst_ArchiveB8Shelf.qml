@@ -1486,6 +1486,35 @@ Item {
             tryVerify(function(){return !Spatial.appPlacements(ctl.snapshot).some(p=>p.appId==="org.example.Reader")},3000,study.structureApplyError+" / "+ctl.errorText)
             verify(!!ctl.snapshot.spatial.apps["org.example.Reader"]);verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
+        function test_n5_rack_numeric_target_switch(){
+            var ctl=study.controller,scene=study.scene,m=Core.rackAt(ctl.snapshot,"root","rack-1")
+            var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history)
+            study.switchMode("arrange");scene.selectedModuleId=m.id
+            clickNamed("arrange-menu");clickNamed("edit-rack")
+            var input=findChild(study,"rack-input-y");verify(!!input)
+            function type(value){input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);for(var digit of String(value))keyClick(digit)}
+            type(9999);tryCompare(ctl,"phase","invalid")
+            var board=scene.moduleItem("mixed-board");verify(!!board)
+            var pt=board.mapToItem(scene,20,board.supportY+board.module.h/2),panel=findChild(study,"rack-inspector")
+            compare(scene.committedFixtureAt(pt.x,pt.y),"mixed-board")
+            var screen=scene.mapToItem(study,pt.x,pt.y);verify(screen.x<panel.x||screen.x>=panel.x+panel.width||screen.y<panel.y||screen.y>=panel.y+panel.height)
+            mouseClick(scene,pt.x,pt.y);compare(scene.selectedModuleId,m.id);compare(input.text,"9999")
+            compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+            var oldDraft=JSON.stringify(ctl.draft)
+            verify(!ctl.stage("root","missing",{y:0}));compare(JSON.stringify(ctl.draft),oldDraft)
+            type(m.y+10);tryCompare(ctl,"phase","ready",8000)
+            mouseClick(scene,pt.x,pt.y)
+            tryVerify(function(){return !ctl.draft&&ctl.structuralProposal&&ctl.structuralProposal.command.moduleId==="mixed-board"})
+            compare(scene.selectedModuleId,"mixed-board");compare(Core.rackAt(ctl.snapshot,"root",m.id).y,m.y+10)
+            compare(ctl.archiveState.history.length,1)
+            clickNamed("structure-cancel");verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+            scene.selectedModuleId=m.id;clickNamed("arrange-menu");clickNamed("edit-rack")
+            input=findChild(study,"rack-input-r");verify(!!input);type("")
+            tryCompare(ctl,"phase","invalid");clickNamed("archive-browse")
+            compare(scene.mode,"arrange");compare(input.text,"");compare(ctl.draft.rackId,m.id)
+            keyClick(Qt.Key_Escape);tryVerify(function(){return !ctl.draft})
+            compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+        }
         function test_n5_numeric_map_target_switch(){
             var ctl=study.controller,scene=study.scene
             study.mapEnabled=true

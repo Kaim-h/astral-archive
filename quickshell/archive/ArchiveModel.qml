@@ -100,11 +100,18 @@ Item {
         try{archiveState=fresh}finally{resetting=false}
     }
     function stage(cubbyId, rackId, patch, decisions) {
-        if(structuralProposal)return
+        if(structuralProposal)return false
+        if(spatialEnabled&&draft&&(draft.cubbyId!==cubbyId||draft.rackId!==rackId))return false
         archiveState = Core.stage(archiveState, cubbyId, rackId, patch, decisions)
         queued = Core.request(archiveState)
         if (queued) debounce.restart()
         else debounce.stop()
+        return true
+    }
+    function finishRackSelection() {
+        if(!spatialEnabled||structuralProposal||!draft||queued||runningRevision!==-1)return false
+        archiveState=Core.finishRackSelection(archiveState)
+        return !archiveState.error&&!draft
     }
     function choose(id, destination) {
         if (!draft) return

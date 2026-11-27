@@ -113,6 +113,13 @@ Item {
     signal destinationPressed(string rackId,string key)
     signal furnitureContext(real sceneX,real sceneY)
     signal shelfAppearanceRequested()
+    signal rackTargetSwitchRequested(string moduleId)
+    function committedFixtureAt(x,y){
+        if(caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return ""
+        var p=interior.mapFromItem(scene,x,y)
+        var m=cubby.mods.find(q=>Mixed.fixtureRects(q).some(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h))
+        return m?m.id:""
+    }
     readonly property bool browseContext:mode==="browse"&&Spatial.kind(controller.snapshot,cubbyId)==="shelf"
     // View-only preference, independent of the arrangement/Undo history.
     property string cubbyPreviewMode:"veiled"
@@ -348,7 +355,7 @@ Item {
         if(bookDrag||live.busy||controller.structuralProposal||mode!=="arrange"||(controller.draft&&controller.draft.rackId!==id))return
         forceActiveFocus()
         var rack=controller.draft?controller.draft.proposed:Core.rackAt(controller.snapshot,cubbyId,id)
-        if(!rack)return
+        if(!rack||![rack.x,rack.y,rack.w,rack.h,rack.r].every(Number.isFinite))return
         var point=interior.mapFromItem(scene,x,y)
         furnitureDrag={id:id,action:action,start:{x:point.x,y:point.y},base:{x:rack.x,y:rack.y,w:rack.w,h:rack.h}}
     }
@@ -598,6 +605,7 @@ Item {
                                 scene.destinationPressed(id,key)
                             }
                             onScrollPressed: function(record,lx,ly){
+                                if(scene.controller.draft&&scene.controller.draft.rackId!==rack.id)return
                                 scene.selectedModuleId=rack.id;scene.selectedCell=record.cellKey
                                 scene.showRecord(record,mapToItem(scene,lx,ly),true)
                             }
@@ -830,6 +838,28 @@ Item {
             color:scene.colors.panel;border.color:scene.colors.metal
             Text {anchors.centerIn:parent;text:live.carried.length;color:scene.colors.text;font.pixelSize:11}
         }
+    }
+    // Intercept only a click on a different committed fixture during a B8
+    // rack draft. Same-rack review/handles retain their established input.
+    MouseArea {
+        anchors.fill:parent;z:23
+        visible:scene.spatialStyle&&scene.mode==="arrange"&&!!scene.controller.draft&&!live.busy&&!scene.furnitureDrag&&!scene.bookDrag
+        acceptedButtons:Qt.LeftButton
+        property string candidate:""
+        property point at:Qt.point(0,0)
+        onPressed:function(mouse){
+            var d=scene.controller.draft,id=scene.committedFixtureAt(mouse.x,mouse.y)
+            if(!d||d.cubbyId!==scene.cubbyId||!id||id===d.rackId){candidate="";mouse.accepted=false;return}
+            candidate=id;at=Qt.point(mouse.x,mouse.y)
+        }
+        onClicked:function(mouse){
+            var id=candidate;candidate=""
+            if(id&&Math.abs(mouse.x-at.x)<=6&&Math.abs(mouse.y-at.y)<=6&&scene.committedFixtureAt(mouse.x,mouse.y)===id)
+                scene.rackTargetSwitchRequested(id)
+        }
+        onCanceled:candidate=""
+        onVisibleChanged:if(!visible)candidate=""
+        onWheel:function(wheel){wheel.accepted=false}
     }
     MouseArea {
         anchors.fill:parent;z:24
