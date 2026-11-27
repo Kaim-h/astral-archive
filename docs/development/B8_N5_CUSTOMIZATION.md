@@ -81,3 +81,5 @@ S14r5 stone geometry adapted to periodic bounded palette sampling in plan and pe
 N5c.2 native run 46051970925: offline and browser passed; Shelf 40 passed, 1 failed. The choice delegate was destroyed during its click handler before emitting selection. Route selection through the stable root function; keep the native regression unchanged.
 
 - N5d corrective check: `46052768592` passed offline/browser and all other native Shelf cases (41/42), but the actual Room floor choice did not reach the preview assertion. Move the primary floor control to the start of the scrollable editor so its initial choices are visible and add proposal-level diagnostics. Remove the Qt forward-declaration warning. Retain actual pointer input and preview assertion.
+
+- Corrective run `46053356447` confirmed the mis-selection (requested bond, actual ashlar). Fix `ArchiveChoice` with explicit distinct row coordinates and height, not a retry or delay. Keep the actual pointer assertion. Recheck native before advancing the atlas integration.
