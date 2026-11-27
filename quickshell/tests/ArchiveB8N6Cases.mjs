@@ -112,15 +112,55 @@ export function run(){
  const saved=CP.encode(s,view),loaded=CP.decode(saved);
  eq(loaded.snapshot,s.snapshot,"integrated v6 snapshot");eq(loaded.view,view,"integrated view exact");
  eq(CP.encode(Core.session(loaded.snapshot),loaded.view),saved,"restart re-encode");
- for(const corrupt of [
-  x=>x.view.path=["root",target],
-  x=>x.view.mapView.selectedRoom=Object.keys(original.spatial.rooms).find(k=>k!==hall&&k!==south),
-  x=>x.view.mapView.focus.id="missing",
-  x=>x.view.cameras.child.zoom=99,
-  x=>x.snapshot.caseItems.push(Core.clone(Core.owners(s.snapshot).find(o=>o.id==="child-note").scroll)),
-  x=>x.snapshot.spatial.rooms[hall].appearance.wall="invalid"
- ]){
-  const bad=JSON.parse(saved);corrupt(bad);rejects(()=>CP.decode(JSON.stringify(bad)),"integrated corruption refused");
+ // Explicit named mutations and serialization checks distinguish malformed
+ // input construction from an actual decoder acceptance across JS engines.
+ // Do not share a mutated envelope between cases.
+ function corruptRefused(bad,label,expected){
+  const payload=JSON.stringify(bad);
+  yes(payload!==saved,label+" payload changed");
+  let reason="";
+  try{CP.decode(payload);}catch(e){reason=String(e.message||e);}
+  yes(reason.length>0,label+" decoder unexpectedly accepted");
+  yes(reason.indexOf(expected)!==-1,label+" wrong refusal: "+reason);
+ }
+ {
+  const bad=JSON.parse(saved);
+  bad.view.path=["root",target];
+  eq(bad.view.path[1],target,"corrupt path target");
+  corruptRefused(bad,"cross-Shelf navigation path","Invalid view metadata");
+ }
+ {
+  const wrongRoom=Object.keys(original.spatial.rooms).find(k=>k!==hall&&k!==south);
+  yes(wrongRoom&&wrongRoom!==door.a.roomId&&wrongRoom!==door.b.roomId,"unrelated Room specimen");
+  const bad=JSON.parse(saved);
+  bad.view.mapView.selectedRoom=wrongRoom;
+  eq(bad.view.mapView.selectedRoom,wrongRoom,"corrupt selected Room");
+  corruptRefused(bad,"unrelated selected opening Room","Invalid selected opening Room");
+ }
+ {
+  const bad=JSON.parse(saved);
+  bad.view.mapView.focus.id="missing";
+  corruptRefused(bad,"missing focus identity","Invalid Map focus");
+ }
+ {
+  const bad=JSON.parse(saved);
+  bad.view.cameras.child.zoom=99;
+  corruptRefused(bad,"out-of-range Cubby camera","Invalid camera");
+ }
+ {
+  const bad=JSON.parse(saved);
+  const duplicate=Core.owners(bad.snapshot).find(o=>o.id==="child-note");
+  yes(duplicate&&duplicate.where==="rack","duplicate record specimen");
+  const size=bad.snapshot.caseItems.length;
+  bad.snapshot.caseItems.push(Core.clone(duplicate.scroll));
+  eq(bad.snapshot.caseItems.length,size+1,"duplicate appended");
+  eq(bad.snapshot.caseItems[size].id,"child-note","duplicate identity");
+  corruptRefused(bad,"duplicate file in Case","Invalid or duplicate Case record");
+ }
+ {
+  const bad=JSON.parse(saved);
+  bad.snapshot.spatial.rooms[hall].appearance.wall="invalid";
+  corruptRefused(bad,"unknown Room wall treatment","Invalid Room surface policy");
  }
  for(let i=prior.length-1;i>=0;i--){s=Core.undo(s);eq(s.error,"","Undo "+i);eq(s.snapshot,prior[i],"exact chronological Undo "+i);}
  eq(s.snapshot,original,"original restored");eq(s.history.length,0,"no history remains");
