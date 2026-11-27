@@ -1426,7 +1426,7 @@ export function run(){
   }
   eq(s.history.length,edits.length,'one history entry per layer');eq(Core.owners(s.snapshot),Core.owners(original),'cross-layer appearance keeps file identity');
   eq(s.snapshot.spatial.shelves,original.spatial.shelves,'cross-layer appearance keeps Shelf placement');eq(s.snapshot.spatial.doors,original.spatial.doors,'cross-layer appearance keeps opening geometry');
-  const v={path:['root'],theme:2,cameras:{},mapView:{layer:'map',roomId:'',camera:{zoom:1,center:null},selectedRoom:roomId,selectedDoor:'',focus:null}},data=Checkpoint.encode(s,v);
+  const v={path:['root'],theme:2,cameras:{},mapView:{layer:'map',roomId:'',roomShelf:'',camera:{zoom:1,center:null},selectedRoom:roomId,selectedDoor:'',focus:null}},data=Checkpoint.encode(s,v);
   eq(JSON.parse(data).version,6,'integrated v6 envelope');eq(Checkpoint.decode(data).snapshot,s.snapshot,'all customization survives roundtrip');
   for(const change of [
    d=>d.snapshot.spatial.mapAppearance.density=101,
