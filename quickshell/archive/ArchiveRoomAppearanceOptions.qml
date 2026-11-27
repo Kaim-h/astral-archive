@@ -10,7 +10,23 @@ Column {
  function local(key){return Object.prototype.hasOwnProperty.call(patch,key)?patch[key]:key==="name"?room&&room.name:room&&room.appearance?room.appearance[key]:undefined}
  function value(key){var v=local(key);return v===null||v===undefined?Appearance.roomDefaults[key]:v}
  function choices(values,labels){return values.map((v,i)=>({key:v,label:labels?labels[i]:String(v)}))}
- ArchiveChoice {width:parent.width;colors:options.colors;title:"Floor";prefix:"room-floor";value:options.value("floor");options:options.choices(Appearance.floorStyles,["Matte stone","Square flagstone","Running bond","Diagonal flagstone","Octagon and dot","Hexagonal stone","Herringbone stone","Basketweave stone","Mixed ashlar"]);onSelected:function(v){options.changed("floor",v)}}
+ Text {text:"Floor";color:options.colors.engraving;font.pixelSize:11}
+ Item {
+  width:parent.width;height:5*30-4
+  Repeater {
+   model:options.choices(Appearance.floorStyles,["Matte stone","Flagstone","Running bond","Diagonal","Octagon and dot","Hexagonal","Herringbone","Basketweave","Mixed ashlar"])
+   ArchiveButton {
+    required property var modelData
+    required property int index
+    objectName:"room-floor-"+modelData.key
+    colors:options.colors;label:modelData.label
+    width:(parent.width-4)/2;height:26
+    x:(index%2)*(width+4);y:Math.floor(index/2)*30
+    active:options.value("floor")===modelData.key
+    onClicked:options.changed("floor",modelData.key)
+   }
+  }
+ }
  Text {text:"Name";color:options.colors.engraving}
  TextInput {objectName:"room-appearance-name";width:parent.width;color:options.colors.text;selectByMouse:true;text:options.local("name")||"";onTextEdited:options.changed("name",text)}
  ArchiveChoice {width:parent.width;colors:options.colors;title:"Palette";prefix:"room-palette";value:options.local("palette")===undefined?null:options.local("palette");options:options.choices([null,0,1,2],["Desktop","Evening","Twilight","Midnight"]);onSelected:function(v){options.changed("palette",v)}}

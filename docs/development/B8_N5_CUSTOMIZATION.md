@@ -104,3 +104,5 @@ Add 240 ms camera-only focus/overview flight with reduced-motion instant path an
 
 ### N5h.1 — integrated persistence and opening-preservation regression (candidate)
 Reserve valid existing world openings before relocating obstructed neighbors; exact multi-door Undo. Shared integration combines Shelf/Cubby/Room/chart/local atlas edits, checks one chronological entry each, unchanged ownership and placement, v6 roundtrip and malformed metadata rejection, and exact old writer after Undo. Add perspective capture for committed Room floor appearance. Final native evidence pending; this is not closeout approval.
+
+- N5d corrective run 46053825793: offline/browser passed, native Shelf 41/42, floor proposal remained unchanged after click. Replace the primary nine-floor expanding list with stable two-column direct choices, preserving explicit selection and exact native proposal assertion; no retry or relaxation. Other deliberate choices retain the shared explicit row geometry. Integrated candidate also supplies required roomShelf identity in the v6 view test fixture.

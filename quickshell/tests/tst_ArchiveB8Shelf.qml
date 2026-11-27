@@ -1687,7 +1687,7 @@ Item {
             clickNamed("toggle-room-plan");tryVerify(function(){return study.showRoomPlan&&!study.roomNavigating})
             clickNamed("room-appearance")
             tryVerify(function(){return ctl.appearanceSessionOpen&&ctl.structuralProposal.command.kind==="spatialRoomAppearance"})
-            clickNamed("room-floor-choice");clickNamed("room-floor-bond")
+            clickNamed("room-floor-bond")
             verify(ctl.structuralProposal!==null,"Room appearance must stay open")
             compare(ctl.structuralProposal.command.patch.floor,"bond","Floor dropdown must reach the active Room proposal")
             verify(ctl.structuralProposal.ok,ctl.structuralProposal.error)
