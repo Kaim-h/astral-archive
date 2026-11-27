@@ -101,3 +101,6 @@ Complete exact Cubby interior raw values with invalid null proposals and disable
 
 ### N5g.2 — bounded atlas focus motion (candidate)
 Add 240 ms camera-only focus/overview flight with reduced-motion instant path and Escape completion. Block conflicting gestures, editing, checkpoint and layer transitions until complete. The canonical target camera is stored immediately; the transient interpolation is never serialized. Add actual keyboard and flight isolation regression.
+
+### N5h.1 — integrated persistence and opening-preservation regression (candidate)
+Reserve valid existing world openings before relocating obstructed neighbors; exact multi-door Undo. Shared integration combines Shelf/Cubby/Room/chart/local atlas edits, checks one chronological entry each, unchanged ownership and placement, v6 roundtrip and malformed metadata rejection, and exact old writer after Undo. Add perspective capture for committed Room floor appearance. Final native evidence pending; this is not closeout approval.

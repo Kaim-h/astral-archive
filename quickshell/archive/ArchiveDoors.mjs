@@ -125,8 +125,19 @@ export function reconcileRoomDoors(s,captured,footprint){
  if(!captured.length)return [];
  const original=s.spatial.doors,affected=new Set(captured.map(v=>v.door.id)),working={};
  for(const id of Object.keys(original))if(!affected.has(id))working[id]=original[id];
- const work=Object.assign({},s,{spatial:Object.assign({},s.spatial,{doors:working})}),lost=[];
- for(const entry of captured.slice().sort((a,b)=>a.geometry.start-b.geometry.start||a.door.id.localeCompare(b.door.id))){
+ const work=Object.assign({},s,{spatial:Object.assign({},s.spatial,{doors:working})}),lost=[],pending=[];
+ // Reserve every still-valid old world interval before relocating any
+ // obstructed interval. A relocation must not displace a valid neighbor.
+ for(const entry of captured){
+  const d=entry.door,g=entry.geometry;
+  try{
+   const a=edge(work,d.a),next=Object.assign({},d,{start:g.start-a.start,end:g.end-a.start});
+   geometry(work,next,footprint);
+   need(clearSpans(work,d.a,d.b,footprint).some(q=>q.start<=g.start&&g.end<=q.end),'Old interval unavailable');
+   working[d.id]=next;
+  }catch(e){pending.push(entry);}
+ }
+ for(const entry of pending.sort((a,b)=>a.geometry.start-b.geometry.start||a.door.id.localeCompare(b.door.id))){
   const d=entry.door,g=entry.geometry,w=g.end-g.start;
   try{
    const a=edge(work,d.a),spans=clearSpans(work,d.a,d.b,footprint);

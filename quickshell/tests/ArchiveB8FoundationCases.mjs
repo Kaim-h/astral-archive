@@ -268,6 +268,11 @@ export function run(){
  eq(Spatial.doorGeometry(reconciledOpening.snapshot,d1).start,130,'opening shifts to nearest clear shared interval');
  eq(Spatial.doorGeometry(reconciledOpening.snapshot,d1).end,190,'opening retains width');
  eq(Core.undo(reconciledOpening).snapshot,moveDoor.snapshot,'door reconciliation exact Undo');
+ const reserved=apply(moveDoor,createDoor(ea,eb,140,180)),neighbor=Object.keys(reserved.snapshot.spatial.doors).find(k=>k!==d1);
+ const adjusted=apply(reserved,{kind:'spatialRoomEdit',roomId:east,patch:{y:130}});
+ eq(Spatial.doorGeometry(adjusted.snapshot,neighbor).start,140,'valid adjacent opening remains reserved');
+ eq(Spatial.doorGeometry(adjusted.snapshot,d1).start,180,'relocated opening uses remaining clear span');
+ eq(Core.undo(adjusted).snapshot,reserved.snapshot,'multi-door reconciliation exact Undo');
  const noDoor=apply(preserved,{kind:'spatialDoorDelete',doorId:d1});
  eq(noDoor.snapshot.cubbies,preserved.snapshot.cubbies,'door removal leaves contents');
  eq(Core.undo(noDoor).snapshot,preserved.snapshot,'door delete Undo');
@@ -1403,6 +1408,37 @@ export function run(){
  {
   const data=View.mapPlan(ShelfSample.roomFixture()),r=data.rooms[0],p=View.mapRoomDraftAt(data,{x:r.x+r.w/2,y:r.y+r.h/2},true,20);
   yes(!!p,'free-space room suggestion');yes(!data.rooms.some(q=>p.x<q.x+q.w&&q.x<p.x+p.w&&p.y<q.y+q.h&&q.y<p.y+p.h),'no room overlap');
+ }
+ {
+  let s=Core.session(ShelfSample.roomFixture()),original=Core.clone(s.snapshot);
+  const roomId=Object.keys(original.spatial.rooms)[0],before=Checkpoint.encode(s,{path:['root'],theme:1,cameras:{}});
+  const edits=[
+   [()=>Core.beginAppearance(s,'root'),[['frame','metal'],['glazingDefault','moderate']]],
+   [()=>Core.beginAppearance(s,'child'),[['glazing','clearer']]],
+   [()=>Core.beginRoomAppearance(s,roomId),[['floor','bond'],['wall','arcade']]],
+   [()=>Core.beginMapAppearance(s),[['title','Atlas review'],['density',75],['frame','plain']]],
+   [()=>Core.beginMapRoomAppearance(s,roomId),[['subtitle','Reading hall'],['frame','engraved']]]
+  ],prior=[];
+  for(const [begin,changes] of edits){
+   prior.push(Core.clone(s.snapshot));let p=begin();
+   for(const [key,value] of changes)p=Core.updateAppearance(s,p,key,value);
+   yes(p.ok,p.error);s=Core.finishAppearance(s,p);eq(s.error,'','integrated appearance commit');
+  }
+  eq(s.history.length,edits.length,'one history entry per layer');eq(Core.owners(s.snapshot),Core.owners(original),'cross-layer appearance keeps file identity');
+  eq(s.snapshot.spatial.shelves,original.spatial.shelves,'cross-layer appearance keeps Shelf placement');eq(s.snapshot.spatial.doors,original.spatial.doors,'cross-layer appearance keeps opening geometry');
+  const v={path:['root'],theme:2,cameras:{},mapView:{layer:'map',roomId:'',camera:{zoom:1,center:null},selectedRoom:roomId,selectedDoor:'',focus:null}},data=Checkpoint.encode(s,v);
+  eq(JSON.parse(data).version,6,'integrated v6 envelope');eq(Checkpoint.decode(data).snapshot,s.snapshot,'all customization survives roundtrip');
+  for(const change of [
+   d=>d.snapshot.spatial.mapAppearance.density=101,
+   d=>d.snapshot.spatial.rooms[roomId].appearance.floor='unknown',
+   d=>d.snapshot.spatial.rooms[roomId].mapAppearance.frame='unknown',
+   d=>d.snapshot.cubbies.child.appearance.glazing='unknown',
+   d=>d.version=5
+  ]){
+   const bad=JSON.parse(data);change(bad);let rejected=false;try{Checkpoint.decode(JSON.stringify(bad))}catch(e){rejected=true}yes(rejected,'malformed integrated envelope rejected');
+  }
+  for(let i=prior.length-1;i>=0;i--){s=Core.undo(s);eq(s.snapshot,prior[i],'integrated chronological Undo '+i);}
+  eq(Checkpoint.encode(s,{path:['root'],theme:1,cameras:{}}),before,'exact legacy writer restored after all customization undo');
  }
  return checks;
 }

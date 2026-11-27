@@ -1696,6 +1696,9 @@ Item {
             tryVerify(function(){return plan.surfacePolicy.floor==="bond"})
             clickNamed("structure-apply");compare(ctl.archiveState.revision,rev+1)
             grabImage(study).save("archive-b8-native-room-stone.png")
+            clickNamed("toggle-room-perspective")
+            tryVerify(function(){return study.roomPerspective&&plan.visible&&plan.surfacePolicy.floor==="bond"})
+            grabImage(study).save("archive-b8-native-room-stone-perspective.png")
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
         function test_n5_expanded_appearance(){
