@@ -25,16 +25,15 @@ Item {
         emblemKey:field.emblemKey;colors:field.colors
     }
     Repeater {
-        model:field.centerStyle==="axis"||field.centerStyle==="span"?[-1,1]:[]
-        ArchiveFamilyMark {
+        model:field.family==="None"?[]:field.centerStyle==="axis"?[0,1]:field.centerStyle==="span"?[0,1,2,3]:[]
+        Image {
             required property int modelData
-            family:field.family;colors:field.colors
-            exterior:true
-            anchors.centerIn:undefined
+            readonly property string svg:Appearance.secondarySvg(field.family,field.colors.engraving)
+            source:svg?"data:image/svg+xml,"+encodeURIComponent(svg):""
             width:Math.min(34,field.width*.12,field.height*.12);height:width
-            x:field.width/2-width/2+(field.centerStyle==="span"?modelData*field.width*.27:0)
-            y:field.height/2-height/2+(field.centerStyle==="axis"?modelData*field.height*.29:0)
-            opacity:.42
+            x:field.width/2-width/2+(modelData>=2?(modelData===2?-1:1)*field.width*.36:0)
+            y:field.height/2-height/2+(modelData<2?(modelData===0?-1:1)*field.height*(field.centerStyle==="span"?.23:.29):0)
+            opacity:.52;cache:true
         }
     }
 }

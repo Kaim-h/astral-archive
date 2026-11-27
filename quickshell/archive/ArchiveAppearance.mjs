@@ -149,6 +149,23 @@ export function emblemSvg(f,key,ink){
  body+=(e.fine||[]).map(d=>path(d,.9)).join('');
  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-55 -55 110 110" width="110" height="110">'+body+'</svg>';
 }
+// S11r1 secondaryGlyph: recovered linework, not repeated primary seals.
+// Bestiary retains the pinned reference paw pending fang disposition.
+const secondary=Object.freeze({
+ astral:[['M0 -25L5 -5L23 0L5 5L0 25L-5 5L-23 0L-5 -5Z',1.8]],
+ botanical:[['M0 22V-22M0 9Q-25 7 -20 -12Q-3 -12 0 9ZM0 0Q23 -2 18 -20Q2 -18 0 0Z',1.8]],
+ plain:[['M0 -22L22 0L0 22L-22 0ZM0 -11L11 0L0 11L-11 0Z',1.8]],
+ bestiary:[['M-16 8Q-10 2 -3 8Q-1 14 -7 16Q-12 16 -16 8',1.4],['M-14 -3Q-16 -10 -10 -13Q-4 -11 -6 -4',1.25],['M-2 -8Q-4 -15 2 -18Q8 -15 6 -8',1.25],['M10 -5Q9 -12 15 -14Q21 -11 18 -4',1.25]],
+ water:[['M-22 10Q-8 -6 5 3Q16 11 22 -7',1.35],['M-18 20Q-4 8 8 17Q16 22 20 16',1.15]],
+ air:[['M-22 -2Q-8 -14 7 -6Q17 -1 22 -12',1.3],['M-18 10Q-2 0 10 8Q16 12 20 7',1.15],['M-9 18Q0 12 9 16',1.05]],
+ earth:[['M-18 15L-7 -12L2 1L12 -18L20 15',1.35],['M-10 4L-2 -7L6 4L14 -6',1.1]],
+ fire:[['M0 -20Q9 -8 6 2Q16 0 18 12Q19 23 8 29Q1 24 0 14Q-1 24 -8 29Q-19 23 -18 12Q-16 0 -6 2Q-9 -8 0 -20Z',1.3]],
+ horological:[['M0 -18A18 18 0 1 0 0 18A18 18 0 1 0 0 -18Z',1.35],['M0 -18V-24M18 0H24M0 18V24M-18 0H-24',1.05],['M0 0V-9M0 0L8 4',1.4]]
+});
+export function secondarySvg(f,ink){
+ const shapes=secondary[familyKey(f)];if(!shapes||!/^#[0-9a-fA-F]{6}$/.test(ink))return '';
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-30 -30 60 60">'+shapes.map(v=>'<path d="'+v[0]+'" fill="none" stroke="'+ink+'" stroke-width="'+v[1]+'" stroke-linejoin="round" stroke-linecap="round"/>').join('')+'</svg>';
+}
 export function suggestField(fields,w,h){
  const list=Array.isArray(fields)?fields:[];
  if(list.length>=16)return null;

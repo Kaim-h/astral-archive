@@ -1440,5 +1440,11 @@ export function run(){
   for(let i=prior.length-1;i>=0;i--){s=Core.undo(s);eq(s.snapshot,prior[i],'integrated chronological Undo '+i);}
   eq(Checkpoint.encode(s,{path:['root'],theme:1,cameras:{}}),before,'exact legacy writer restored after all customization undo');
  }
+ {
+  for(const family of ['Architectural','Astral','Botanical','Bestiary','Elemental · Water','Elemental · Air','Elemental · Earth','Elemental · Fire','Horological']){
+   yes(Appearance.secondarySvg(family,'#667788').includes('<path d="'),'recovered secondary linework '+family);
+  }
+  eq(Appearance.secondarySvg('None','#667788'),'','None has no secondary marks');eq(Appearance.secondarySvg('Astral','not-a-color'),'','reject non-palette SVG ink');
+ }
  return checks;
 }
