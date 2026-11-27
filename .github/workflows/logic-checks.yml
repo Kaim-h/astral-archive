@@ -278,6 +278,9 @@ jobs:
           test -s archive-b8-native-shelf-map-compact-context.png
           test -s archive-b8-native-room-stone.png
           test -s archive-b8-native-room-stone-perspective.png
+          for capture in plain-plan plain-perspective patterned-plan patterned-perspective; do
+            test -s "archive-b8-native-room-stone-exposed-$capture.png" || exit 1
+          done
       - name: Attach B8 native Shelf capture
         if: always()
         uses: actions/upload-artifact@v4

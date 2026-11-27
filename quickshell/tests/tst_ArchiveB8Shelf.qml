@@ -1888,6 +1888,84 @@ Item {
             grabImage(study).save("archive-b8-native-room-stone-perspective.png")
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
+        function test_n5_room_surface_evidence(){
+            var ctl=study.controller,oldMap=study.mapEnabled
+            study.mapEnabled=true
+            try{
+                // Separate synthetic comparison Room; keep the original
+                // dense Room appearance/input regression and images intact.
+                ctl.reset(Sample.roomFixture())
+                clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                var priorRooms=Object.keys(ctl.snapshot.spatial.rooms)
+                verify(ctl.proposeStructure({kind:"spatialRoomCreate",patch:{name:"Stone study",x:4000,y:0,w:1800,h:1200,wallHeight:700}}))
+                verify(ctl.applyStructure())
+                var id=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!priorRooms.includes(k))
+                verify(!!id)
+                verify(ctl.proposeStructure({kind:"spatialShelfCreate",roomId:id,patch:{name:"Specimen Shelf",x:100,y:900,w:320,h:300,depth:100,frameBasis:8,orientation:0}}))
+                verify(ctl.applyStructure())
+                var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
+                var map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
+                clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
+                map.selectedRoom=id;map.selectedDoor=""
+                clickNamed("map-enter-room")
+                tryVerify(function(){return plan.visible&&plan.roomId===id&&!plan.perspective})
+                compare(plan.planData.shelves.length,1)
+                compare(plan.planData.room.wallHeight,700)
+                var box=plan.planData.shelves[0].box
+                verify(box.w*box.h<plan.planData.room.w*plan.planData.room.h*.05)
+                compare(plan.surfacePolicy.floor,"plain");compare(plan.surfacePolicy.wall,"plain")
+                var layout=JSON.stringify(plan.planData.shelves),planOrigin=plan.planOrigin,planScale=plan.planScale
+                verify(waitForRendering(plan))
+                grabImage(study).save("archive-b8-native-room-stone-exposed-plain-plan.png")
+                var art=findChild(plan,"room-depth-art"),paints=art.paintCount
+                clickNamed("toggle-room-perspective")
+                tryVerify(function(){return plan.visible&&plan.perspective&&!!plan.visibilityRaster&&art.paintCount>paints},10000)
+                var frame=JSON.stringify(plan.perspectiveData.frame)
+                // Quantify exposed surfaces using the actual native winner
+                // raster, not merely the floor-space area or mesh faces.
+                var floor=0,farWall=0,shelf=0,total=0
+                Projection.visibilityRuns(plan.visibilityRaster,function(x,y,n,key){
+                    total+=n
+                    if(key===-1)floor+=n
+                    else if(key>=0){
+                        var face=plan.visibilityRaster.faces[key]
+                        if(face.role==="wall"&&(face.side==="north"||face.side==="east"))farWall+=n
+                        else if(face.shelfId)shelf+=n
+                    }
+                })
+                console.log("B8 exposed Room coverage",JSON.stringify({floor:floor,farWall:farWall,shelf:shelf,total:total}))
+                verify(total>0&&floor>total*.40&&farWall>total*.05&&shelf<total*.20,"Representative visible floor and far wall")
+                verify(waitForRendering(plan))
+                grabImage(study).save("archive-b8-native-room-stone-exposed-plain-perspective.png")
+                clickNamed("toggle-room-perspective")
+                tryVerify(function(){return plan.visible&&!plan.perspective})
+                clickNamed("room-appearance")
+                tryVerify(function(){return ctl.appearanceSessionOpen&&ctl.structuralProposal.command.roomId===id})
+                clickNamed("room-floor-bond")
+                verify(ctl.updateAppearance("wall","masonry"))
+                verify(ctl.updateAppearance("wallMarks",true))
+                verify(ctl.updateAppearance("floorBorder",true))
+                tryVerify(function(){return ctl.structuralProposal.ok&&plan.surfacePolicy.floor==="bond"&&plan.surfacePolicy.wall==="masonry"&&plan.surfacePolicy.wallMarks&&plan.surfacePolicy.floorBorder})
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
+                clickNamed("structure-apply")
+                tryVerify(function(){return !ctl.structuralProposal&&plan.visible&&!plan.perspective})
+                compare(ctl.archiveState.revision,rev+1)
+                var policy=ctl.snapshot.spatial.rooms[id].appearance
+                compare(policy.floor,"bond");compare(policy.wall,"masonry");compare(policy.wallMarks,true);compare(policy.floorBorder,true)
+                compare(JSON.stringify(plan.planData.shelves),layout)
+                compare(plan.planOrigin,planOrigin);compare(plan.planScale,planScale)
+                verify(waitForRendering(plan))
+                grabImage(study).save("archive-b8-native-room-stone-exposed-patterned-plan.png")
+                paints=art.paintCount
+                clickNamed("toggle-room-perspective")
+                tryVerify(function(){return plan.visible&&plan.perspective&&!!plan.visibilityRaster&&art.paintCount>paints},10000)
+                compare(JSON.stringify(plan.perspectiveData.frame),frame)
+                compare(plan.surfacePolicy.floor,"bond");compare(plan.surfacePolicy.wall,"masonry")
+                verify(waitForRendering(plan))
+                grabImage(study).save("archive-b8-native-room-stone-exposed-patterned-perspective.png")
+                verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before);compare(JSON.stringify(ctl.archiveState.history),history)
+            }finally{ctl.cancel();study.mapEnabled=oldMap;study.roomPlanOpen=false;study.roomPerspective=false}
+        }
         function test_n5_expanded_appearance(){
             var ctl=study.controller,scene=study.scene,before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision
             clickNamed("browse-menu");clickNamed("shelf-appearance");clickNamed("shelf-family-astral")
