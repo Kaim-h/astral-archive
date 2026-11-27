@@ -1247,5 +1247,33 @@ export function run(){
    yes(refused,'malformed valid-JSON map view decode refused');
   }
  }
+ {
+  // N5b.1: implicit Browse is a narrow ordinary-edit policy; explicit
+  // destructive/physical resolution remains on the existing Apply path.
+  const state=Core.session(ShelfSample.mapFixture()),s=state.snapshot;
+  const room=s.spatial.shelves.root.roomId,empty=Object.keys(s.spatial.rooms).find(id=>!Object.values(s.spatial.shelves).some(p=>p.roomId===id));
+  function denied(q,label){
+   const n=Core.finishBrowseStructure(state,q);yes(n.error,label);
+   eq(n.snapshot,s,label+' snapshot');eq(n.history,state.history,label+' history');eq(n.revision,state.revision,label+' revision');
+  }
+  const q=Core.previewStructure(state,{kind:'spatialRoomEdit',roomId:room,patch:{name:'Renamed Room'}});
+  yes(q.ok,'ordinary room edit valid');
+  const n=Core.finishBrowseStructure(state,q);eq(n.error,'','Browse commits');eq(n.snapshot,q.snapshot,'exact reviewed preview');
+  eq(n.history.length,1,'one Undo');eq(n.revision,1,'one revision');eq(Core.undo(n).snapshot,s,'exact Undo');
+  const unchanged=Core.previewStructure(state,{kind:'spatialRoomEdit',roomId:room,patch:{}});
+  eq(unchanged.ok,false,'unchanged proposal');eq(Core.finishBrowseStructure(state,unchanged),state,'unchanged Browse no history');
+  denied(Core.previewStructure(state,{kind:'spatialRoomEdit',roomId:room,patch:{w:10}}),'invalid size');
+  const stale=Core.clone(q);stale.revision--;denied(stale,'stale');
+  const tampered=Core.clone(q);tampered.snapshot.spatial.rooms[room].name='Different';denied(tampered,'altered preview');
+  const deletion=Core.previewStructure(state,{kind:'spatialRoomDelete',roomId:empty,removeDoors:Object.keys(s.spatial.doors).filter(id=>[s.spatial.doors[id].a.roomId,s.spatial.doors[id].b.roomId].includes(empty))});
+  denied(deletion,'Room removal explicit');
+  denied(Core.previewStructure(state,{kind:'spatialRoomEdit',roomId:room,patch:{name:'Change'},removeDoors:[]}),'door resolution explicit');
+  denied(Core.previewStructure(state,{kind:'cubby',cubbyId:'root',patch:{name:'Change'},rearrange:true}),'suggested rearrangement explicit');
+  denied(Core.previewStructure(state,{kind:'spatialAppUnplace',appId:'org.example.Reader'}),'app unplacement explicit');
+  const a=Core.beginAppearance(state,'root'),b=Core.updateAppearance(state,a,'palette',2),c=Core.finishBrowseStructure(state,b);
+  eq(c.error,'','appearance uses same Browse boundary');eq(c.snapshot,b.snapshot,'appearance exact');
+  const material=Core.previewStructure(state,{kind:'materialBatch',edits:[]});
+  eq(Core.finishBrowseStructure(state,material),state,'unchanged material session');
+ }
  return checks;
 }

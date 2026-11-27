@@ -1043,6 +1043,33 @@ export function applyStructure(s,proposal){
  return candidate;
 }
 
+// Browse may resolve ordinary B8 edits, but never act as consent to
+// removal, dependent rearrangement, adoption, reflow or unplacement.
+// Replay the same command through the existing commit boundary, including
+// exact preview comparison and a checked unchanged case.
+export function finishBrowseStructure(s,proposal){
+ if(!Spatial.enabled(s.snapshot)||s.draft||!proposal||proposal.revision!==s.revision||
+    !proposal.command)return structuralError(s,'No current structural proposal');
+ if(proposal.appearanceSession===true)return finishAppearance(s,proposal);
+ const cmd=proposal.command;
+ if(!['create','cubby','child','shelf','artwork','holderCreate','holderEdit','materialBatch',
+       'spatialRoomCreate','spatialRoomEdit','spatialShelfCreate','spatialShelfEdit',
+       'spatialShelfTurn','spatialDoorCreate','spatialDoorEdit'].includes(cmd.kind)||
+    cmd.rearrange===true||cmd.removeDoors!==undefined)
+  return structuralError(s,'Explicit review required · Apply or Cancel');
+ if(proposal.error)return structuralError(s,proposal.error);
+ const candidate=editStructure(s,cmd);
+ if(candidate.error)return candidate;
+ if(!equalPreview(candidate.snapshot,proposal.snapshot)||proposal.ok!==(candidate.snapshot!==s.snapshot))
+  return structuralError(s,'Structural preview changed; review a fresh proposal');
+ const before=s.snapshot,next=candidate.snapshot;
+ if(next.caseItems.length!==before.caseItems.length||
+    Spatial.appPlacements(next).length!==Spatial.appPlacements(before).length||
+    Object.keys(before.spatial.doors||{}).some(id=>!Object.prototype.hasOwnProperty.call(next.spatial.doors||{},id)))
+  return structuralError(s,'Explicit review required · dependent removal');
+ return candidate;
+}
+
 // A revision-bound appearance session occupies the existing proposal slot.
 // Only existing appearance references are staged; never publish samples.
 export function beginAppearance(s,containerId){

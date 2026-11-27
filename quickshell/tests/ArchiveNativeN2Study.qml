@@ -512,10 +512,18 @@ Rectangle {
         pickId=""
     }
     function switchMode(value) {
-        if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning||mapView.appearanceOpen)return
-        if(archive.appearanceSessionOpen&&!finishShelfAppearance())return false
-        if(archive.draft||archive.structuralProposal)archive.cancel()
+        if(roomNavigating||mapNavigating||sceneView.busy||roomPlan.dragging||mapView.dragging||mapView.panning||mapView.appearanceOpen)return false
+        if(spatialEnabled){
+            if(sceneView.pointer||sceneView.prepared||sceneView.furnitureDrag||sceneView.bookDrag||checkpointLoadPending||bookPicker)return false
+            if(archive.draft){sceneView.message="Finish or cancel rack reflow before changing mode";return false}
+            if(archive.appearanceSessionOpen){if(!finishShelfAppearance())return false}
+            else if(archive.structuralProposal){
+                if(value!=="browse")return false
+                if(!confirmStructure(true)){if(materialProposal)materialNotice=structureApplyError;return false}
+            }
+        }else if(archive.draft||archive.structuralProposal)archive.cancel()
         closeContext();closeMaterials();rackInspector=false;pickId="";sceneView.mode=value
+        focusActiveLayer()
         return true
     }
 
@@ -572,7 +580,7 @@ Rectangle {
         if(!q||q.command.kind!=="spatialAppPlace")return
         setBookPosition(String((Number.isFinite(q.command.patch.x)?q.command.patch.x:21)+delta))
     }
-    function confirmStructure(){
+    function confirmStructure(implicitBrowse){
         structureApplyAttempts++
         structureApplyError=""
         if(archive.appearanceSessionOpen)return finishShelfAppearance()
@@ -580,7 +588,7 @@ Rectangle {
         var created=structurePanel.mapRoomCommand&&structurePanel.cmd.kind==="spatialRoomCreate"
         var doorCreated=structurePanel.mapDoorCommand&&structurePanel.cmd.kind==="spatialDoorCreate"
         var oldDoors=doorCreated?Object.keys(archive.snapshot.spatial.doors||{}):[]
-        if(archive.applyStructure()){
+        if(archive.applyStructure(implicitBrowse===true)){
             if(doorCreated){var doorId=Object.keys(archive.snapshot.spatial.doors||{}).find(id=>!oldDoors.includes(id));if(doorId)mapView.selectDoor(doorId)}
             if(created)mapView.selectedRoom=Object.keys(archive.snapshot.spatial.rooms).find(id=>!oldRooms.includes(id))||""
             sceneView.message="Arrangement updated · Undo available";sceneView.clearSelection()
@@ -774,7 +782,7 @@ Rectangle {
             objectName:"archive-primary-tools"
             width:parent.width; spacing:5
             height:primarySlot.height
-            Archive.ArchiveButton { colors:study.colors; label:"Browse"; active:sceneView.mode==="browse"; onClicked:study.switchMode("browse") }
+            Archive.ArchiveButton {id:browseTool;objectName:"archive-browse";colors:study.colors; label:"Browse"; active:sceneView.mode==="browse"; onClicked:study.switchMode("browse") }
             Archive.ArchiveButton { colors:study.colors; label:"Arrange"; active:sceneView.mode==="arrange"; onClicked:study.switchMode("arrange") }
             Item {
                 objectName:"archive-layer-tool-slot"
@@ -1779,6 +1787,20 @@ Rectangle {
                 }
             }
         }
+    }
+    // Keep exactly the ordinary Browse action reachable over proposal
+    // modal isolation. All other heading controls remain disabled. This
+    // is temporary chrome pending the contextual menu migration.
+    Archive.ArchiveButton {
+        objectName:"proposal-browse"
+        x:heading.x+primarySlot.x+primaryTools.x+browseTool.x
+        y:heading.y+primarySlot.y+primaryTools.y+browseTool.y
+        width:browseTool.width;height:browseTool.height
+        z:41
+        visible:study.spatialEnabled&&sceneView.mode==="arrange"&&!!archive.structuralProposal&&
+            !study.contextOpen&&!study.bookPicker&&!study.checkpointLoadPending&&!study.roomNavigating&&!study.mapNavigating&&!mapView.appearanceOpen
+        colors:study.colors;label:"Browse";hint:"Keep valid edits and return to Browse"
+        onClicked:study.switchMode("browse")
     }
     // A load confirmation is modal, with stable button geometry; no Flow
     // replacement/reordering of hit targets after the opening click.

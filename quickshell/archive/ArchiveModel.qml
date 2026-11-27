@@ -59,11 +59,13 @@ Item {
         archiveState=Core.editStructure(archiveState,command)
         return !archiveState.error
     }
-    function applyStructure() {
+    function applyStructure(implicitBrowse) {
         if(!structuralProposal||(!spatialEnabled&&String(structuralProposal.command.kind).indexOf("spatial")===0))return false
         if(!physicalProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptProfiles"||Spatial.physicalProfiles(structuralProposal.snapshot)))return false
         if(!independentProfilesEnabled&&(structuralProposal.command.kind==="spatialAdoptIndependentProfiles"||Spatial.independentProfiles(structuralProposal.snapshot)))return false
-        archiveState=appearanceSessionOpen?Core.finishAppearance(archiveState,structuralProposal):Core.applyStructure(archiveState,structuralProposal)
+        if(implicitBrowse===true&&!spatialEnabled)return false
+        archiveState=implicitBrowse===true?Core.finishBrowseStructure(archiveState,structuralProposal):
+            appearanceSessionOpen?Core.finishAppearance(archiveState,structuralProposal):Core.applyStructure(archiveState,structuralProposal)
         if(!archiveState.error)structuralProposal=null
         return !archiveState.error
     }

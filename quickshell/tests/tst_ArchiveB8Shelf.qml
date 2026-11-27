@@ -230,19 +230,25 @@ Item {
                 }
                 compare(JSON.stringify(ctl.snapshot),before)
                 clickNamed("structure-cancel");compare(JSON.stringify(ctl.snapshot),before)
-                clickNamed("map-add-room");clickNamed("structure-apply")
+                clickNamed("map-add-room");clickNamed("proposal-browse")
+                compare(scene.mode,"browse");verify(!ctl.structuralProposal)
                 var id=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!originalRooms.includes(k))
                 verify(!!id);compare(map.selectedRoom,id)
-                clickNamed("map-edit-room")
+                study.switchMode("arrange");clickNamed("map-edit-room")
                 var input=findChild(study,"map-room-input-w");verify(!!input)
                 input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
                 for(var digit of "10")keyClick(digit)
                 tryVerify(function(){return !ctl.structuralProposal.ok});verify(!findChild(study,"structure-apply").enabled)
+                var pending=JSON.stringify(ctl.structuralProposal.command),kept=JSON.stringify(ctl.snapshot),hBefore=JSON.stringify(ctl.archiveState.history),revBefore=ctl.archiveState.revision
+                clickNamed("proposal-browse");compare(scene.mode,"arrange");compare(input.text,"10")
+                compare(JSON.stringify(ctl.structuralProposal.command),pending);compare(JSON.stringify(ctl.snapshot),kept)
+                compare(JSON.stringify(ctl.archiveState.history),hBefore);compare(ctl.archiveState.revision,revBefore)
                 input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace)
                 for(var digit of "900")keyClick(digit)
                 tryVerify(function(){return ctl.structuralProposal.ok})
-                clickNamed("structure-apply");compare(ctl.snapshot.spatial.rooms[id].w,900)
+                clickNamed("proposal-browse");compare(scene.mode,"browse");compare(ctl.snapshot.spatial.rooms[id].w,900);verify(!ctl.structuralProposal)
                 verify(ctl.undo());verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
+                study.switchMode("arrange")
                 var empty=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!Object.values(ctl.snapshot.spatial.shelves).some(p=>p.roomId===k))
                 var r=ctl.snapshot.spatial.rooms[empty],pt=map.pointFor(r.x+r.w/2,r.y+r.h/2),end=map.pointFor(r.x+r.w/2+200,r.y+r.h/2)
                 mousePress(map,pt.x,pt.y,Qt.LeftButton);tryVerify(function(){return map.dragging})
@@ -255,6 +261,9 @@ Item {
                 compare(JSON.stringify(ctl.snapshot),before)
                 clickNamed("map-room-resolve-doors");tryVerify(function(){return ctl.structuralProposal.ok})
                 verify(ctl.structuralProposal.removedDoorIds.length===1)
+                var approvedLoss=JSON.stringify(ctl.structuralProposal.command),lossRev=ctl.archiveState.revision
+                clickNamed("proposal-browse");compare(scene.mode,"arrange");compare(JSON.stringify(ctl.structuralProposal.command),approvedLoss)
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,lossRev)
                 clickNamed("structure-apply");verify(!Object.keys(ctl.snapshot.spatial.doors).length)
                 verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
                 map.selectedRoom=empty
@@ -534,6 +543,20 @@ Item {
                 study.mapEnabled=true;clickNamed("open-map-room");tryVerify(function(){return map.visible})
                 compare(map.zoom,1);verify(!map.focusState)
                 compare(JSON.stringify(ctl.snapshot),before)
+                // Load the same v5 atlas payload in the opted-out host,
+                // then save through that host: arrangement exact, mapView
+                // intentionally omitted, no accidental camera resurrection.
+                study.mapEnabled=false;payload=savedMap
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                tryVerify(function(){return study.scene.visible&&study.scene.activeFocus&&!plan.visible&&!map.visible})
+                compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.history.length,0)
+                verify(study.saveCheckpoint())
+                var optOut=JSON.parse(payload);compare(optOut.version,5);verify(optOut.view.mapView===undefined)
+                compare(JSON.stringify(optOut.snapshot),before)
+                study.mapEnabled=true
+                verify(study.requestCheckpointLoad());verify(study.loadCheckpoint())
+                tryVerify(function(){return study.scene.visible&&study.scene.activeFocus&&!plan.visible&&!map.visible})
+                verify(!map.focusState);compare(map.zoom,1);compare(JSON.stringify(ctl.snapshot),before)
                 // The same physical-profile checkpoint without optional upper
                 // view metadata is still valid and returns to the Shelf.
                 var legacy=JSON.parse(savedMap);delete legacy.view.mapView
@@ -1487,7 +1510,7 @@ Item {
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
             study.switchMode("arrange");scene.clearSelection();clickNamed("arrange-menu");clickNamed("shelf-appearance")
             clickNamed("shelf-family-astral")
-            verify(study.switchMode("browse"));compare(scene.mode,"browse");verify(!ctl.structuralProposal)
+            clickNamed("proposal-browse");compare(scene.mode,"browse");verify(!ctl.structuralProposal)
             compare(Spatial.resolveAppearance(ctl.snapshot,"root",1).family,"Astral")
             verify(ctl.undo());compare(JSON.stringify(ctl.snapshot),before)
         }
