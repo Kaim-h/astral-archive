@@ -18,6 +18,7 @@ Item {
     property var mixedVisuals: ({hidden:[],pending:[]})
     property int activeCells: 0
     property int stepCount: 0
+    readonly property bool clockActive:clock.running
     property real lastTime: 0
     property string notice: ""
     signal completed(bool committed)

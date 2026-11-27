@@ -6,6 +6,7 @@ Rectangle {
     required property var colors
     property var record: null
     property bool expanded: false
+    property bool hoverOnly: false
     property point anchorPoint: Qt.point(0,0)
     objectName: "archive-tooltip"
     visible: record!==null
@@ -76,7 +77,7 @@ Rectangle {
             width: parent.width
             color: tip.colors.engraving
             font.pixelSize: 9
-            text: tip.expanded?"Sample data · click to close":"Click for details"
+            text: tip.expanded?"Sample data · click to close":tip.hoverOnly?"Sample data · Arrange":"Click for details"
         }
     }
 }
