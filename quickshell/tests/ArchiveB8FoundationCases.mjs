@@ -1383,5 +1383,15 @@ export function run(){
  {
   for(const floor of Appearance.floorStyles){const a=Appearance.roomPolicy({floor}),t=View.roomSurfaceTable(a,{background:"#141414",panel:"#333333",metal:"#999999",engraving:"#aaaaaa"});yes(t.colors.includes(View.roomFloorSample(t,a,22,42,1000,1000)),'floor sample '+floor);}
  }
+ {
+  const roomId=Object.keys(s.snapshot.spatial.rooms)[0],before=Core.clone(s.snapshot);
+  let p=Core.beginMapAppearance(s);p=Core.updateAppearance(s,p,'title','A new chart');p=Core.updateAppearance(s,p,'density',80);p=Core.updateAppearance(s,p,'frame','plain');
+  yes(p.ok,'chart preview');eq(s.snapshot,before,'chart preview isolation');let n=Core.finishAppearance(s,p);
+  eq(n.error,'','chart commit');eq(Spatial.checkpointVersion(n.snapshot),6,'chart envelope');eq(Core.undo(n).snapshot,before,'chart undo');
+  p=Core.beginMapRoomAppearance(n,roomId);p=Core.updateAppearance(n,p,'frame','engraved');p=Core.updateAppearance(n,p,'subtitle','An inscription');
+  const local=Core.finishAppearance(n,p);eq(local.error,'','local atlas commit');eq(Appearance.mapRoomPolicy(local.snapshot,roomId).frame,'engraved','local frame wins');eq(Appearance.mapPolicy(local.snapshot).frame,'plain','global frame unchanged');eq(Core.undo(local).snapshot,n.snapshot,'local atlas undo');
+  eq(Core.owners(local.snapshot),Core.owners(before),'atlas owners unchanged');eq(local.snapshot.spatial.shelves,before.spatial.shelves,'atlas footprints unchanged');
+  const bad=Core.updateAppearance(s,Core.beginMapAppearance(s),'density',101);yes(!!bad.error,'atlas density bounded');yes(!!Core.finishAppearance(s,bad).error,'invalid chart cannot commit');
+ }
  return checks;
 }

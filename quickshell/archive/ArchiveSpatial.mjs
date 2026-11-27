@@ -67,13 +67,15 @@ export function validate(s){
  if(!enabled(s))return null;
  try{
   const a=s.spatial;
-  need(keysOnly(a,['rooms','shelves','appearance','apps','doors','geometryPolicy'])&&(a.geometryPolicy===undefined||a.geometryPolicy===profilePolicy||a.geometryPolicy===independentProfilePolicy)&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
+  need(keysOnly(a,['rooms','shelves','appearance','apps','doors','geometryPolicy','mapAppearance'])&&(a.geometryPolicy===undefined||a.geometryPolicy===profilePolicy||a.geometryPolicy===independentProfilePolicy)&&plain(a.rooms)&&plain(a.shelves)&&appearance(a.appearance),'Invalid spatial envelope');
+  const mapError=Appearance.mapError(a.mapAppearance);need(!mapError,mapError);
   const rooms=Object.keys(a.rooms),shelves=Object.keys(a.shelves),roomBoxes=[],shelfBoxes=new Map();
   need(rooms.length>0&&rooms.length<=spatialLimits.rooms&&shelves.length>0&&shelves.length<=128,'Spatial room/shelf budget');
   for(const k of rooms){
    const r=a.rooms[k];
-   need(id(k)&&!own(s.cubbies,k)&&keysOnly(r,independentProfiles(s)?['id','name','x','y','w','h','appearance','wallHeight']:['id','name','x','y','w','h','appearance'])&&r.id===k&&name(r.name)&&appearance(r.appearance,false,false,true),'Invalid Room identity or metadata');
+   need(id(k)&&!own(s.cubbies,k)&&keysOnly(r,independentProfiles(s)?['id','name','x','y','w','h','appearance','wallHeight','mapAppearance']:['id','name','x','y','w','h','appearance','mapAppearance'])&&r.id===k&&name(r.name)&&appearance(r.appearance,false,false,true),'Invalid Room identity or metadata');
    const roomError=Appearance.roomError(r.appearance);need(!roomError,roomError);
+   const localMapError=Appearance.mapError(r.mapAppearance,true);need(!localMapError,localMapError);
    if(independentProfiles(s))need(wallValid(r.wallHeight),'Invalid independent Room wall height');
    need(integer(r.x,-spatialLimits.mapCoordinate,spatialLimits.mapCoordinate)&&integer(r.y,-spatialLimits.mapCoordinate,spatialLimits.mapCoordinate)&&integer(r.w,130,spatialLimits.roomSize)&&integer(r.h,100,spatialLimits.roomSize),'Invalid Room dimensions');
    need(!roomBoxes.some(b=>overlap(b,r)),'Rooms overlap');roomBoxes.push(r);shelfBoxes.set(k,[]);
@@ -274,6 +276,17 @@ export function edit(s,cmd,allocate){
    delete m.flatTop;delete m.items;
    for(const record of s.caseItems)if(record.originCubbyId===cmd.containerId&&record.originModuleId===m.id)record.originStale=true;
   }
+ }else if(cmd.kind==='spatialMapAppearance'){
+  need(!Appearance.mapError(p),'Invalid chart appearance');
+  if(Object.keys(p).length)a.mapAppearance=Object.assign({},a.mapAppearance||{},p);
+ }else if(cmd.kind==='spatialMapRoomAppearance'){
+  need(own(a.rooms,cmd.roomId),'Room no longer exists');
+  need(keysOnly(p,['name','family','palette',...Appearance.mapRoomKeys]),'Unknown atlas Room appearance property');
+  const r=a.rooms[cmd.roomId],local=Object.assign({},p),shared={};
+  if(own(local,'name')){need(name(local.name),'Invalid Room name');r.name=local.name;delete local.name;}
+  for(const k of ['family','palette'])if(own(local,k)){shared[k]=local[k];delete local[k];}
+  if(Object.keys(shared).length)r.appearance=Object.assign({},r.appearance||{},shared);
+  if(Object.keys(local).length)r.mapAppearance=Object.assign({},r.mapAppearance||{},local);
  }else if(cmd.kind==='spatialRoomAppearance'){
   need(own(a.rooms,cmd.roomId),'Room no longer exists');
   need(keysOnly(p,['name','family','palette',...Appearance.roomKeys]),'Unknown Room appearance property');

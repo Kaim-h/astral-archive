@@ -202,7 +202,7 @@ export const floorStyles=Object.freeze(['plain','slabs','bond','diagonal','octag
 export const wallStyles=Object.freeze(['plain','panel','masonry','rubble','pilaster','arcade','wainscot','ribbed']);
 export const roomDefaults=Object.freeze({floor:'plain',wall:'plain',floorBorder:false,wallMarks:false,detail:55,floorScale:80,floorAngle:0,grout:.5,variation:30,borderStyle:'double',wallScale:150});
 export const roomKeys=Object.freeze(Object.keys(roomDefaults));
-export function extended(s){return Object.values(s.cubbies||{}).some(c=>plain(c.appearance)&&containerKeys.some(k=>own(c.appearance,k)))||Object.values(s.spatial&&s.spatial.rooms||{}).some(r=>plain(r.appearance)&&roomKeys.some(k=>own(r.appearance,k)));}
+export function extended(s){return Object.values(s.cubbies||{}).some(c=>plain(c.appearance)&&containerKeys.some(k=>own(c.appearance,k)))||!!(s.spatial&&own(s.spatial,'mapAppearance'))||Object.values(s.spatial&&s.spatial.rooms||{}).some(r=>own(r,'mapAppearance')||plain(r.appearance)&&roomKeys.some(k=>own(r.appearance,k)));}
 export function roomError(a){
  if(a===undefined)return null;
  if(!keys(a,['family','palette',...roomKeys]))return 'Invalid Room appearance reference';
@@ -213,4 +213,22 @@ export function roomError(a){
  return null;
 }
 export function roomPolicy(a){const out=Object.assign({},roomDefaults);for(const k of roomKeys)if(a&&a[k]!==undefined&&a[k]!==null)out[k]=a[k];return out;}
+
+
+// S19r3/r4 atlas appearance is document metadata, not camera state or
+// interior surface policy. Local map overrides inherit chart defaults.
+export const mapDefaults=Object.freeze({title:'The Map Room',subtitle:'',family:'Astral',ornament:'compass',contours:'subtle',density:55,frame:'engraved',labels:'both',marks:'detail'});
+export const mapKeys=Object.freeze(Object.keys(mapDefaults));
+export const mapRoomKeys=Object.freeze(['subtitle','frame','labels','marks']);
+export function mapError(a,local=false){
+ if(a===undefined)return null;
+ if(!keys(a,local?mapRoomKeys:mapKeys))return 'Invalid atlas appearance keys';
+ const str=(v,max)=>v===undefined||typeof v==='string'&&v.length<=max;
+ const pick=(v,values)=>v===undefined||local&&v===null||values.includes(v);
+ if(!str(a.subtitle,local?160:120)||!pick(a.frame,['plain','inset','engraved'])||!pick(a.labels,['title','both'])||!pick(a.marks,['none','detail','all']))return 'Invalid atlas inscription or representation';
+ if(!local&&(!str(a.title,80)||!pick(a.family,['None',...Object.keys(families)])||!pick(a.ornament,['none','family','compass'])||!pick(a.contours,['none','subtle','engraved'])||a.density!==undefined&&(!Number.isInteger(a.density)||a.density<0||a.density>100)))return 'Invalid chart appearance';
+ return null;
+}
+export function mapPolicy(s){return Object.assign({},mapDefaults,s.spatial&&s.spatial.mapAppearance||{});}
+export function mapRoomPolicy(s,id){const a=mapPolicy(s),r=s.spatial.rooms[id],v=r&&r.mapAppearance||{};return {subtitle:v.subtitle||'',frame:v.frame||a.frame,labels:v.labels||a.labels,marks:v.marks||a.marks};}
 

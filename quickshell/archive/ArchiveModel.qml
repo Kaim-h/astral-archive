@@ -43,6 +43,8 @@ Item {
     }
     function beginAppearance(containerId) {return openAppearanceProposal(Core.beginAppearance(archiveState,containerId))}
     function beginRoomAppearance(roomId) {return openAppearanceProposal(Core.beginRoomAppearance(archiveState,roomId))}
+    function beginMapAppearance() {return openAppearanceProposal(Core.beginMapAppearance(archiveState))}
+    function beginMapRoomAppearance(roomId) {return openAppearanceProposal(Core.beginMapRoomAppearance(archiveState,roomId))}
     function openAppearanceProposal(p) {
         if(!spatialEnabled||structuralProposal||draft||queued||runningRevision!==-1||!p)return false
         appearanceSessionTarget=p.appearanceTarget
@@ -53,7 +55,7 @@ Item {
     function appearanceTargetCurrent(){
         return appearanceSessionOpen&&structuralProposal&&structuralProposal.appearanceTarget===appearanceSessionTarget&&
             structuralProposal.command.kind===appearanceSessionKind&&
-            (appearanceSessionKind==="spatialRoomAppearance"?structuralProposal.command.roomId:structuralProposal.command.containerId)===appearanceSessionTarget
+            (appearanceSessionKind==="spatialMapAppearance"?"@chart":appearanceSessionKind==="spatialRoomAppearance"||appearanceSessionKind==="spatialMapRoomAppearance"?structuralProposal.command.roomId:structuralProposal.command.containerId)===appearanceSessionTarget
     }
     function updateAppearance(key,value) {
         if(!appearanceTargetCurrent())return false

@@ -1101,6 +1101,8 @@ function appearanceDescriptor(s,c){
  if(!Spatial.enabled(s.snapshot)||!c)return null;
  const own=(o,k)=>typeof k==='string'&&Object.prototype.hasOwnProperty.call(o,k);
  if(c.kind==='spatialAppearance'&&own(s.snapshot.cubbies,c.containerId))return {id:c.containerId,base:s.snapshot.cubbies[c.containerId].appearance||{},keys:['family','palette','profile',...Appearance.containerKeys]};
+ if(c.kind==='spatialMapAppearance')return {id:'@chart',base:s.snapshot.spatial.mapAppearance||{},keys:Appearance.mapKeys};
+ if(c.kind==='spatialMapRoomAppearance'&&own(s.snapshot.spatial.rooms,c.roomId)){const r=s.snapshot.spatial.rooms[c.roomId];return {id:c.roomId,base:Object.assign({name:r.name},r.appearance||{},r.mapAppearance||{}),keys:['name','family','palette',...Appearance.mapRoomKeys]};}
  if(c.kind==='spatialRoomAppearance'&&own(s.snapshot.spatial.rooms,c.roomId)){
   const r=s.snapshot.spatial.rooms[c.roomId];
   return {id:c.roomId,base:Object.assign({name:r.name},r.appearance||{}),keys:['name','family','palette',...Appearance.roomKeys]};
@@ -1113,6 +1115,8 @@ function appearanceProposal(s,command){
 }
 export function beginAppearance(s,containerId){return appearanceProposal(s,{kind:'spatialAppearance',containerId,patch:{}});}
 export function beginRoomAppearance(s,roomId){return appearanceProposal(s,{kind:'spatialRoomAppearance',roomId,patch:{}});}
+export function beginMapAppearance(s){return appearanceProposal(s,{kind:'spatialMapAppearance',patch:{}});}
+export function beginMapRoomAppearance(s,roomId){return appearanceProposal(s,{kind:'spatialMapRoomAppearance',roomId,patch:{}});}
 function appearanceCurrent(s,p){
  const d=p&&appearanceDescriptor(s,p.command);
  return !!d&&p.appearanceSession===true&&p.revision===s.revision&&!s.draft&&p.appearanceTarget===d.id&&
