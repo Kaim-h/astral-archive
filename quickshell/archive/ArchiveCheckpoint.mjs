@@ -7,6 +7,9 @@ export const version=2;
 export const spatialVersion=3;
 export const physicalProfileVersion=4;
 export const independentProfileVersion=5;
+// Expanded appearance has a separate envelope; geometry policy remains
+// independently validated. Unchanged v3–5 write as before.
+export const customizationVersion=6;
 function fail(msg){throw Error(msg);}
 function plain(v){return !!v&&typeof v==='object'&&!Array.isArray(v);}
 function finite(v,min,max){return Number.isFinite(v)&&v>=min&&v<=max;}
@@ -60,7 +63,7 @@ export function encode(session,view){
 export function decode(text){
  if(typeof text!=='string'||!text.length||text.length>Capacity.limits.envelopeChars)fail('Invalid checkpoint length');
  const envelope=JSON.parse(text);
- if(!plain(envelope)||envelope.format!=='astral-archive-native-study'||![1,version,spatialVersion,physicalProfileVersion,independentProfileVersion].includes(envelope.version))fail('Unsupported native checkpoint');
+ if(!plain(envelope)||envelope.format!=='astral-archive-native-study'||![1,version,spatialVersion,physicalProfileVersion,independentProfileVersion,customizationVersion].includes(envelope.version))fail('Unsupported native checkpoint');
  if(envelope.version===1&&text.length>Capacity.limits.legacyChars)fail('Invalid legacy checkpoint length');
  preflight(envelope.snapshot,envelope.version);const view=viewState(envelope.snapshot,envelope.view,envelope.version);
  return {snapshot:Core.clone(envelope.snapshot),view};

@@ -16,7 +16,7 @@ function record(v,placed){
 export function preflight(s,formatVersion=2){
  if(!plain(s)||!plain(s.cubbies)||!Array.isArray(s.caseItems)||s.caseItems.length>limits.records||!Number.isSafeInteger(s.next)||s.next<1)fail('Invalid checkpoint state');
  const spatial=Spatial.enabled(s);
- if(spatial!==(formatVersion===3||formatVersion===4||formatVersion===5))fail('Spatial state requires a spatial checkpoint version');
+ if(spatial!==(formatVersion===3||formatVersion===4||formatVersion===5||formatVersion===6))fail('Spatial state requires a spatial checkpoint version');
  if(spatial&&Spatial.checkpointVersion(s)!==formatVersion)fail('Geometry policy and checkpoint version mismatch');
  const keys=Object.keys(s.cubbies);if(!keys.length||keys.length>limits.cubbies||(!spatial&&!keys.includes('root')))fail('Physical container budget or root');
  let count=0,cells=0,fixtures=0;const children=new Set();

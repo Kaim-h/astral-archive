@@ -2,6 +2,7 @@
 import * as Core from "../archive/ArchiveCore.mjs";
 import * as Spatial from "../archive/ArchiveSpatial.mjs";
 import * as Checkpoint from "../archive/ArchiveCheckpoint.mjs";
+import * as Appearance from "../archive/ArchiveAppearance.mjs";
 import * as MixedFixture from "./ArchiveB7MixedFixture.mjs";
 import * as Mixed from "../archive/representation/B7Ownership.mjs";
 import * as Motion from "../archive/ArchiveMotion.mjs";
@@ -1332,6 +1333,36 @@ export function run(){
    yes(q.error,'invalid fixture preview '+cmd.kind);yes(n.error,'invalid fixture resolution refused '+cmd.kind);
    eq(n.snapshot,s,'invalid fixture snapshot exact');eq(n.history,state.history,'invalid fixture history exact');eq(n.revision,state.revision,'invalid fixture revision exact');
   }
+ }
+ {
+  const state=Core.session(ShelfSample.fixture()),s=state.snapshot,view={path:s.path,theme:1,cameras:{}};
+  eq(Object.values(Appearance.catalogue).flat().length,76,'exact recovered catalogue count');
+  for(const [family,entries] of Object.entries(Appearance.catalogue)){
+   eq(new Set(entries.map(e=>e.id)).size,entries.length,'unique catalogue IDs '+family);
+   for(const e of entries)if(!e.legacy)yes(e.core.length>0,'static emblem path data '+e.id);
+  }
+  let q=Core.beginAppearance(state,'root');
+  q=Core.updateAppearance(state,q,'family','Astral');q=Core.updateAppearance(state,q,'emblem','armillary');
+  q=Core.updateAppearance(state,q,'frame','metal');q=Core.updateAppearance(state,q,'backing','background');
+  const f={id:'field-1',x:20,y:20,w:180,h:180,opacity:.7,family:'Astral',emblem:'eclipse',border:'rails',center:'axis'};
+  q=Core.updateAppearance(state,q,'fields',[f]);
+  yes(q.ok,'extended appearance valid');eq(state.snapshot,s,'unpublished appearance');
+  const next=Core.finishAppearance(state,q);eq(next.error,'','expanded appearance commit');eq(next.history.length,1,'one appearance Undo');
+  eq(Core.owners(next.snapshot),Core.owners(s),'appearance owners unchanged');eq(Spatial.footprint(next.snapshot,'root'),Spatial.footprint(s,'root'),'appearance footprint unchanged');
+  const saved=Checkpoint.encode(next,view);eq(JSON.parse(saved).version,6,'extended appearance v6 writer');eq(Checkpoint.decode(saved).snapshot,next.snapshot,'v6 exact roundtrip');
+  eq(Checkpoint.encode(Core.undo(next),view),Checkpoint.encode(state,view),'Undo restores old writer bytes');
+  const bad=JSON.parse(saved);bad.version=3;let refused=false;try{Checkpoint.decode(JSON.stringify(bad))}catch(e){refused=true}yes(refused,'cannot mislabel expanded metadata v3');
+  bad.version=6;bad.snapshot.cubbies.root.appearance.fields.push({...f,id:'field-2',x:100});refused=false;try{Checkpoint.decode(JSON.stringify(bad))}catch(e){refused=true}yes(refused,'overlapping fields rejected on decode');
+  const invalid=Core.updateAppearance(state,q,'fields',[f,{...f,id:'field-2'}]);yes(invalid.error,'overlap refused');eq(Core.finishAppearance(state,invalid).snapshot,s,'overlap cannot publish');
+  const corrected=Core.updateAppearance(state,invalid,'fields',[f]);eq(corrected.snapshot,q.snapshot,'corrected fields exact');
+  const suggested=Appearance.suggestField([f],s.cubbies.root.w,s.cubbies.root.h);yes(!!suggested,'free field suggestion');
+  yes(!Appearance.containerError({fields:[f,suggested]},s.cubbies.root,true),'suggestion nonoverlap');
+  const glass=Core.updateAppearance(state,Core.beginAppearance(state,'child'),'glazing','combined');
+  yes(glass.ok,'local child glazing');const glazed=Core.finishAppearance(state,glass);eq(glazed.snapshot.cubbies.root,s.cubbies.root,'glazing local not inherited');
+  yes(Core.updateAppearance(state,Core.beginAppearance(state,'root'),'glazing','combined').error,'Shelf is not a glazed child door');
+  yes(Appearance.emblemSvg('Astral','armillary','#91ada1').includes('<path'),'static recovered emblem SVG');
+  eq(Appearance.emblemSvg('Astral','armillary','bad'),'','reject non-theme ink');
+  eq(Appearance.emblem('Botanical','armillary').id,'vine-seal','unmatched inherited family safe fallback');
  }
  return checks;
 }

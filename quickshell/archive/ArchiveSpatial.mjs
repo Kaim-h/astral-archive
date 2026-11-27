@@ -3,6 +3,7 @@
 import * as Doors from "./ArchiveDoors.mjs";
 import * as Architecture from "./ArchiveArchitecture.mjs";
 import * as Mixed from "./representation/B7Ownership.mjs";
+import * as Appearance from "./ArchiveAppearance.mjs";
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const plain=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const id=v=>typeof v==='string'&&v.length>0&&v.length<=128&&!['__proto__','constructor','prototype'].includes(v);
@@ -25,7 +26,7 @@ export const defaultWallHeight=1339.2;
 export function frameSeed(c){return Math.max(4,Math.min(40,24*Math.min(c.w/1400,c.h/1050)));}
 export function independentProfiles(s){return enabled(s)&&s.spatial.geometryPolicy===independentProfilePolicy;}
 export function physicalProfiles(s){return enabled(s)&&(s.spatial.geometryPolicy===profilePolicy||independentProfiles(s));}
-export function checkpointVersion(s){return independentProfiles(s)?5:physicalProfiles(s)?4:enabled(s)?3:2;}
+export function checkpointVersion(s){return enabled(s)&&Appearance.extended(s)?6:independentProfiles(s)?5:physicalProfiles(s)?4:enabled(s)?3:2;}
 function frameValid(v){return Number.isFinite(v)&&v>=4&&v<=40;}
 function wallValid(v){return Number.isFinite(v)&&v>=1&&v<=20000;}
 export function shelfGeometry(s,shelfId){
@@ -53,8 +54,10 @@ function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 function inside(a,w,h){return a.x>=0&&a.y>=0&&a.x+a.w<=w&&a.y+a.h<=h;}
 function keysOnly(o,keys){return plain(o)&&Object.keys(o).every(k=>keys.includes(k));}
 export const shelfProfiles=Object.freeze(['cornice','crest','pilaster']);
-function appearance(v,shelf=false){
- return v===undefined||keysOnly(v,shelf?['family','palette','profile']:['family','palette'])&&
+function appearance(v,shelf=false,container=false){
+ const allowed=shelf?['family','palette','profile']:['family','palette'];
+ if(container)allowed.push(...Appearance.containerKeys);
+ return v===undefined||keysOnly(v,allowed)&&
   (v.profile===undefined||v.profile===null||shelf&&shelfProfiles.includes(v.profile))&&
   (v.family===undefined||v.family===null||name(v.family))&&
   (v.palette===undefined||v.palette===null||integer(v.palette,0,2));
@@ -86,7 +89,8 @@ export function validate(s){
   need(plain(apps)&&Object.keys(apps).length<=spatialLimits.applications,'Application catalogue budget');
   for(const [k,v] of Object.entries(apps))need(id(k)&&keysOnly(v,['appId','title'])&&v.appId===k&&name(v.title),'Invalid application identity');
   for(const c of Object.values(s.cubbies)){
-   need((c.name===undefined||name(c.name))&&appearance(c.appearance,own(a.shelves,c.id)),'Invalid container name or appearance reference');
+   need((c.name===undefined||name(c.name))&&appearance(c.appearance,own(a.shelves,c.id),true),'Invalid container name or appearance reference');
+   const appearanceError=Appearance.containerError(c.appearance,c,own(a.shelves,c.id));need(!appearanceError,appearanceError);
    for(const m of c.mods){
     need(!structuralIds.has(m.id),'Duplicate spatial structural identity');structuralIds.add(m.id);
     for(const meta of Object.values(m.cellMeta||{})){need(!structuralIds.has(meta.id),'Duplicate spatial structural identity');structuralIds.add(meta.id);}
@@ -256,7 +260,7 @@ export function edit(s,cmd,allocate){
   }
  }else if(cmd.kind==='spatialAppearance'){
   const isShelf=cmd.containerId!==undefined&&own(a.shelves,cmd.containerId);
-  need(appearance(p,isShelf),'Invalid appearance reference');
+  need(appearance(p,isShelf,cmd.containerId!==undefined),'Invalid appearance reference');
   const target=cmd.containerId===undefined?s.spatial:s.cubbies[cmd.containerId];
   need(cmd.containerId===undefined||own(s.cubbies,cmd.containerId),'Container no longer exists');
   // An untouched appearance editor must not create metadata.

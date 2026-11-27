@@ -6,6 +6,7 @@ import * as Doors from "./ArchiveDoors.mjs";
 import * as Architecture from "./ArchiveArchitecture.mjs";
 import * as RoomProjection from "./ArchiveRoomProjection.mjs";
 import * as Mixed from "./representation/B7Ownership.mjs";
+import * as Appearance from "./ArchiveAppearance.mjs";
 
 export function mix(a,b,t) {
     function rgb(s){return [parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];}
@@ -93,6 +94,10 @@ export function ornamentAsset(family,paletteName){
     const theme=["Evening","Twilight","Midnight"].includes(paletteName)?paletteName.toLowerCase():"twilight";
     return key?"ornaments/"+key+"-"+theme+".svg":"";
 }
+export function emblemSource(family,key,p){
+    const svg=Appearance.emblemSvg(family,key,p.engraving);
+    return svg?'data:image/svg+xml,'+encodeURIComponent(svg):ornamentAsset(family,p.name);
+}
 export function familyMarkSize(w,h,exterior){
     return Math.max(0,Math.min(exterior?40:112,w*.32,h*.32));
 }
@@ -110,8 +115,8 @@ export function bookColors(binding,p){
     const inscription=contrast(cover,p.text)>=4.5?p.text:contrast(cover,"#ffffff")>=contrast(cover,"#080f10")?"#ffffff":"#080f10";
     return {cover,inscription,ornament:p.metal};
 }
-export function frameColor(c,p,depth){return c.color||(depth?(p.materials?p.materials.cubby:mix(p.panel,p.metal,.24)):p.panel);}
-export function backingColor(c,p,depth){return c.innerColor||(depth%2?mix(p.background,p.engraving,.20):mix(p.background,p.panel,.25));}
+export function frameColor(c,p,depth){return c.appearance&&Appearance.materialRoles.includes(c.appearance.frame)&&p[c.appearance.frame]||c.color||(depth?(p.materials?p.materials.cubby:mix(p.panel,p.metal,.24)):p.panel);}
+export function backingColor(c,p,depth){return c.appearance&&Appearance.materialRoles.includes(c.appearance.backing)&&p[c.appearance.backing]||c.innerColor||(depth%2?mix(p.background,p.engraving,.20):mix(p.background,p.panel,.25));}
 export function rackColor(m,p){return m.color||(p.materials?p.materials.rack:mix(p.panel,p.engraving,.18));}
 export function shelfColor(m,p){return m.color||(p.materials?p.materials.shelf:p.panel);}
 export function wallColor(meta,p){return meta&&meta.color||mix(p.panel,p.metal,.34);}
