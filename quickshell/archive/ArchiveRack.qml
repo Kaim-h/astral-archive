@@ -30,6 +30,7 @@ Item {
     signal resizeCanceled()
     property bool selected: false
     property bool browse: true
+    property bool arrangeMetadata: false
     readonly property var cells: Core.geometry(rack).cells
     readonly property var scrollRecords: motionRecords!==null ? motionRecords : View.records(rack)
     readonly property var markerData: View.markers(cells, unresolved)
@@ -257,7 +258,7 @@ Item {
             if(pressed&&action==="scroll"){rackView.gestureMoved(mouse.x,mouse.y);return}
             if(pressed&&action==="resize"){rackView.resizeMoved(mouse.x,mouse.y);return}
             if(rackView.insertionMode)rackView.pointerHover(mouse.x,mouse.y)
-            else rackView.scrollHovered(rackView.browse&&rackView.phase==="idle"&&!rackView.locked?rackView.hitRecord(mouse.x,mouse.y):null,mouse.x,mouse.y)
+            else rackView.scrollHovered((rackView.browse||rackView.arrangeMetadata)&&rackView.phase==="idle"&&!rackView.locked?rackView.hitRecord(mouse.x,mouse.y):null,mouse.x,mouse.y)
         }
         onExited:{rackView.scrollHovered(null,0,0);rackView.pointerHover(-1,-1)}
         onReleased:function(mouse){

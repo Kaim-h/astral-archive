@@ -607,6 +607,7 @@ Item {
                             rack:View.displayRack(scene.controller,scene.cubbyId,scene.materialModule(moduleLoader.modelData))
                             colors:scene.colors
                             browse:scene.mode==="browse"
+                            arrangeMetadata:scene.spatialStyle
                             selected:scene.selectedModuleId===rack.id
                             selectedCell:selected?scene.selectedCell:""
                             selectedScroll:scene.selectedScrollId
@@ -963,6 +964,7 @@ Item {
         colors:scene.colors
         record:scene.pointerActive||scene.furnitureDrag||scene.bookDrag||scene.busy?null:scene.pinnedRecord||scene.hoveredRecord
         expanded:!!scene.pinnedRecord
+        hoverOnly:scene.spatialStyle&&scene.mode==="arrange"
         anchorPoint:scene.tipPoint
     }
 }

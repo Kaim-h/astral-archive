@@ -112,3 +112,5 @@ Reserve valid existing world openings before relocating obstructed neighbors; ex
 - N5h compact native regression: 360×460 stacked root flyout, bounded geometry, keyboard navigation and two-stage Escape/focus restoration; captures the actual menu and verifies no document revision. Native verification pending.
 
 - Integrated run 46054550504: all three jobs passed; actual Node 14,907 assertions, native Shelf 43/43. Supplemental holder fixture uses the lower board, preserving the owl in Case and reserving full cradle envelopes rather than treating nominal holder width as its footprint.
+
+- N5g metadata audit found legacy rack hover was still Browse-gated. Enable hover metadata in B8 Arrange, retain existing manipulation suppression and do not advertise Browse pin behavior in Arrange. Add real pointer hover regression for both modes, no history mutation. Legacy B6/B7 mode behavior unchanged.

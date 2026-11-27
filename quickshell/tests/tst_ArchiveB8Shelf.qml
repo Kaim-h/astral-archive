@@ -1770,6 +1770,23 @@ Item {
                 compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
             }finally{study.mapEnabled=false;study.reducedRoomMotion=oldMotion;study.switchMode("browse")}
         }
+        function test_n5_rack_metadata_both_modes(){
+            var ctl=study.controller,scene=study.scene,rack=scene.moduleItem("rack-1"),tip=findChild(scene,"archive-tooltip")
+            verify(!!rack&&!!tip&&rack.scrollRecords.length>0)
+            var id=rack.scrollRecords[0].id,item=rack.scrollItem(id)
+            verify(!!item)
+            var p=item.mapToItem(scene,item.width/2,item.height/2)
+            var before=JSON.stringify(ctl.snapshot),rev=ctl.archiveState.revision
+            for(var mode of ["browse","arrange"]){
+                study.switchMode(mode)
+                mouseMove(scene,4,4)
+                mouseMove(scene,p.x,p.y)
+                tryVerify(function(){return tip.visible&&tip.record&&tip.record.id===id})
+                compare(tip.hoverOnly,mode==="arrange")
+                mouseMove(scene,4,4);tryVerify(function(){return !tip.visible})
+            }
+            compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
+        }
         function test_n5_room_appearance(){
             var ctl=study.controller
             clickNamed("adopt-physical-profiles");clickNamed("structure-apply")
