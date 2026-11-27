@@ -1128,6 +1128,7 @@ Rectangle {
         paletteOptions:Themes.Theme.palettes
         desktopPaletteIndex:Themes.Theme.index
         appearanceSnapshot:study.sceneAppearanceSnapshot
+        metadataBlocked:study.contextOpen||study.materialPanel!==""||study.bookPicker||study.checkpointLoadPending
         anchors.top:heading.bottom
         anchors.bottom:footer.top
         anchors.left:parent.left

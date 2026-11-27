@@ -100,6 +100,32 @@ Item {
     Component.onCompleted:cameraSnapshot=controller.snapshot
     property var pinnedRecord: null
     property var hoveredRecord: null
+    // B8 uses one passive observer on the upper context surface. The
+    // underlying rack MouseArea continues to own clicks and gestures.
+    property bool metadataBlocked:false
+    readonly property bool rackMetadataReady:spatialStyle&&visible&&enabled&&!metadataBlocked&&
+        !controller.draft&&!controller.structuralProposal&&!pointer&&!prepared&&!furnitureDrag&&!bookDrag&&!live.busy
+    onRackMetadataReadyChanged:if(!rackMetadataReady&&spatialStyle)hoveredRecord=null
+    function rackMetadataAt(x,y){
+        if(!rackMetadataReady||x<0||x>=width||y<0||y>=height||
+           caseView.containsDrop(caseView.mapFromItem(scene,x,y)))return null
+        var p=interior.mapFromItem(scene,x,y)
+        if(p.x<0||p.x>interior.width||p.y<0||p.y>interior.height)return null
+        for(var i=cubby.mods.length-1;i>=0;i--){
+            var m=cubby.mods[i]
+            if(m.type!=="rack")continue
+            var item=moduleItem(m.id)
+            if(!item||!item.visible||item.phase!=="idle"||item.locked)continue
+            var local=item.mapFromItem(scene,x,y)
+            if(local.x<0||local.y<0||local.x>item.width||local.y>item.height)continue
+            return item.hitRecord(local.x,local.y)
+        }
+        return null
+    }
+    function updateRackMetadata(point){
+        if(!rackMetadataReady){hoveredRecord=null;return}
+        showRecord(rackMetadataAt(point.x,point.y),point,false)
+    }
     property point tipPoint: Qt.point(0,0)
     // Valid appearance and interior previews only; refused proposals retain
     // committed geometry. Legacy Cubby and unadopted Shelf remain unchanged.
@@ -607,7 +633,6 @@ Item {
                             rack:View.displayRack(scene.controller,scene.cubbyId,scene.materialModule(moduleLoader.modelData))
                             colors:scene.colors
                             browse:scene.mode==="browse"
-                            arrangeMetadata:scene.spatialStyle
                             selected:scene.selectedModuleId===rack.id
                             selectedCell:selected?scene.selectedCell:""
                             selectedScroll:scene.selectedScrollId
@@ -643,7 +668,7 @@ Item {
                                 scene.showRecord(record,mapToItem(scene,lx,ly),true)
                             }
                             onScrollHovered: function(record,lx,ly){
-                                scene.showRecord(record,mapToItem(scene,lx,ly),false)
+                                if(!scene.spatialStyle)scene.showRecord(record,mapToItem(scene,lx,ly),false)
                             }
                         }
                     }
@@ -900,6 +925,15 @@ Item {
         anchors.fill:parent;z:24
         visible:(scene.mode==="arrange"||scene.browseContext)&&!scene.bookDrag&&!scene.controller.draft&&!scene.controller.structuralProposal&&!live.busy&&!scene.pointer&&!scene.prepared
         acceptedButtons:Qt.RightButton
+        // HoverHandler observes the top context surface without taking a
+        // button grab or blocking the Case's own hover handlers.
+        HoverHandler {
+            id:rackMetadataHover
+            enabled:scene.rackMetadataReady
+            blocking:false
+            onHoveredChanged:if(hovered)scene.updateRackMetadata(point.position);else if(scene.spatialStyle)scene.hoveredRecord=null
+            onPointChanged:if(hovered)scene.updateRackMetadata(point.position)
+        }
         onClicked:function(mouse){scene.contextAt(mouse.x,mouse.y)}
         onWheel:function(wheel){wheel.accepted=false}
     }
@@ -962,7 +996,7 @@ Item {
     ArchiveTooltip {
         id:tooltipView
         colors:scene.colors
-        record:scene.pointerActive||scene.furnitureDrag||scene.bookDrag||scene.busy?null:scene.pinnedRecord||scene.hoveredRecord
+        record:scene.pointerActive||scene.furnitureDrag||scene.bookDrag||scene.busy||scene.spatialStyle&&scene.metadataBlocked?null:scene.pinnedRecord||scene.hoveredRecord
         expanded:!!scene.pinnedRecord
         hoverOnly:scene.spatialStyle&&scene.mode==="arrange"
         anchorPoint:scene.tipPoint
