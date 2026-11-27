@@ -1896,13 +1896,20 @@ Item {
                 // dense Room appearance/input regression and images intact.
                 ctl.reset(Sample.roomFixture())
                 clickNamed("adopt-independent-profiles");clickNamed("structure-apply")
+                verify(Spatial.independentProfiles(ctl.snapshot))
                 var priorRooms=Object.keys(ctl.snapshot.spatial.rooms)
-                verify(ctl.proposeStructure({kind:"spatialRoomCreate",patch:{name:"Stone study",x:4000,y:0,w:1800,h:1200,wallHeight:700}}))
-                verify(ctl.applyStructure())
+                // The populated fixture retains an empty sample Room at
+                // x=4000 even after its Shelf is relocated into Main Hall.
+                // Place the new Room beyond every existing Room's right edge.
+                var roomX=Math.max(...priorRooms.map(k=>ctl.snapshot.spatial.rooms[k].x+ctl.snapshot.spatial.rooms[k].w))+100
+                verify(ctl.proposeStructure({kind:"spatialRoomCreate",patch:{name:"Stone study",x:roomX,y:0,w:1800,h:1200,wallHeight:700}}),
+                    ctl.structuralProposal?ctl.structuralProposal.error:"Room proposal unavailable")
+                verify(ctl.applyStructure(),ctl.errorText)
                 var id=Object.keys(ctl.snapshot.spatial.rooms).find(k=>!priorRooms.includes(k))
                 verify(!!id)
-                verify(ctl.proposeStructure({kind:"spatialShelfCreate",roomId:id,patch:{name:"Specimen Shelf",x:100,y:900,w:320,h:300,depth:100,frameBasis:8,orientation:0}}))
-                verify(ctl.applyStructure())
+                verify(ctl.proposeStructure({kind:"spatialShelfCreate",roomId:id,patch:{name:"Specimen Shelf",x:100,y:900,w:320,h:300,depth:100,frameBasis:8,orientation:0}}),
+                    ctl.structuralProposal?ctl.structuralProposal.error:"Shelf proposal unavailable")
+                verify(ctl.applyStructure(),ctl.errorText)
                 var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
                 var map=findChild(study,"archive-map-room"),plan=findChild(study,"archive-room-plan")
                 clickNamed("open-map-room");tryVerify(function(){return map.visible&&map.activeFocus})
