@@ -112,7 +112,6 @@ export const centerStyles=Object.freeze(['none','seal','axis','span']);
 export const glazingStyles=Object.freeze(['linework','subtle','moderate','clearer','graded','combined']);
 export const materialRoles=Object.freeze(['panel','background','metal','engraving']);
 export const containerKeys=Object.freeze(['emblem','border','center','fields','frame','backing','glazing','glazingDefault']);
-export function extended(s){return Object.values(s.cubbies||{}).some(c=>plain(c.appearance)&&containerKeys.some(k=>own(c.appearance,k)))||Object.values(s.spatial&&s.spatial.rooms||{}).some(r=>plain(r.appearance)&&roomKeys.some(k=>own(r.appearance,k)));}
 function fieldError(fields,w,h){
  if(fields===undefined||fields===null)return null;
  if(!Array.isArray(fields)||fields.length>16)return 'Backing field budget exceeded';
@@ -203,6 +202,7 @@ export const floorStyles=Object.freeze(['plain','slabs','bond','diagonal','octag
 export const wallStyles=Object.freeze(['plain','panel','masonry','rubble','pilaster','arcade','wainscot','ribbed']);
 export const roomDefaults=Object.freeze({floor:'plain',wall:'plain',floorBorder:false,wallMarks:false,detail:55,floorScale:80,floorAngle:0,grout:.5,variation:30,borderStyle:'double',wallScale:150});
 export const roomKeys=Object.freeze(Object.keys(roomDefaults));
+export function extended(s){return Object.values(s.cubbies||{}).some(c=>plain(c.appearance)&&containerKeys.some(k=>own(c.appearance,k)))||Object.values(s.spatial&&s.spatial.rooms||{}).some(r=>plain(r.appearance)&&roomKeys.some(k=>own(r.appearance,k)));}
 export function roomError(a){
  if(a===undefined)return null;
  if(!keys(a,['family','palette',...roomKeys]))return 'Invalid Room appearance reference';
