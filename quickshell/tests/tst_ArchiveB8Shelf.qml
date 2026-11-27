@@ -1508,12 +1508,16 @@ Item {
         }
         function test_n5_holder_and_cubby_numeric_handoff(){
             var ctl=study.controller,scene=study.scene,sample=Sample.fixture()
-            var state=Core.editStructure(Core.session(sample),{kind:"holderCreate",cubbyId:"root",moduleId:"mixed-board",patch:{x:600,w:130,count:3}})
+            var state=Core.transfer(Core.session(sample),["mixed-owl"],"case")
+            verify(!state.error,state.error)
+            state=Core.editStructure(state,{kind:"holderCreate",cubbyId:"root",moduleId:"mixed-lower",patch:{x:20,w:90,count:1}})
+            verify(!state.error,state.error)
+            state=Core.editStructure(state,{kind:"holderCreate",cubbyId:"root",moduleId:"mixed-lower",patch:{x:400,w:90,count:1}})
             verify(!state.error,state.error);ctl.reset(state.snapshot)
-            var m=ctl.snapshot.cubbies.root.mods.find(q=>q.id==="mixed-board"),second=m.items.find(q=>q.kind==="holder"&&q.id!=="mixed-upright")
-            verify(!!second)
+            var m=ctl.snapshot.cubbies.root.mods.find(q=>q.id==="mixed-lower"),first=m.items.find(q=>q.kind==="holder"&&q.x===20),second=m.items.find(q=>q.kind==="holder"&&q.x===400)
+            verify(!!first&&!!second)
             var before=JSON.stringify(ctl.snapshot),history=JSON.stringify(ctl.archiveState.history),rev=ctl.archiveState.revision
-            study.switchMode("arrange");scene.selectedModuleId=m.id;scene.selectedHolderId="mixed-upright"
+            study.switchMode("arrange");scene.selectedModuleId=m.id;scene.selectedHolderId=first.id
             clickNamed("arrange-menu");clickNamed("edit-holder")
             var input=findChild(study,"fixture-input-x");verify(!!input)
             function type(value){input.forceActiveFocus();keyClick(Qt.Key_A,Qt.ControlModifier);keyClick(Qt.Key_Backspace);for(var digit of String(value))keyClick(digit)}
@@ -1524,9 +1528,9 @@ Item {
             // actual hit routing on the second holder.
             var panel=findChild(study,"structure-panel"),screen=scene.mapToItem(study,pt.x,pt.y)
             verify(screen.x<panel.x||screen.x>=panel.x+panel.width||screen.y<panel.y||screen.y>=panel.y+panel.height)
-            mouseClick(scene,pt.x,pt.y);compare(ctl.structuralProposal.command.holderId,"mixed-upright");compare(input.text,"")
+            mouseClick(scene,pt.x,pt.y);compare(ctl.structuralProposal.command.holderId,first.id);compare(input.text,"")
             compare(JSON.stringify(ctl.snapshot),before);compare(ctl.archiveState.revision,rev)
-            type(410);tryVerify(function(){return ctl.structuralProposal.ok})
+            type(30);tryVerify(function(){return ctl.structuralProposal.ok})
             var expected=JSON.stringify(ctl.structuralProposal.snapshot)
             mouseClick(scene,pt.x,pt.y)
             tryVerify(function(){return ctl.structuralProposal&&ctl.structuralProposal.command.holderId===second.id})

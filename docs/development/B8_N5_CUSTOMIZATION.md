@@ -110,3 +110,5 @@ Reserve valid existing world openings before relocating obstructed neighbors; ex
 - N5h supplemental actual-input regression candidate: same-support holder target switch retains incomplete input then commits exactly one valid edit; Cubby interior empty numeric field disables stepping and blocks Browse until corrected; Room-local atlas inscription/frame is preview-only until Done, then saves as v6 and reloads exactly after Undo. Native CI required before acceptance.
 
 - N5h compact native regression: 360×460 stacked root flyout, bounded geometry, keyboard navigation and two-stage Escape/focus restoration; captures the actual menu and verifies no document revision. Native verification pending.
+
+- Integrated run 46054550504: all three jobs passed; actual Node 14,907 assertions, native Shelf 43/43. Supplemental holder fixture uses the lower board, preserving the owl in Case and reserving full cradle envelopes rather than treating nominal holder width as its footprint.
